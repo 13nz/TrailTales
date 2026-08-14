@@ -1,20 +1,20 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+
+import AppNavigator from './src/navigation/AppNavigator'
+import { TripProvider } from './src/context/TripContext'
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+    return (
+        // provides device safe-area information to every screen
+        <SafeAreaProvider>
+            {/* provides shared trip state to the entire navigation tree */}
+            <TripProvider>
+                {/* manages navigation state for the entire application */}
+                <NavigationContainer>
+                    <AppNavigator />
+                </NavigationContainer>
+            </TripProvider>
+        </SafeAreaProvider>
+    )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

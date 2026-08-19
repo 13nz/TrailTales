@@ -1,4 +1,6 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import {
+    createNativeStackNavigator,
+} from '@react-navigation/native-stack'
 
 import TripsScreen from '../screens/TripsScreen'
 import CreateTripScreen from '../screens/CreateTripScreen'
@@ -11,77 +13,101 @@ import AddActivityScreen from '../screens/AddActivityScreen'
 import EditTripScreen from '../screens/EditTripScreen'
 import EditItineraryItemScreen from '../screens/EditItineraryItemScreen'
 
-const Stack = createNativeStackNavigator()
+const Stack =
+    createNativeStackNavigator()
 
 // manages navigation between the trip list and individual trip planning screens
 export default function TripsStack() {
     return (
         <Stack.Navigator
             screenOptions={{
-                // screens provide their own custom headers to match the trail tales visual style
+                // screens provide their own custom headers
                 headerShown: false,
 
-                // keeps navigation animations consistent across trip screens
-                animation: 'slide_from_right',
+                // keeps navigation animations consistent
+                animation:
+                    'slide_from_right',
             }}
         >
             {/* displays the user's upcoming and past adventures */}
             <Stack.Screen
                 name="TripsHome"
-                component={TripsScreen}
+                component={
+                    TripsScreen
+                }
             />
 
             {/* provides the form used to create a new adventure */}
             <Stack.Screen
                 name="CreateTrip"
-                component={CreateTripScreen}
+                component={
+                    CreateTripScreen
+                }
             />
 
             {/* displays the complete planning workspace for an adventure */}
             <Stack.Screen
                 name="TripDetail"
-                component={TripDetailScreen}
+                component={
+                    TripDetailScreen
+                }
             />
 
-            {/* provides trail search and selection */}
+            {/* provides trail search and selection when launched from the Trips workflow */}
             <Stack.Screen
                 name="AddTrail"
-                component={AddTrailScreen}
+                component={
+                    AddTrailScreen
+                }
             />
 
-            {/* provides campground search and selection */}
+            {/* provides campground search and selection when launched from the Trips workflow */}
             <Stack.Screen
                 name="AddCampsite"
-                component={AddCampsiteScreen}
+                component={
+                    AddCampsiteScreen
+                }
             />
 
             {/* displays the existing trail detail experience */}
             <Stack.Screen
                 name="TrailDetail"
-                component={TrailDetailScreen}
+                component={
+                    TrailDetailScreen
+                }
             />
 
             {/* displays the existing campground detail experience */}
             <Stack.Screen
                 name="CampgroundDetail"
-                component={CampgroundDetailScreen}
+                component={
+                    CampgroundDetailScreen
+                }
             />
 
+            {/* provides custom activity creation */}
             <Stack.Screen
                 name="AddActivity"
-                component={AddActivityScreen}
+                component={
+                    AddActivityScreen
+                }
             />
 
+            {/* provides trip editing */}
             <Stack.Screen
                 name="EditTrip"
-                component={EditTripScreen}
-            />  
-
-            <Stack.Screen
-                name="EditItineraryItem"
-                component={EditItineraryItemScreen}
+                component={
+                    EditTripScreen
+                }
             />
 
+            {/* provides itinerary item editing */}
+            <Stack.Screen
+                name="EditItineraryItem"
+                component={
+                    EditItineraryItemScreen
+                }
+            />
         </Stack.Navigator>
     )
 }

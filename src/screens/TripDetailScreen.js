@@ -29,14 +29,10 @@ export default function TripDetailScreen({
     const { trips, updateTrip } = useTrips()
 
     // finds the selected adventure from the shared trip store
-    const trip =
-        trips.find((item) => item.id === tripId) ||
-        trips[0]
+    const trip = trips.find((item) => item.id === tripId) ||ctrips[0]
 
     // finds the national park associated with the selected trip
-    const park = mockParks.find(
-        (item) => item.id === trip?.parkId
-    )
+    const park = mockParks.find((item) => item.id === trip?.parkId)
 
     if (!trip) {
         return (

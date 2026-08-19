@@ -3,6 +3,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import AppNavigator from './src/navigation/AppNavigator'
 import { TripProvider } from './src/context/TripContext'
+import { WildlifeReportProvider } from './src/context/WildlifeReportContext'
 
 export default function App() {
     return (
@@ -10,10 +11,12 @@ export default function App() {
         <SafeAreaProvider>
             {/* provides shared trip state to the entire navigation tree */}
             <TripProvider>
-                {/* manages navigation state for the entire application */}
-                <NavigationContainer>
-                    <AppNavigator />
-                </NavigationContainer>
+                <WildlifeReportProvider>
+                     {/* manages navigation state for the entire application */}
+                    <NavigationContainer>
+                        <AppNavigator />
+                    </NavigationContainer>
+                </WildlifeReportProvider>
             </TripProvider>
         </SafeAreaProvider>
     )

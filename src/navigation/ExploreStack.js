@@ -1,4 +1,6 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import {
+    createNativeStackNavigator,
+} from '@react-navigation/native-stack'
 
 import ExploreScreen from '../screens/ExploreScreen'
 import ParkDirectoryScreen from '../screens/ParkDirectoryScreen'
@@ -6,9 +8,19 @@ import ParkDetailScreen from '../screens/ParkDetailScreen'
 import TrailDetailScreen from '../screens/TrailDetailScreen'
 import CampgroundDetailScreen from '../screens/CampgroundDetailScreen'
 
-const Stack = createNativeStackNavigator()
+import ExploreSearchScreen from '../screens/ExploreSearchScreen'
+import TrailDirectoryScreen from '../screens/TrailDirectoryScreen'
+import CampgroundDirectoryScreen from '../screens/CampgroundDirectoryScreen'
+import ActivityDirectoryScreen from '../screens/ActivityDirectoryScreen'
+// import PassportScreen from '../screens/PassportScreen'
+import ReportWildlifeScreen from '../screens/ReportWildlifeScreen'
 
-// manages navigation between the explore landing page and deeper park-related screens
+import ActivityDetailScreen from '../screens/ActivityDetailScreen'
+
+const Stack =
+    createNativeStackNavigator()
+
+// manages navigation between discovery categories and their detailed content
 export default function ExploreStack() {
     return (
         <Stack.Navigator
@@ -16,40 +28,94 @@ export default function ExploreStack() {
                 // each explore screen manages its own visual header
                 headerShown: false,
 
-                // prevents the default native transition from conflicting with the application's design
-                animation: 'slide_from_right',
+                // keeps the explore navigation visually consistent with the rest of the app
+                animation:
+                    'slide_from_right',
             }}
         >
-            {/* the explore landing page is the root of this navigation stack */}
             <Stack.Screen
                 name="ExploreHome"
-                component={ExploreScreen}
+                component={
+                    ExploreScreen
+                }
             />
 
-            {/* the park directory contains the complete collection of national parks */}
             <Stack.Screen
                 name="ParkDirectory"
-                component={ParkDirectoryScreen}
+                component={
+                    ParkDirectoryScreen
+                }
             />
 
-            {/* displays the complete information hub for a selected national park */}
             <Stack.Screen
                 name="ParkDetail"
-                component={ParkDetailScreen}
+                component={
+                    ParkDetailScreen
+                }
             />
 
-            {/* displays detailed information about a selected trail */}
+            <Stack.Screen
+                name="TrailDirectory"
+                component={
+                    TrailDirectoryScreen
+                }
+            />
+
             <Stack.Screen
                 name="TrailDetail"
-                component={TrailDetailScreen}
+                component={
+                    TrailDetailScreen
+                }
             />
 
-            {/* displays detailed information about a selected campground */}
+            <Stack.Screen
+                name="CampgroundDirectory"
+                component={
+                    CampgroundDirectoryScreen
+                }
+            />
+
             <Stack.Screen
                 name="CampgroundDetail"
-                component={CampgroundDetailScreen}
+                component={
+                    CampgroundDetailScreen
+                }
             />
 
+            <Stack.Screen
+                name="ExploreSearch"
+                component={
+                    ExploreSearchScreen
+                }
+            />
+
+            {/* <Stack.Screen
+                name="Passport"
+                component={
+                    PassportScreen
+                }
+            /> */}
+
+            <Stack.Screen
+                name="ActivityDirectory"
+                component={
+                    ActivityDirectoryScreen
+                }
+            />
+
+            <Stack.Screen
+                name="ActivityDetail"
+                component={
+                    ActivityDetailScreen
+                }
+            />
+
+            <Stack.Screen
+                name="ReportWildlife"
+                component={
+                    ReportWildlifeScreen
+                }
+            />
         </Stack.Navigator>
     )
 }

@@ -1,5 +1,15 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
+import {
+    createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs'
+
+import {
+    createNativeStackNavigator,
+} from '@react-navigation/native-stack'
+
+import {
+    getFocusedRouteNameFromRoute,
+} from '@react-navigation/native'
+
 import { Ionicons } from '@expo/vector-icons'
 
 import ExploreStack from './ExploreStack'
@@ -8,11 +18,20 @@ import TripsStack from './TripsStack'
 import JournalStack from './JournalStack'
 import LoreStack from './LoreStack'
 
+import CreateTripScreen from '../screens/CreateTripScreen'
+import AddTrailScreen from '../screens/AddTrailScreen'
+import AddCampsiteScreen from '../screens/AddCampsiteScreen'
+
 import theme from '../constants/theme'
 
-const Tab = createBottomTabNavigator()
+const Tab =
+    createBottomTabNavigator()
 
-export default function AppNavigator() {
+const RootStack =
+    createNativeStackNavigator()
+
+// contains the application's primary bottom-tab navigation
+function MainTabs() {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => {
@@ -35,10 +54,10 @@ export default function AppNavigator() {
                     )
 
                 return {
-                    // the application uses custom screen content instead of default navigation headers
+                    // screens provide their own headers
                     headerShown: false,
 
-                    // campfire mode uses a separate nighttime color palette without changing the rest of the app
+                    // campfire mode uses the nighttime navigation colors
                     tabBarActiveTintColor:
                         isCampfireMode
                             ? '#E7B76B'
@@ -60,17 +79,17 @@ export default function AppNavigator() {
                     },
 
                     tabBarItemStyle: {
-                        // keeps each navigation item compact without changing device safe-area behavior
+                        // keeps each navigation item compact
                         height: 48,
                     },
 
                     tabBarLabelStyle: {
-                        // keeps navigation labels small and balanced with the compact tab bar
+                        // keeps navigation labels small and balanced
                         fontSize: 11,
                         fontWeight: '600',
                     },
 
-                    // maps each top-level screen to an icon that communicates its purpose
+                    // maps each top-level screen to an icon
                     tabBarIcon: ({
                         color,
                         focused,
@@ -134,7 +153,7 @@ export default function AppNavigator() {
                 }
             }}
         >
-            {/* explore uses its own stack so the landing page can navigate to parks, trails, and campgrounds */}
+            {/* explore uses its own stack for parks, trails, campgrounds, and activities */}
             <Tab.Screen
                 name="Explore"
                 component={
@@ -142,7 +161,7 @@ export default function AppNavigator() {
                 }
             />
 
-            {/* map uses its own stack so users can navigate from geographic markers into detailed locations */}
+            {/* map uses its own stack for geographic content */}
             <Tab.Screen
                 name="Map"
                 component={
@@ -150,7 +169,7 @@ export default function AppNavigator() {
                 }
             />
 
-            {/* trips uses its own stack for creating and managing adventures */}
+            {/* trips uses its own stack for trip management */}
             <Tab.Screen
                 name="Trips"
                 component={
@@ -158,7 +177,7 @@ export default function AppNavigator() {
                 }
             />
 
-            {/* journal contains private and public memories, photos, and wildlife reports */}
+            {/* journal contains private and public memories */}
             <Tab.Screen
                 name="Journal"
                 component={
@@ -166,7 +185,7 @@ export default function AppNavigator() {
                 }
             />
 
-            {/* lore contains the curated folklore and campfire storytelling experience */}
+            {/* lore contains folklore and campfire stories */}
             <Tab.Screen
                 name="Lore"
                 component={
@@ -174,5 +193,54 @@ export default function AppNavigator() {
                 }
             />
         </Tab.Navigator>
+    )
+}
+
+// manages the main application navigation and workflow screens launched from other sections
+export default function AppNavigator() {
+    return (
+        <RootStack.Navigator
+            screenOptions={{
+                // workflow screens provide their own headers
+                headerShown: false,
+
+                // keeps workflow transitions consistent
+                animation:
+                    'slide_from_right',
+            }}
+        >
+            {/* contains the normal bottom-tab application */}
+            <RootStack.Screen
+                name="Main"
+                component={
+                    MainTabs
+                }
+            />
+
+            {/* these routes are intentionally at the root level
+                so detail pages can open them without inheriting
+                the TripsStack navigation history */}
+
+            <RootStack.Screen
+                name="CreateTrip"
+                component={
+                    CreateTripScreen
+                }
+            />
+
+            <RootStack.Screen
+                name="AddTrail"
+                component={
+                    AddTrailScreen
+                }
+            />
+
+            <RootStack.Screen
+                name="AddCampsite"
+                component={
+                    AddCampsiteScreen
+                }
+            />
+        </RootStack.Navigator>
     )
 }

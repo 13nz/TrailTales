@@ -10,32 +10,80 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import theme from '../constants/theme'
 import mockParks from '../data/mockParks'
+import mockWildlife from '../data/mockWildlife'
+
+import { useWildlifeReports } from '../context/WildlifeReportContext'
+
+import { useState } from 'react'
+import { useTrips } from '../context/TripContext'
+import TripPickerModal from '../components/TripPickerModal'
 
 // displays detailed campground information and provides actions for saving and trip planning
-export default function CampgroundDetailScreen({ route, navigation }) {
+export default function CampgroundDetailScreen({
+    route,
+    navigation,
+}) {
     const insets = useSafeAreaInsets()
+
+    const { trips } = useTrips()
+
+    const [showTripPicker, setShowTripPicker] = useState(false)
 
     const { parkId, campgroundId } = route.params
 
-    const park = mockParks.find((item) => item.id === parkId)
+    // provides access to shared user wildlife reports
+    const { getReportsForCampground } = useWildlifeReports()
 
-    const campground = park?.campgrounds.find(
-        (item) => item.id === campgroundId
-    )
+    const park =
+        mockParks.find(
+            (item) =>
+                item.id === parkId
+        )
+
+    const campground =
+        park?.campgrounds.find(
+            (item) =>
+                item.id ===
+                campgroundId
+        )
+
+    // gets official wildlife information associated with the park
+    const wildlife =
+        mockWildlife[parkId] || []
+
+    // gets only user reports associated with this campground
+    const reports =
+        getReportsForCampground(
+            campgroundId
+        )
 
     // prevents the screen from crashing when a campground cannot be found
     if (!park || !campground) {
         return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorTitle}>
+            <View
+                style={
+                    styles.errorContainer
+                }
+            >
+                <Text
+                    style={
+                        styles.errorTitle
+                    }
+                >
                     Campground not found
                 </Text>
 
                 <Pressable
-                    onPress={() => navigation.goBack()}
+                    onPress={() =>
+                        navigation.goBack()
+                    }
                     accessibilityRole="button"
                 >
-                    <Text style={styles.backButton}>
+                    <Text
+                        style={
+                            styles.backButton
+                        }
+                    >
                         Go back
                     </Text>
                 </Pressable>
@@ -44,15 +92,29 @@ export default function CampgroundDetailScreen({ route, navigation }) {
     }
 
     return (
-        <View style={styles.screen}>
+        <View
+            style={styles.screen}
+        >
             <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={
+                    false
+                }
+                contentContainerStyle={
+                    styles.content
+                }
             >
                 {/* provides quick navigation back to the park page */}
                 <View style={styles.hero}>
-                    <View style={styles.heroImage}>
-                        <Text style={styles.heroImageText}>
+                    <View
+                        style={
+                            styles.heroImage
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.heroImageText
+                            }
+                        >
                             CAMPGROUND PHOTO
                         </Text>
                     </View>
@@ -61,13 +123,21 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                         style={[
                             styles.backButtonContainer,
                             {
-                                top: insets.top + theme.spacing.sm,
+                                top:
+                                    insets.top +
+                                    theme.spacing.sm,
                             },
                         ]}
-                        onPress={() => navigation.goBack()}
+                        onPress={() =>
+                            navigation.goBack()
+                        }
                         accessibilityRole="button"
                     >
-                        <Text style={styles.heroButton}>
+                        <Text
+                            style={
+                                styles.heroButton
+                            }
+                        >
                             ‹
                         </Text>
                     </Pressable>
@@ -77,46 +147,86 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                         style={[
                             styles.favoriteButton,
                             {
-                                top: insets.top + theme.spacing.sm,
+                                top:
+                                    insets.top +
+                                    theme.spacing.sm,
                             },
                         ]}
                         accessibilityRole="button"
                         accessibilityLabel={`save ${campground.name}`}
                     >
-                        <Text style={styles.favoriteIcon}>
+                        <Text
+                            style={
+                                styles.favoriteIcon
+                            }
+                        >
                             ♡
                         </Text>
                     </Pressable>
                 </View>
 
-                <View style={styles.header}>
-                    <Text style={styles.eyebrow}>
+                <View
+                    style={styles.header}
+                >
+                    <Text
+                        style={
+                            styles.eyebrow
+                        }
+                    >
                         {park.name.toUpperCase()}
                     </Text>
 
-                    <Text style={styles.title}>
+                    <Text
+                        style={
+                            styles.title
+                        }
+                    >
                         {campground.name}
                     </Text>
 
-                    <Text style={styles.location}>
+                    <Text
+                        style={
+                            styles.location
+                        }
+                    >
                         {campground.season}
                     </Text>
 
-                    <View style={styles.actions}>
+                    <View
+                        style={
+                            styles.actions
+                        }
+                    >
                         <Pressable
-                            style={styles.primaryAction}
+                            style={
+                                styles.primaryAction
+                            }
                             accessibilityRole="button"
                         >
-                            <Text style={styles.primaryActionText}>
+                            <Text
+                                style={
+                                    styles.primaryActionText
+                                }
+                            >
                                 Save
                             </Text>
                         </Pressable>
 
                         <Pressable
-                            style={styles.secondaryAction}
+                            style={
+                                styles.secondaryAction
+                            }
+                            // top + Trip button
+                            onPress={() => {
+                                setShowTripPicker(true)
+                            }}
                             accessibilityRole="button"
                         >
-                            <Text style={styles.secondaryActionText}>
+                            <Text
+                                style={
+                                    styles.secondaryActionText
+                                }
+                            >
                                 + Trip
                             </Text>
                         </Pressable>
@@ -124,30 +234,56 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                 </View>
 
                 {/* highlights the campground information needed when planning a stay */}
-                <View style={styles.stats}>
-                    <View style={styles.statsRow}>
+                <View
+                    style={styles.stats}
+                >
+                    <View
+                        style={
+                            styles.statsRow
+                        }
+                    >
                         <CampgroundStat
-                            value={campground.sites}
+                            value={
+                                campground.sites
+                            }
                             label="Sites"
                         />
 
                         <CampgroundStat
-                            value={campground.season}
+                            value={
+                                campground.season
+                            }
                             label="Season"
                         />
                     </View>
 
-                    <View style={styles.petStat}>
-                        <Text style={styles.petIcon}>
+                    <View
+                        style={
+                            styles.petStat
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.petIcon
+                            }
+                        >
                             🐕
                         </Text>
 
                         <View>
-                            <Text style={styles.petLabel}>
+                            <Text
+                                style={
+                                    styles.petLabel
+                                }
+                            >
                                 Dogs
                             </Text>
 
-                            <Text style={styles.petValue}>
+                            <Text
+                                style={
+                                    styles.petValue
+                                }
+                            >
                                 {campground.dogsAllowed
                                     ? 'Allowed'
                                     : 'Not allowed'}
@@ -156,30 +292,56 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
+                <View
+                    style={styles.section}
+                >
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         About
                     </Text>
 
-                    <Text style={styles.body}>
-                        {campground.description}
+                    <Text
+                        style={
+                            styles.body
+                        }
+                    >
+                        {
+                            campground.description
+                        }
                     </Text>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
+                <View
+                    style={styles.section}
+                >
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Campground details
                     </Text>
 
-                    <View style={styles.detailList}>
+                    <View
+                        style={
+                            styles.detailList
+                        }
+                    >
                         <DetailRow
                             label="Sites"
-                            value={campground.sites}
+                            value={
+                                campground.sites
+                            }
                         />
 
                         <DetailRow
                             label="Season"
-                            value={campground.season}
+                            value={
+                                campground.season
+                            }
                         />
 
                         <DetailRow
@@ -198,66 +360,136 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
+                <View
+                    style={styles.section}
+                >
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Nearby trails
                     </Text>
 
-                    <Text style={styles.sectionDescription}>
-                        Explore trails that can be added to your trip
+                    <Text
+                        style={
+                            styles.sectionDescription
+                        }
+                    >
+                        Explore trails that can
+                        be added to your trip
                         alongside this campground.
                     </Text>
 
-                    <View style={styles.nearbyList}>
-                        {park.trails.slice(0, 3).map((trail) => (
-                            <Pressable
-                                key={trail.id}
-                                style={({ pressed }) => [
-                                    styles.nearbyTrail,
-                                    pressed && styles.pressed,
-                                ]}
-                                onPress={() => {
-                                    // allows campers to move directly from a campground to a nearby trail
-                                    navigation.navigate(
-                                        'TrailDetail',
-                                        {
-                                            parkId: park.id,
-                                            trailId: trail.id,
+                    <View
+                        style={
+                            styles.nearbyList
+                        }
+                    >
+                        {park.trails
+                            .slice(0, 3)
+                            .map(
+                                (
+                                    trail
+                                ) => (
+                                    <Pressable
+                                        key={
+                                            trail.id
                                         }
-                                    )
-                                }}
-                                accessibilityRole="button"
-                            >
-                                <View style={styles.nearbyTrailIcon}>
-                                    <Text style={styles.nearbyTrailIconText}>
-                                        ↗
-                                    </Text>
-                                </View>
+                                        style={({
+                                            pressed,
+                                        }) => [
+                                            styles.nearbyTrail,
+                                            pressed &&
+                                                styles.pressed,
+                                        ]}
+                                        onPress={() => {
+                                            // allows campers to move directly from a campground to a nearby trail
+                                            navigation.navigate(
+                                                'TrailDetail',
+                                                {
+                                                    parkId:
+                                                        park.id,
+                                                    trailId:
+                                                        trail.id,
+                                                }
+                                            )
+                                        }}
+                                        accessibilityRole="button"
+                                    >
+                                        <View
+                                            style={
+                                                styles.nearbyTrailIcon
+                                            }
+                                        >
+                                            <Text
+                                                style={
+                                                    styles.nearbyTrailIconText
+                                                }
+                                            >
+                                                ↗
+                                            </Text>
+                                        </View>
 
-                                <View style={styles.nearbyTrailContent}>
-                                    <Text style={styles.nearbyTrailName}>
-                                        {trail.name}
-                                    </Text>
+                                        <View
+                                            style={
+                                                styles.nearbyTrailContent
+                                            }
+                                        >
+                                            <Text
+                                                style={
+                                                    styles.nearbyTrailName
+                                                }
+                                            >
+                                                {
+                                                    trail.name
+                                                }
+                                            </Text>
 
-                                    <Text style={styles.nearbyTrailMeta}>
-                                        {trail.distance} · {trail.difficulty}
-                                    </Text>
-                                </View>
+                                            <Text
+                                                style={
+                                                    styles.nearbyTrailMeta
+                                                }
+                                            >
+                                                {
+                                                    trail.distance
+                                                }{' '}
+                                                ·{' '}
+                                                {
+                                                    trail.difficulty
+                                                }
+                                            </Text>
+                                        </View>
 
-                                <Text style={styles.chevron}>
-                                    ›
-                                </Text>
-                            </Pressable>
-                        ))}
+                                        <Text
+                                            style={
+                                                styles.chevron
+                                            }
+                                        >
+                                            ›
+                                        </Text>
+                                    </Pressable>
+                                )
+                            )}
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
+                <View
+                    style={styles.section}
+                >
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Amenities
                     </Text>
 
-                    <View style={styles.amenityGrid}>
+                    <View
+                        style={
+                            styles.amenityGrid
+                        }
+                    >
                         <Amenity
                             icon="◉"
                             label="Campsites"
@@ -280,521 +512,1308 @@ export default function CampgroundDetailScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        Wildlife sightings
-                    </Text>
-
-                    <View style={styles.wildlifeCard}>
-                        <Text style={styles.wildlifeIcon}>
-                            🐾
-                        </Text>
-
-                        <View style={styles.wildlifeContent}>
-                            <Text style={styles.wildlifeTitle}>
-                                See what campers have spotted
+                {/* displays official wildlife information separately from user reports */}
+                <View
+                    style={styles.section}
+                >
+                    <View
+                        style={
+                            styles.sectionHeader
+                        }
+                    >
+                        <View
+                            style={
+                                styles.sectionHeaderContent
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
+                                Wildlife
                             </Text>
 
-                            <Text style={styles.wildlifeBody}>
-                                Wildlife reports from the community
-                                will appear here.
+                            <Text
+                                style={
+                                    styles.sectionDescription
+                                }
+                            >
+                                Wildlife known to
+                                live in this area
                             </Text>
                         </View>
                     </View>
+
+                    {wildlife.length >
+                    0 ? (
+                        <View
+                            style={
+                                styles.wildlifeList
+                            }
+                        >
+                            {wildlife.map(
+                                (
+                                    animal
+                                ) => (
+                                    <WildlifeRow
+                                        key={
+                                            animal.id
+                                        }
+                                        animal={
+                                            animal
+                                        }
+                                    />
+                                )
+                            )}
+                        </View>
+                    ) : (
+                        <EmptyCard
+                            text="Wildlife information is not available yet"
+                        />
+                    )}
                 </View>
 
-                <View style={styles.section}>
-                    <View style={styles.planCard}>
-                        <Text style={styles.planEyebrow}>
+                {/* displays only community reports associated with this campground */}
+                <View
+                    style={styles.section}
+                >
+                    <View
+                        style={
+                            styles.sectionHeader
+                        }
+                    >
+                        <View
+                            style={
+                                styles.sectionHeaderContent
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
+                                User Reports
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.sectionDescription
+                                }
+                            >
+                                Wildlife reports
+                                submitted by
+                                TrailTales users
+                            </Text>
+                        </View>
+
+                        <Pressable
+                            onPress={() =>
+                                navigation.navigate(
+                                    'ReportWildlife',
+                                    {
+                                        parkId:
+                                            park.id,
+                                        campgroundId:
+                                            campground.id,
+                                    }
+                                )
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel="report a wildlife sighting"
+                        >
+                            <Text
+                                style={
+                                    styles.sectionAction
+                                }
+                            >
+                                Report sighting
+                            </Text>
+                        </Pressable>
+                    </View>
+
+                    {reports.length >
+                    0 ? (
+                        <View
+                            style={
+                                styles.reportList
+                            }
+                        >
+                            {reports.map(
+                                (
+                                    report
+                                ) => (
+                                    <WildlifeReportRow
+                                        key={
+                                            report.id
+                                        }
+                                        report={
+                                            report
+                                        }
+                                    />
+                                )
+                            )}
+                        </View>
+                    ) : (
+                        <EmptyCard
+                            text="No wildlife reports have been submitted for this campground yet"
+                        />
+                    )}
+
+                    <Pressable
+                        style={
+                            styles.reportButton
+                        }
+                        onPress={() =>
+                            navigation.navigate(
+                                'ReportWildlife',
+                                {
+                                    parkId:
+                                        park.id,
+                                    campgroundId:
+                                        campground.id,
+                                }
+                            )
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel="report a wildlife sighting"
+                    >
+                        <Text
+                            style={
+                                styles.reportButtonText
+                            }
+                        >
+                            + Report a sighting
+                        </Text>
+                    </Pressable>
+                </View>
+
+                <View
+                    style={styles.section}
+                >
+                    <View
+                        style={
+                            styles.planCard
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.planEyebrow
+                            }
+                        >
                             PLAN YOUR STAY
                         </Text>
 
-                        <Text style={styles.planTitle}>
-                            Add this campground to a trip
+                        <Text
+                            style={
+                                styles.planTitle
+                            }
+                        >
+                            Add this campground
+                            to a trip
                         </Text>
 
-                        <Text style={styles.planBody}>
-                            Keep your campsite, trails, and activities
-                            together in one adventure.
+                        <Text
+                            style={
+                                styles.planBody
+                            }
+                        >
+                            Keep your campsite,
+                            trails, and activities
+                            together in one
+                            adventure.
                         </Text>
 
                         <Pressable
-                            style={styles.planButton}
+                            style={
+                                styles.planButton
+                            }
+                            onPress={() => {
+                                // opens trips belonging to this park before adding the campground
+                                setShowTripPicker(true)
+                            }}
                             accessibilityRole="button"
+                            accessibilityLabel={`add ${campground.name} to a trip`}
                         >
-                            <Text style={styles.planButtonText}>
+                            <Text
+                                style={
+                                    styles.planButtonText
+                                }
+                            >
                                 Add to trip
                             </Text>
                         </Pressable>
                     </View>
                 </View>
             </ScrollView>
+
+            <TripPickerModal
+                visible={showTripPicker}
+                trips={trips}
+                park={park}
+                onClose={() =>
+                    setShowTripPicker(false)
+                }
+                onSelectTrip={(trip) => {
+                    setShowTripPicker(false)
+
+                    navigation.navigate(
+                        'AddCampsite',
+                        {
+                            tripId: trip.id,
+                        }
+                    )
+                }}
+                onCreateTrip={() => {
+                    setShowTripPicker(false)
+
+                    navigation.navigate(
+                        'Trips',
+                        {
+                            screen: 'CreateTrip',
+                            params: {
+                                parkId: park.id,
+                            },
+                        }
+                    )
+                }}
+            />
         </View>
     )
 }
 
-function CampgroundStat({ value, label }) {
+function CampgroundStat({
+    value,
+    label,
+}) {
     return (
-        <View style={styles.stat}>
-            <Text style={styles.statValue}>
+        <View
+            style={styles.stat}
+        >
+            <Text
+                style={
+                    styles.statValue
+                }
+            >
                 {value}
             </Text>
 
-            <Text style={styles.statLabel}>
+            <Text
+                style={
+                    styles.statLabel
+                }
+            >
                 {label}
             </Text>
         </View>
     )
 }
 
-function DetailRow({ label, value }) {
+function DetailRow({
+    label,
+    value,
+}) {
     return (
-        <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>
+        <View
+            style={styles.detailRow}
+        >
+            <Text
+                style={
+                    styles.detailLabel
+                }
+            >
                 {label}
             </Text>
 
-            <Text style={styles.detailValue}>
+            <Text
+                style={
+                    styles.detailValue
+                }
+            >
                 {value}
             </Text>
         </View>
     )
 }
 
-function Amenity({ icon, label }) {
+function Amenity({
+    icon,
+    label,
+}) {
     return (
-        <View style={styles.amenity}>
-            <View style={styles.amenityIcon}>
-                <Text style={styles.amenityIconText}>
+        <View
+            style={styles.amenity}
+        >
+            <View
+                style={
+                    styles.amenityIcon
+                }
+            >
+                <Text
+                    style={
+                        styles.amenityIconText
+                    }
+                >
                     {icon}
                 </Text>
             </View>
 
-            <Text style={styles.amenityLabel}>
+            <Text
+                style={
+                    styles.amenityLabel
+                }
+            >
                 {label}
             </Text>
         </View>
     )
 }
 
-const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: theme.colors.parchment,
-    },
+// displays official wildlife information without species-specific emojis
+function WildlifeRow({
+    animal,
+}) {
+    return (
+        <View
+            style={
+                styles.wildlifeRow
+            }
+        >
+            <View
+                style={
+                    styles.wildlifeIcon
+                }
+            >
+                <Text
+                    style={
+                        styles.wildlifeIconText
+                    }
+                >
+                    W
+                </Text>
+            </View>
 
-    content: {
-        paddingBottom: 120,
-    },
+            <View
+                style={
+                    styles.wildlifeContent
+                }
+            >
+                <Text
+                    style={
+                        styles.wildlifeTitle
+                    }
+                >
+                    {animal.name}
+                </Text>
 
-    hero: {
-        height: 280,
-        position: 'relative',
-    },
+                <Text
+                    style={
+                        styles.wildlifeBody
+                    }
+                    numberOfLines={
+                        3
+                    }
+                >
+                    {
+                        animal.description
+                    }
+                </Text>
+            </View>
+        </View>
+    )
+}
 
-    heroImage: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        flex: 1,
-        justifyContent: 'center',
-    },
+// displays community reports separately from official wildlife information
+function WildlifeReportRow({
+    report,
+}) {
+    return (
+        <View
+            style={
+                styles.reportCard
+            }
+        >
+            <View
+                style={
+                    styles.reportIcon
+                }
+            >
+                <Text
+                    style={
+                        styles.reportIconText
+                    }
+                >
+                    R
+                </Text>
+            </View>
 
-    heroImageText: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.label.fontSize,
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
+            <View
+                style={
+                    styles.reportContent
+                }
+            >
+                <View
+                    style={
+                        styles.reportTitleRow
+                    }
+                >
+                    <Text
+                        style={
+                            styles.reportSpecies
+                        }
+                    >
+                        {report.species}
+                    </Text>
 
-    backButtonContainer: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.parchment,
-        borderRadius: 22,
-        height: 44,
-        justifyContent: 'center',
-        left: theme.spacing.lg,
-        position: 'absolute',
-        width: 44,
-    },
+                    <Text
+                        style={
+                            styles.userLabel
+                        }
+                    >
+                        USER REPORT
+                    </Text>
+                </View>
 
-    heroButton: {
-        color: theme.colors.ink,
-        fontSize: 30,
-        lineHeight: 32,
-    },
+                <Text
+                    style={
+                        styles.reportLocation
+                    }
+                >
+                    {report.location}
+                </Text>
 
-    favoriteButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.parchment,
-        borderRadius: 22,
-        height: 44,
-        justifyContent: 'center',
-        position: 'absolute',
-        right: theme.spacing.lg,
-        width: 44,
-    },
+                <Text
+                    style={
+                        styles.reportDescription
+                    }
+                    numberOfLines={
+                        3
+                    }
+                >
+                    {report.description ||
+                        'No additional details provided'}
+                </Text>
 
-    favoriteIcon: {
-        color: theme.colors.earth,
-        fontSize: 26,
-    },
+                <Text
+                    style={
+                        styles.reportTime
+                    }
+                >
+                    {report.time ||
+                        formatReportTime(
+                            report.reportedAt
+                        )}
+                </Text>
+            </View>
+        </View>
+    )
+}
 
-    header: {
-        padding: theme.spacing.lg,
-    },
+function EmptyCard({
+    text,
+}) {
+    return (
+        <View
+            style={
+                styles.emptyCard
+            }
+        >
+            <Text
+                style={
+                    styles.emptyCardText
+                }
+            >
+                {text}
+            </Text>
+        </View>
+    )
+}
 
-    eyebrow: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.label.fontSize,
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
+function formatReportTime(
+    reportedAt
+) {
+    if (!reportedAt) {
+        return ''
+    }
 
-    title: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.display.fontSize,
-        fontWeight: theme.typography.display.fontWeight,
-        lineHeight: theme.typography.display.lineHeight,
-        marginTop: theme.spacing.xs,
-    },
+    const date =
+        new Date(reportedAt)
 
-    location: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.body.fontSize,
-        marginTop: theme.spacing.xs,
-    },
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return ''
+    }
 
-    actions: {
-        flexDirection: 'row',
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.lg,
-    },
+    return date.toLocaleDateString(
+        undefined,
+        {
+            month: 'short',
+            day: 'numeric',
+        }
+    )
+}
 
-    primaryAction: {
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.sm,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.sm,
-    },
+const styles =
+    StyleSheet.create({
+        screen: {
+            flex: 1,
+            backgroundColor:
+                theme.colors.parchment,
+        },
 
-    primaryActionText: {
-        color: theme.colors.parchment,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        content: {
+            paddingBottom: 120,
+        },
 
-    secondaryAction: {
-        borderColor: theme.colors.earth,
-        borderRadius: theme.radii.sm,
-        borderWidth: 1,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.sm,
-    },
+        hero: {
+            height: 280,
+            position: 'relative',
+        },
 
-    secondaryActionText: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        heroImage: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.sage,
+            flex: 1,
+            justifyContent: 'center',
+        },
 
-    stats: {
-        backgroundColor: theme.colors.canvas,
-        borderBottomColor: theme.colors.parchment,
-        borderBottomWidth: 1,
-        borderTopColor: theme.colors.parchment,
-        borderTopWidth: 1,
-        paddingVertical: theme.spacing.md,
-    },
+        heroImageText: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.label
+                    .fontSize,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+        },
 
-    statsRow: {
-        flexDirection: 'row',
-        paddingHorizontal: theme.spacing.md,
-    },
+        backButtonContainer: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.parchment,
+            borderRadius: 22,
+            height: 44,
+            justifyContent: 'center',
+            left: theme.spacing.lg,
+            position: 'absolute',
+            width: 44,
+        },
 
-    stat: {
-        flex: 1,
-        paddingHorizontal: theme.spacing.xs,
-    },
+        heroButton: {
+            color: theme.colors.ink,
+            fontSize: 30,
+            lineHeight: 32,
+        },
 
-    statValue: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        favoriteButton: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.parchment,
+            borderRadius: 22,
+            height: 44,
+            justifyContent: 'center',
+            position: 'absolute',
+            right: theme.spacing.lg,
+            width: 44,
+        },
 
-    statLabel: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.caption.fontSize,
-        marginTop: theme.spacing.xs,
-    },
+        favoriteIcon: {
+            color: theme.colors.earth,
+            fontSize: 26,
+        },
 
-    petStat: {
-        alignItems: 'center',
-        borderTopColor: theme.colors.parchment,
-        borderTopWidth: 1,
-        flexDirection: 'row',
-        marginTop: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.md,
-    },
+        header: {
+            padding: theme.spacing.lg,
+        },
 
-    petIcon: {
-        fontSize: 22,
-        marginRight: theme.spacing.sm,
-    },
+        eyebrow: {
+            color: theme.colors.forest,
+            fontSize:
+                theme.typography.label
+                    .fontSize,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+        },
 
-    petLabel: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.caption.fontSize,
-    },
+        title: {
+            color: theme.colors.ink,
+            fontSize:
+                theme.typography.display
+                    .fontSize,
+            fontWeight:
+                theme.typography.display
+                    .fontWeight,
+            lineHeight:
+                theme.typography.display
+                    .lineHeight,
+            marginTop: theme.spacing.xs,
+        },
 
-    petValue: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-        marginTop: 2,
-    },
+        location: {
+            color: theme.colors.earth,
+            fontSize:
+                theme.typography.body
+                    .fontSize,
+            marginTop: theme.spacing.xs,
+        },
 
-    section: {
-        marginTop: theme.spacing.xl,
-        paddingHorizontal: theme.spacing.lg,
-    },
+        actions: {
+            flexDirection: 'row',
+            gap: theme.spacing.sm,
+            marginTop: theme.spacing.lg,
+        },
 
-    sectionTitle: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.heading.fontSize,
-        fontWeight: theme.typography.heading.fontWeight,
-        lineHeight: theme.typography.heading.lineHeight,
-    },
+        primaryAction: {
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.sm,
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingVertical:
+                theme.spacing.sm,
+        },
 
-    sectionDescription: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.bodySmall.fontSize,
-        lineHeight: theme.typography.bodySmall.lineHeight,
-        marginTop: theme.spacing.xs,
-    },
+        primaryActionText: {
+            color:
+                theme.colors.parchment,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
 
-    body: {
-        color: theme.colors.bark,
-        fontSize: theme.typography.body.fontSize,
-        lineHeight: theme.typography.body.lineHeight,
-        marginTop: theme.spacing.md,
-    },
+        secondaryAction: {
+            borderColor:
+                theme.colors.earth,
+            borderRadius:
+                theme.radii.sm,
+            borderWidth: 1,
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingVertical:
+                theme.spacing.sm,
+        },
 
-    detailList: {
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        marginTop: theme.spacing.md,
-        paddingHorizontal: theme.spacing.md,
-    },
+        secondaryActionText: {
+            color: theme.colors.earth,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
 
-    detailRow: {
-        alignItems: 'center',
-        borderBottomColor: theme.colors.parchment,
-        borderBottomWidth: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: theme.spacing.md,
-    },
+        stats: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderBottomColor:
+                theme.colors.parchment,
+            borderBottomWidth: 1,
+            borderTopColor:
+                theme.colors.parchment,
+            borderTopWidth: 1,
+            paddingVertical:
+                theme.spacing.md,
+        },
 
-    detailLabel: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.bodySmall.fontSize,
-    },
+        statsRow: {
+            flexDirection: 'row',
+            paddingHorizontal:
+                theme.spacing.md,
+        },
 
-    detailValue: {
-        color: theme.colors.ink,
-        flexShrink: 1,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '600',
-        marginLeft: theme.spacing.md,
-        textAlign: 'right',
-    },
+        stat: {
+            flex: 1,
+            paddingHorizontal:
+                theme.spacing.xs,
+        },
 
-    nearbyList: {
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.md,
-    },
+        statValue: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
 
-    nearbyTrail: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        flexDirection: 'row',
-        padding: theme.spacing.md,
-    },
+        statLabel: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            marginTop:
+                theme.spacing.xs,
+        },
 
-    nearbyTrailIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: theme.radii.sm,
-        height: 46,
-        justifyContent: 'center',
-        width: 46,
-    },
+        petStat: {
+            alignItems: 'center',
+            borderTopColor:
+                theme.colors.parchment,
+            borderTopWidth: 1,
+            flexDirection: 'row',
+            marginTop:
+                theme.spacing.md,
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingTop:
+                theme.spacing.md,
+        },
 
-    nearbyTrailIconText: {
-        color: theme.colors.forest,
-        fontSize: 22,
-        fontWeight: '700',
-    },
+        petIcon: {
+            fontSize: 22,
+            marginRight:
+                theme.spacing.sm,
+        },
 
-    nearbyTrailContent: {
-        flex: 1,
-        marginLeft: theme.spacing.md,
-    },
+        petLabel: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+        },
 
-    nearbyTrailName: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        petValue: {
+            color: theme.colors.ink,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+            marginTop: 2,
+        },
 
-    nearbyTrailMeta: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.caption.fontSize,
-        marginTop: theme.spacing.xs,
-    },
+        section: {
+            marginTop:
+                theme.spacing.xl,
+            paddingHorizontal:
+                theme.spacing.lg,
+        },
 
-    chevron: {
-        color: theme.colors.earth,
-        fontSize: 24,
-        marginLeft: theme.spacing.sm,
-    },
+        sectionHeader: {
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent:
+                'space-between',
+            marginBottom:
+                theme.spacing.md,
+        },
 
-    amenityGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.md,
-    },
+        sectionHeaderContent: {
+            flex: 1,
+        },
 
-    amenity: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        flex: 1,
-        minWidth: '45%',
-        padding: theme.spacing.md,
-    },
+        sectionTitle: {
+            color: theme.colors.ink,
+            fontSize:
+                theme.typography.heading
+                    .fontSize,
+            fontWeight:
+                theme.typography.heading
+                    .fontWeight,
+            lineHeight:
+                theme.typography.heading
+                    .lineHeight,
+        },
 
-    amenityIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 24,
-        height: 48,
-        justifyContent: 'center',
-        width: 48,
-    },
+        sectionDescription: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            lineHeight:
+                theme.typography.bodySmall
+                    .lineHeight,
+            marginTop:
+                theme.spacing.xs,
+        },
 
-    amenityIconText: {
-        color: theme.colors.forest,
-        fontSize: 22,
-    },
+        sectionAction: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+            marginLeft:
+                theme.spacing.sm,
+        },
 
-    amenityLabel: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '600',
-        marginTop: theme.spacing.sm,
-    },
+        body: {
+            color: theme.colors.bark,
+            fontSize:
+                theme.typography.body
+                    .fontSize,
+            lineHeight:
+                theme.typography.body
+                    .lineHeight,
+            marginTop:
+                theme.spacing.md,
+        },
 
-    wildlifeCard: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        flexDirection: 'row',
-        marginTop: theme.spacing.md,
-        padding: theme.spacing.md,
-    },
+        detailList: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            marginTop:
+                theme.spacing.md,
+            paddingHorizontal:
+                theme.spacing.md,
+        },
 
-    wildlifeIcon: {
-        fontSize: 28,
-    },
+        detailRow: {
+            alignItems: 'center',
+            borderBottomColor:
+                theme.colors.parchment,
+            borderBottomWidth: 1,
+            flexDirection: 'row',
+            justifyContent:
+                'space-between',
+            paddingVertical:
+                theme.spacing.md,
+        },
 
-    wildlifeContent: {
-        flex: 1,
-        marginLeft: theme.spacing.md,
-    },
+        detailLabel: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+        },
 
-    wildlifeTitle: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        detailValue: {
+            color: theme.colors.ink,
+            flexShrink: 1,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '600',
+            marginLeft:
+                theme.spacing.md,
+            textAlign: 'right',
+        },
 
-    wildlifeBody: {
-        color: theme.colors.earth,
-        fontSize: theme.typography.caption.fontSize,
-        lineHeight: theme.typography.caption.lineHeight,
-        marginTop: theme.spacing.xs,
-    },
+        nearbyList: {
+            gap: theme.spacing.sm,
+            marginTop:
+                theme.spacing.md,
+        },
 
-    planCard: {
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.lg,
-        padding: theme.spacing.lg,
-    },
+        nearbyTrail: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            flexDirection: 'row',
+            padding: theme.spacing.md,
+        },
 
-    planEyebrow: {
-        color: theme.colors.sage,
-        fontSize: theme.typography.caption.fontSize,
-        fontWeight: '700',
-        letterSpacing: 1.2,
-    },
+        nearbyTrailIcon: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.sm,
+            height: 46,
+            justifyContent: 'center',
+            width: 46,
+        },
 
-    planTitle: {
-        color: theme.colors.parchment,
-        fontSize: theme.typography.heading.fontSize,
-        fontWeight: '700',
-        lineHeight: theme.typography.heading.lineHeight,
-        marginTop: theme.spacing.xs,
-    },
+        nearbyTrailIconText: {
+            color:
+                theme.colors.forest,
+            fontSize: 22,
+            fontWeight: '700',
+        },
 
-    planBody: {
-        color: theme.colors.canvas,
-        fontSize: theme.typography.bodySmall.fontSize,
-        lineHeight: theme.typography.bodySmall.lineHeight,
-        marginTop: theme.spacing.sm,
-    },
+        nearbyTrailContent: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.md,
+        },
 
-    planButton: {
-        alignSelf: 'flex-start',
-        backgroundColor: theme.colors.parchment,
-        borderRadius: theme.radii.sm,
-        marginTop: theme.spacing.lg,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-    },
+        nearbyTrailName: {
+            color: theme.colors.ink,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
 
-    planButtonText: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.bodySmall.fontSize,
-        fontWeight: '700',
-    },
+        nearbyTrailMeta: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            marginTop:
+                theme.spacing.xs,
+        },
 
-    pressed: {
-        opacity: 0.85,
-    },
+        chevron: {
+            color:
+                theme.colors.earth,
+            fontSize: 24,
+            marginLeft:
+                theme.spacing.sm,
+        },
 
-    errorContainer: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.parchment,
-        flex: 1,
-        justifyContent: 'center',
-        padding: theme.spacing.lg,
-    },
+        amenityGrid: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: theme.spacing.sm,
+            marginTop:
+                theme.spacing.md,
+        },
 
-    errorTitle: {
-        color: theme.colors.ink,
-        fontSize: theme.typography.heading.fontSize,
-        fontWeight: '700',
-    },
+        amenity: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            flex: 1,
+            minWidth: '45%',
+            padding: theme.spacing.md,
+        },
 
-    backButton: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.body.fontSize,
-        fontWeight: '600',
-        marginTop: theme.spacing.md,
-    },
-})
+        amenityIcon: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 24,
+            height: 48,
+            justifyContent: 'center',
+            width: 48,
+        },
+
+        amenityIconText: {
+            color:
+                theme.colors.forest,
+            fontSize: 22,
+        },
+
+        amenityLabel: {
+            color:
+                theme.colors.ink,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '600',
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        /* official wildlife information */
+
+        wildlifeList: {
+            gap: theme.spacing.sm,
+        },
+
+        wildlifeRow: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            flexDirection: 'row',
+            padding: theme.spacing.md,
+        },
+
+        wildlifeIcon: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 24,
+            height: 48,
+            justifyContent: 'center',
+            width: 48,
+        },
+
+        wildlifeIconText: {
+            color:
+                theme.colors.forest,
+            fontSize: 12,
+            fontWeight: '800',
+            letterSpacing: 1,
+        },
+
+        wildlifeContent: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.md,
+        },
+
+        wildlifeTitle: {
+            color:
+                theme.colors.ink,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
+
+        wildlifeBody: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            lineHeight:
+                theme.typography.caption
+                    .lineHeight,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        /* user-submitted wildlife reports */
+
+        reportList: {
+            gap: theme.spacing.sm,
+        },
+
+        reportCard: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            flexDirection: 'row',
+            padding: theme.spacing.md,
+        },
+
+        reportIcon: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 24,
+            height: 48,
+            justifyContent: 'center',
+            width: 48,
+        },
+
+        reportIconText: {
+            color:
+                theme.colors.forest,
+            fontSize: 12,
+            fontWeight: '800',
+            letterSpacing: 1,
+        },
+
+        reportContent: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.md,
+        },
+
+        reportTitleRow: {
+            alignItems: 'center',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: theme.spacing.xs,
+        },
+
+        reportSpecies: {
+            color:
+                theme.colors.ink,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
+
+        userLabel: {
+            color:
+                theme.colors.forest,
+            fontSize: 8,
+            fontWeight: '800',
+            letterSpacing: 0.7,
+        },
+
+        reportLocation: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            fontWeight: '600',
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        reportDescription: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            lineHeight:
+                theme.typography.caption
+                    .lineHeight,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        reportTime: {
+            color:
+                theme.colors.earth,
+            fontSize: 9,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        reportButton: {
+            alignSelf:
+                'flex-start',
+            borderColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.sm,
+            borderWidth: 1,
+            marginTop:
+                theme.spacing.md,
+            paddingHorizontal:
+                theme.spacing.md,
+            paddingVertical:
+                theme.spacing.sm,
+        },
+
+        reportButtonText: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
+
+        emptyCard: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            padding:
+                theme.spacing.lg,
+        },
+
+        emptyCardText: {
+            color:
+                theme.colors.earth,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            textAlign: 'center',
+        },
+
+        planCard: {
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.lg,
+            padding:
+                theme.spacing.lg,
+        },
+
+        planEyebrow: {
+            color:
+                theme.colors.sage,
+            fontSize:
+                theme.typography.caption
+                    .fontSize,
+            fontWeight: '700',
+            letterSpacing: 1.2,
+        },
+
+        planTitle: {
+            color:
+                theme.colors.parchment,
+            fontSize:
+                theme.typography.heading
+                    .fontSize,
+            fontWeight: '700',
+            lineHeight:
+                theme.typography.heading
+                    .lineHeight,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        planBody: {
+            color:
+                theme.colors.canvas,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            lineHeight:
+                theme.typography.bodySmall
+                    .lineHeight,
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        planButton: {
+            alignSelf:
+                'flex-start',
+            backgroundColor:
+                theme.colors.parchment,
+            borderRadius:
+                theme.radii.sm,
+            marginTop:
+                theme.spacing.lg,
+            paddingHorizontal:
+                theme.spacing.md,
+            paddingVertical:
+                theme.spacing.sm,
+        },
+
+        planButtonText: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.bodySmall
+                    .fontSize,
+            fontWeight: '700',
+        },
+
+        pressed: {
+            opacity: 0.85,
+        },
+
+        errorContainer: {
+            alignItems: 'center',
+            backgroundColor:
+                theme.colors.parchment,
+            flex: 1,
+            justifyContent:
+                'center',
+            padding:
+                theme.spacing.lg,
+        },
+
+        errorTitle: {
+            color: theme.colors.ink,
+            fontSize:
+                theme.typography.heading
+                    .fontSize,
+            fontWeight: '700',
+        },
+
+        backButton: {
+            color:
+                theme.colors.forest,
+            fontSize:
+                theme.typography.body
+                    .fontSize,
+            fontWeight: '600',
+            marginTop:
+                theme.spacing.md,
+        },
+    })

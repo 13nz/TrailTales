@@ -175,6 +175,17 @@ function MainTabs() {
                 component={
                     TripsStack
                 }
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(
+                            'Trips',
+                            {
+                                screen:
+                                    'TripsHome',
+                            }
+                        )
+                    },
+                })}
             />
 
             {/* journal contains private and public memories */}

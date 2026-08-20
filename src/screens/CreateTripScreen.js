@@ -35,6 +35,8 @@ export default function CreateTripScreen({ navigation }) {
     // tracks which date field is currently being edited inside the modal
     const [activeDateField, setActiveDateField] = useState(null)
 
+    const [isCreating, setIsCreating] = useState(false)
+
     const canCreateTrip =
         tripName.trim().length > 0 &&
         selectedPark !== null &&
@@ -82,11 +84,15 @@ export default function CreateTripScreen({ navigation }) {
     }
 
     const handleCreateTrip = () => {
-        if (!canCreateTrip) {
+        if (
+            !canCreateTrip ||
+            isCreating
+        ) {
             return
         }
 
-        // creates a complete local trip object using the values entered by the user
+        setIsCreating(true)
+
         const newTrip = {
             id: `${tripName
                 .trim()
@@ -98,16 +104,21 @@ export default function CreateTripScreen({ navigation }) {
 
             parkId: selectedPark.id,
 
-            startDate: formatDatabaseDate(startDate),
+            startDate:
+                formatDatabaseDate(
+                    startDate
+                ),
 
-            endDate: formatDatabaseDate(endDate),
+            endDate:
+                formatDatabaseDate(
+                    endDate
+                ),
 
             status:
                 startDate >= new Date()
                     ? 'upcoming'
                     : 'past',
 
-            // new trips begin with empty planning collections that the user can populate later
             trails: [],
 
             campsites: [],
@@ -117,17 +128,28 @@ export default function CreateTripScreen({ navigation }) {
             notes: '',
 
             packingItems: [],
-            
+
             itinerary: [],
         }
 
-        // adds the new adventure to the shared trip store
         addTrip(newTrip)
 
         Keyboard.dismiss()
 
-        // returns to the trips list where the newly created adventure is immediately visible
-        navigation.goBack()
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: 'Main',
+                    params: {
+                        screen: 'Trips',
+                        params: {
+                            screen: 'TripsHome',
+                        },
+                    },
+                },
+            ],
+        })
     }
 
     const getPickerValue = () => {
@@ -418,7 +440,7 @@ export default function CreateTripScreen({ navigation }) {
                                 styles.disabledCreateButton,
                         ]}
                         onPress={handleCreateTrip}
-                        disabled={!canCreateTrip}
+                        disabled={!canCreateTrip || isCreating}
                         accessibilityRole="button"
                         accessibilityLabel="create trip"
                     >

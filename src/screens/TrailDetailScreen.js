@@ -80,17 +80,7 @@ export default function TrailDetailScreen({
             trailId
         )
 
-    const openAddTrail = (
-        tripId
-    ) => {
-        // opens the root-level Add Trail workflow so TripsStack history is not inherited
-        navigation.navigate(
-            'AddTrail',
-            {
-                tripId,
-            }
-        )
-    }
+
 
     if (!park || !trail) {
         return (

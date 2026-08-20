@@ -34,9 +34,6 @@ export default function EditItineraryItemScreen({
         (item) => item.id === tripId
     )
 
-    /*
-     * finds the actual saved itinerary item
-     */
     const itineraryItem = trip
         ? findItineraryItem(
               trip,
@@ -44,6 +41,21 @@ export default function EditItineraryItemScreen({
               itemId
           )
         : null
+
+    const [selectedDate, setSelectedDate] =
+        useState(() =>
+            createTripDate(
+                itineraryItem?.date ||
+                    trip?.startDate
+            )
+        )
+
+    const [selectedTime, setSelectedTime] =
+        useState(() =>
+            parseStoredTime(
+                itineraryItem?.time
+            )
+        )
 
     /*
      * null = no picker
@@ -54,41 +66,12 @@ export default function EditItineraryItemScreen({
         useState(null)
 
     /*
-     * forces the native picker to be recreated
-     * every time it opens
-     *
-     * this is the same implementation that
-     * fixed the iOS picker problem in the
-     * add activity and add trail screens
-     */
-    const [pickerInstance, setPickerInstance] =
-        useState(0)
-
-    const [selectedDate, setSelectedDate] =
-        useState(() =>
-            createSafeDate(
-                itineraryItem?.date ||
-                    trip?.startDate
-            )
-        )
-
-    /*
-     * stores time separately from the date
-     */
-    const [selectedTime, setSelectedTime] =
-        useState(() =>
-            parseStoredTime(
-                itineraryItem?.time
-            )
-        )
-
-    /*
-     * refreshes the local schedule when
-     * the itinerary item changes
+     * refreshes the local values when the
+     * itinerary item changes
      */
     useEffect(() => {
         setSelectedDate(
-            createSafeDate(
+            createTripDate(
                 itineraryItem?.date ||
                     trip?.startDate
             )
@@ -110,18 +93,9 @@ export default function EditItineraryItemScreen({
 
     if (!trip) {
         return (
-            <View
-                style={
-                    styles.screen
-                }
-            >
-                <Text
-                    style={
-                        styles.errorText
-                    }
-                >
-                    Trip could not be
-                    found.
+            <View style={styles.screen}>
+                <Text style={styles.errorText}>
+                    Trip could not be found.
                 </Text>
             </View>
         )
@@ -129,16 +103,8 @@ export default function EditItineraryItemScreen({
 
     if (!itineraryItem) {
         return (
-            <View
-                style={
-                    styles.screen
-                }
-            >
-                <Text
-                    style={
-                        styles.errorText
-                    }
-                >
+            <View style={styles.screen}>
+                <Text style={styles.errorText}>
                     Itinerary item could not
                     be found.
                 </Text>
@@ -156,8 +122,7 @@ export default function EditItineraryItemScreen({
 
     const title =
         itemType === 'trail'
-            ? trail?.name ||
-              'Trail'
+            ? trail?.name || 'Trail'
             : itineraryItem.title ||
               'Activity'
 
@@ -170,39 +135,27 @@ export default function EditItineraryItemScreen({
               'Activity'
 
     const tripStartDate =
-        createSafeDate(
+        createTripDate(
             trip.startDate
         )
 
     const tripEndDate =
-        createSafeDate(
+        createTripDate(
             trip.endDate
         )
 
     const isOutsideTripDates =
-        selectedDate <
-            tripStartDate ||
-        selectedDate >
-            tripEndDate
+        selectedDate < tripStartDate ||
+        selectedDate > tripEndDate
 
     /*
-     * opens the requested picker
+     * opens either the date or time picker
      *
-     * incrementing pickerInstance forces
-     * React to create a completely new
-     * native DateTimePicker
+     * this intentionally matches the workflow
+     * used by AddTrailScreen and AddActivityScreen
      */
-    const openPicker = (
-        picker
-    ) => {
-        // dismisses the keyboard before opening the picker
+    const openPicker = (picker) => {
         Keyboard.dismiss()
-
-        // forces a fresh native picker instance every time it opens
-        setPickerInstance(
-            (current) => current + 1
-        )
-
         setActivePicker(picker)
     }
 
@@ -210,12 +163,11 @@ export default function EditItineraryItemScreen({
      * closes the picker
      */
     const closePicker = () => {
-        // closes the date or time picker
         setActivePicker(null)
     }
 
     /*
-     * handles both date and time pickers
+     * handles both native picker modes
      */
     const handlePickerChange = (
         event,
@@ -237,21 +189,31 @@ export default function EditItineraryItemScreen({
         }
 
         /*
-         * only update the date when
-         * the date picker is active
+         * date picker
+         *
+         * store only the calendar date
          */
         if (
             activePicker ===
             'date'
         ) {
             setSelectedDate(
-                value
+                createTripDate(
+                    formatDatabaseDate(
+                        value
+                    )
+                )
             )
         }
 
         /*
-         * only update the time when
-         * the time picker is active
+         * time picker
+         *
+         * store ONLY hour and minute
+         *
+         * this prevents the selected time from
+         * being affected by the itinerary date
+         * or timezone conversion
          */
         if (
             activePicker ===
@@ -267,7 +229,7 @@ export default function EditItineraryItemScreen({
     }
 
     /*
-     * saves the edited date and time
+     * saves the edited itinerary item
      */
     const handleSave = () => {
         const newDate =
@@ -281,7 +243,7 @@ export default function EditItineraryItemScreen({
             )
 
         /*
-         * update a trail reservation
+         * update trail reservation
          */
         if (
             itemType ===
@@ -308,28 +270,32 @@ export default function EditItineraryItemScreen({
                             return trailReservation
                         }
 
+                        /*
+                         * preserves the existing
+                         * reservation object
+                         */
                         return {
-                            id:
-                                itemId,
-                            date:
-                                newDate,
-                            time:
-                                newTime,
+                            ...(
+                                typeof trailReservation ===
+                                'object'
+                                    ? trailReservation
+                                    : {}
+                            ),
+                            id: itemId,
+                            date: newDate,
+                            time: newTime,
                         }
                     }
                 )
 
-            updateTrip(
-                trip.id,
-                {
-                    trails:
-                        updatedTrails,
-                }
-            )
+            updateTrip(trip.id, {
+                trails:
+                    updatedTrails,
+            })
         }
 
         /*
-         * update a custom activity
+         * update activity reservation
          */
         if (
             itemType ===
@@ -340,9 +306,11 @@ export default function EditItineraryItemScreen({
                     trip.activities ||
                     []
                 ).map(
-                    (activity) => {
+                    (
+                        activity
+                    ) => {
                         /*
-                         * preserve older string activities
+                         * preserve older string entries
                          */
                         if (
                             typeof activity ===
@@ -351,9 +319,6 @@ export default function EditItineraryItemScreen({
                             return activity
                         }
 
-                        /*
-                         * leave all other activities untouched
-                         */
                         if (
                             activity.id !==
                             itemId
@@ -361,28 +326,18 @@ export default function EditItineraryItemScreen({
                             return activity
                         }
 
-                        /*
-                         * preserve the activity's
-                         * existing title, location,
-                         * notes, and other properties
-                         */
                         return {
                             ...activity,
-                            date:
-                                newDate,
-                            time:
-                                newTime,
+                            date: newDate,
+                            time: newTime,
                         }
                     }
                 )
 
-            updateTrip(
-                trip.id,
-                {
-                    activities:
-                        updatedActivities,
-                }
-            )
+            updateTrip(trip.id, {
+                activities:
+                    updatedActivities,
+            })
         }
 
         Keyboard.dismiss()
@@ -390,11 +345,7 @@ export default function EditItineraryItemScreen({
     }
 
     return (
-        <View
-            style={
-                styles.screen
-            }
-        >
+        <View style={styles.screen}>
             <ScrollView
                 contentContainerStyle={[
                     styles.content,
@@ -408,8 +359,6 @@ export default function EditItineraryItemScreen({
                     false
                 }
             >
-                {/* header */}
-
                 <View
                     style={
                         styles.header
@@ -420,7 +369,6 @@ export default function EditItineraryItemScreen({
                             styles.backButton
                         }
                         onPress={() => {
-                            // dismisses the keyboard before leaving the screen
                             Keyboard.dismiss()
                             navigation.goBack()
                         }}
@@ -450,8 +398,6 @@ export default function EditItineraryItemScreen({
                         }
                     />
                 </View>
-
-                {/* item information */}
 
                 <View
                     style={
@@ -486,8 +432,6 @@ export default function EditItineraryItemScreen({
                     </Text>
                 </View>
 
-                {/* schedule */}
-
                 <View
                     style={
                         styles.scheduleCard
@@ -509,8 +453,6 @@ export default function EditItineraryItemScreen({
                         Choose when you plan to
                         do this during your trip.
                     </Text>
-
-                    {/* date */}
 
                     <Text
                         style={[
@@ -552,8 +494,6 @@ export default function EditItineraryItemScreen({
                         </Text>
                     </Pressable>
 
-                    {/* time */}
-
                     <Text
                         style={[
                             styles.label,
@@ -594,8 +534,6 @@ export default function EditItineraryItemScreen({
                         </Text>
                     </Pressable>
                 </View>
-
-                {/* warning */}
 
                 {isOutsideTripDates ? (
                     <View
@@ -644,8 +582,6 @@ export default function EditItineraryItemScreen({
                 ) : null}
             </ScrollView>
 
-            {/* save */}
-
             <View
                 style={[
                     styles.bottomAction,
@@ -676,12 +612,9 @@ export default function EditItineraryItemScreen({
                 </Pressable>
             </View>
 
-            {/* native date/time picker */}
-
             <Modal
                 visible={
-                    activePicker !==
-                    null
+                    activePicker !== null
                 }
                 transparent
                 animationType="fade"
@@ -725,17 +658,17 @@ export default function EditItineraryItemScreen({
                                 >
                                     {activePicker ===
                                     'date'
-                                        ? 'Date'
+                                        ? 'Itinerary date'
                                         : 'Start time'}
                                 </Text>
                             </View>
 
                             <Pressable
-                                style={
-                                    styles.modalClose
-                                }
                                 onPress={
                                     closePicker
+                                }
+                                style={
+                                    styles.modalClose
                                 }
                                 accessibilityRole="button"
                                 accessibilityLabel="close picker"
@@ -757,14 +690,6 @@ export default function EditItineraryItemScreen({
                         >
                             {activePicker ? (
                                 <DateTimePicker
-                                    /*
-                                     * this is the important iOS fix
-                                     *
-                                     * every time the user opens the
-                                     * date or time picker, React gets
-                                     * a completely new native picker
-                                     */
-                                    key={`${pickerInstance}-${activePicker}`}
                                     value={
                                         activePicker ===
                                         'date'
@@ -780,18 +705,6 @@ export default function EditItineraryItemScreen({
                                             : 'time'
                                     }
                                     display="spinner"
-                                    minimumDate={
-                                        activePicker ===
-                                        'date'
-                                            ? tripStartDate
-                                            : undefined
-                                    }
-                                    maximumDate={
-                                        activePicker ===
-                                        'date'
-                                            ? tripEndDate
-                                            : undefined
-                                    }
                                     onChange={
                                         handlePickerChange
                                     }
@@ -813,7 +726,7 @@ export default function EditItineraryItemScreen({
                             <Text
                                 style={
                                     styles.doneButtonText
-                            }
+                                }
                             >
                                 Done
                             </Text>
@@ -907,13 +820,12 @@ function findItineraryItem(
 }
 
 /*
- * safely converts YYYY-MM-DD into
- * a local Date
+ * creates a local Date from YYYY-MM-DD
  *
- * this avoids the UTC parsing problem
- * caused by new Date('YYYY-MM-DD')
+ * the date is created at noon to avoid timezone
+ * shifting the calendar day
  */
-function createSafeDate(
+function createTripDate(
     dateString
 ) {
     if (!dateString) {
@@ -969,8 +881,8 @@ function createSafeDate(
 }
 
 /*
- * converts the saved HH:mm value
- * into separate hour/minute state
+ * converts stored HH:mm into separate
+ * hour and minute values
  */
 function parseStoredTime(
     timeString
@@ -1001,7 +913,11 @@ function parseStoredTime(
         ) ||
         !Number.isFinite(
             minute
-        )
+        ) ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59
     ) {
         return {
             hour: 8,
@@ -1016,11 +932,11 @@ function parseStoredTime(
 }
 
 /*
- * creates the Date object used by
- * the native time picker
+ * creates the Date object required by the
+ * native time picker
  *
- * the calendar date is deliberately
- * unrelated to the itinerary date
+ * the actual calendar date does not matter
+ * because only hour/minute are saved
  */
 function createPickerTime(
     time
@@ -1036,6 +952,10 @@ function createPickerTime(
     )
 }
 
+/*
+ * converts the local calendar date into
+ * YYYY-MM-DD without UTC conversion
+ */
 function formatDatabaseDate(
     date
 ) {
@@ -1061,6 +981,10 @@ function formatDatabaseDate(
     return `${year}-${month}-${day}`
 }
 
+/*
+ * converts the selected time directly
+ * into HH:mm without using UTC
+ */
 function formatDatabaseTime(
     time
 ) {

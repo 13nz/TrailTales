@@ -30,14 +30,11 @@ export default function AddActivityScreen({
         (item) => item.id === tripId
     )
 
-    const [title, setTitle] =
-        useState('')
+    const [title, setTitle] = useState('')
 
-    const [location, setLocation] =
-        useState('')
+    const [location, setLocation] = useState('')
 
-    const [notes, setNotes] =
-        useState('')
+    const [notes, setNotes] = useState('')
 
     /*
      * calendar date is stored separately from time
@@ -56,21 +53,22 @@ export default function AddActivityScreen({
             minute: 0,
         })
 
-    const [activePicker, setActivePicker] =
-        useState(null)
+    const [activePicker, setActivePicker] = useState(null)
+    const [pickerValue, setPickerValue] = useState(new Date())
 
-    const [pickerInstance, setPickerInstance] =
-        useState(0)
+    const [pickerInstance, setPickerInstance] = useState(0)
 
     const openPicker = (picker) => {
-        // dismisses the keyboard before opening the picker
         Keyboard.dismiss()
 
-        // forces a fresh native picker instance every time it opens
-        setPickerInstance(
-            (current) => current + 1
-        )
+        const value =
+            picker === 'date'
+                ? new Date(selectedDate)
+                : createPickerTime(
+                    selectedTime
+                )
 
+        setPickerValue(value)
         setActivePicker(picker)
     }
 
@@ -83,7 +81,6 @@ export default function AddActivityScreen({
         event,
         value
     ) => {
-        // dismissed is only a dismissal signal and should not overwrite the current selection
         if (event?.type === 'dismissed') {
             closePicker()
             return
@@ -93,12 +90,12 @@ export default function AddActivityScreen({
             return
         }
 
-        // keeps the date picker independent from the time picker
+        setPickerValue(value)
+
         if (activePicker === 'date') {
             setSelectedDate(value)
         }
 
-        // extracts only the hour and minute from the native time picker
         if (activePicker === 'time') {
             setSelectedTime({
                 hour: value.getHours(),
@@ -573,15 +570,8 @@ export default function AddActivityScreen({
                         >
                             {activePicker ? (
                                 <DateTimePicker
-                                    key={`${pickerInstance}-${activePicker}`}
-                                    value={
-                                        activePicker ===
-                                        'date'
-                                            ? selectedDate
-                                            : createPickerTime(
-                                                  selectedTime
-                                              )
-                                    }
+                                    key={activePicker}
+                                    value={pickerValue}
                                     mode={
                                         activePicker ===
                                         'date'

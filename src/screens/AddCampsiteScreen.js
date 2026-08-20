@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import theme from '../constants/theme'
 import mockCampsites from '../data/mockCampsites'
@@ -31,8 +31,7 @@ export default function AddCampsiteScreen({
     const trip = trips.find((item) => item.id === tripId)
 
     const [searchQuery, setSearchQuery] = useState('')
-    const [selectedCampsite, setSelectedCampsite] =
-        useState(null)
+    const [selectedCampsite, setSelectedCampsite] = useState(null)
 
     const [checkIn, setCheckIn] = useState(
         trip
@@ -46,14 +45,13 @@ export default function AddCampsiteScreen({
             : null
     )
 
-    const [campsiteNumber, setCampsiteNumber] =
-        useState('')
+    const [campsiteNumber, setCampsiteNumber] = useState('')
 
-    const [reservationNotes, setReservationNotes] =
-        useState('')
+    const [reservationNotes, setReservationNotes] = useState('')
 
-    const [activeDateField, setActiveDateField] =
-        useState(null)
+    const [activeDateField, setActiveDateField] = useState(null)
+
+    const [pickerValue, setPickerValue] = useState(new Date())
 
     const park = mockParks.find(
         (item) => item.id === trip?.parkId
@@ -73,18 +71,30 @@ export default function AddCampsiteScreen({
     )
 
     const openDatePicker = (field) => {
-        // dismisses the keyboard before opening the date picker
         Keyboard.dismiss()
+
+        const value =
+            field === 'checkIn'
+                ? checkIn
+                : checkOut || checkIn
+
+        setPickerValue(
+            value
+                ? new Date(value)
+                : new Date()
+        )
 
         setActiveDateField(field)
     }
 
     const closeDatePicker = () => {
-        // clears the active date field so the modal closes
         setActiveDateField(null)
     }
 
-    const handleDateChange = (event, selectedDate) => {
+    const handleDateChange = (
+        event,
+        selectedDate
+    ) => {
         if (event?.type === 'dismissed') {
             closeDatePicker()
             return
@@ -94,11 +104,15 @@ export default function AddCampsiteScreen({
             return
         }
 
+        setPickerValue(selectedDate)
+
         if (activeDateField === 'checkIn') {
             setCheckIn(selectedDate)
 
-            // keeps the checkout date from being earlier than check-in
-            if (checkOut && selectedDate > checkOut) {
+            if (
+                checkOut &&
+                selectedDate > checkOut
+            ) {
                 setCheckOut(selectedDate)
             }
         }
@@ -106,8 +120,6 @@ export default function AddCampsiteScreen({
         if (activeDateField === 'checkOut') {
             setCheckOut(selectedDate)
         }
-
-        closeDatePicker()
     }
 
     const handleSelectCampsite = (campsite) => {
@@ -122,25 +134,22 @@ export default function AddCampsiteScreen({
             return
         }
 
-        // creates a separate campsite stay so the same campground can be visited multiple times
         const campsiteReservation = {
             id: selectedCampsite.id,
-            checkIn: formatDatabaseDate(checkIn),
-            checkOut: formatDatabaseDate(checkOut),
-            campsiteNumber:
-                campsiteNumber.trim() || null,
-            notes: reservationNotes.trim() || '',
+            checkIn: formatDatabaseDate(
+                checkIn
+            ),
+            checkOut: formatDatabaseDate(
+                checkOut
+            ),
         }
 
-        // adds the new campground stay while preserving all existing reservations
         updateTrip(trip.id, {
             campsites: [
                 ...trip.campsites,
                 campsiteReservation,
             ],
         })
-
-        Keyboard.dismiss()
 
         navigation.goBack()
     }
@@ -708,7 +717,8 @@ export default function AddCampsiteScreen({
                         <View style={styles.pickerContainer}>
                             {activeDateField !== null ? (
                                 <DateTimePicker
-                                    value={getPickerValue()}
+                                    key={activeDateField}
+                                    value={pickerValue}
                                     mode="date"
                                     display={
                                         Platform.OS === 'ios'

@@ -11,7 +11,7 @@ import {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import theme from '../constants/theme'
 import mockTrails from '../data/mockTrails'
@@ -32,28 +32,25 @@ export default function AddTrailScreen({
         (item) => item.id === tripId
     )
 
-    const [searchQuery, setSearchQuery] =
-        useState('')
+    const [searchQuery, setSearchQuery] = useState('')
 
-    const [selectedTrail, setSelectedTrail] =
-        useState(null)
+    const [selectedTrail, setSelectedTrail] = useState(null)
 
-    const [selectedDate, setSelectedDate] =
-        useState(() =>
-            createTripDate(
-                trip?.startDate
-            )
+    const [selectedDate, setSelectedDate] = useState(() =>
+        createTripDate(
+            trip?.startDate
         )
+    )
 
     // stores time separately from the calendar date so date and time can never overwrite each other
-    const [selectedTime, setSelectedTime] =
-        useState({
-            hour: 8,
-            minute: 0,
-        })
+    const [selectedTime, setSelectedTime] = useState({
+        hour: 8,
+        minute: 0,
+    })
 
-    const [activePicker, setActivePicker] =
-        useState(null)
+    const [activePicker, setActivePicker] = useState(null)
+
+    const [pickerValue, setPickerValue] = useState(new Date())
 
     /*
      * forces the native picker to be recreated
@@ -106,22 +103,20 @@ export default function AddTrailScreen({
     }
 
     const openPicker = (picker) => {
-        // dismisses the keyboard before opening the picker
         Keyboard.dismiss()
 
-        /*
-         * forces a completely fresh native picker
-         * every time the picker is opened
-         */
-        setPickerInstance(
-            (current) => current + 1
-        )
+        const value =
+            picker === 'date'
+                ? new Date(selectedDate)
+                : createPickerTime(
+                    selectedTime
+                )
 
+        setPickerValue(value)
         setActivePicker(picker)
     }
 
     const closePicker = () => {
-        // closes the custom picker popup
         setActivePicker(null)
     }
 
@@ -129,11 +124,7 @@ export default function AddTrailScreen({
         event,
         value
     ) => {
-        // only closes when the native picker is actually dismissed
-        if (
-            event?.type ===
-            'dismissed'
-        ) {
+        if (event?.type === 'dismissed') {
             closePicker()
             return
         }
@@ -142,24 +133,16 @@ export default function AddTrailScreen({
             return
         }
 
-        // updates the date while keeping the popup open
-        if (
-            activePicker ===
-            'date'
-        ) {
+        setPickerValue(value)
+
+        if (activePicker === 'date') {
             setSelectedDate(value)
         }
 
-        // extracts only the hour and minute from the native time picker
-        if (
-            activePicker ===
-            'time'
-        ) {
+        if (activePicker === 'time') {
             setSelectedTime({
-                hour:
-                    value.getHours(),
-                minute:
-                    value.getMinutes(),
+                hour: value.getHours(),
+                minute: value.getMinutes(),
             })
         }
     }
@@ -172,34 +155,7 @@ export default function AddTrailScreen({
             return
         }
 
-        /*
-         * prevents the same trail from being added
-         * to a trip more than once
-         */
-        const alreadyAdded =
-            trip.trails.some(
-                (item) => {
-                    if (
-                        typeof item ===
-                        'string'
-                    ) {
-                        return (
-                            item ===
-                            selectedTrail.id
-                        )
-                    }
-
-                    return (
-                        item.id ===
-                        selectedTrail.id
-                    )
-                }
-            )
-
-        if (alreadyAdded) {
-            navigation.goBack()
-            return
-        }
+    
 
         const trailReservation = {
             id:
@@ -433,26 +389,7 @@ export default function AddTrailScreen({
                                 selectedTrail?.id ===
                                 trail.id
 
-                            const alreadyAdded =
-                                trip.trails.some(
-                                    (item) => {
-                                        if (
-                                            typeof item ===
-                                            'string'
-                                        ) {
-                                            return (
-                                                item ===
-                                                trail.id
-                                            )
-                                        }
-
-                                        return (
-                                            item.id ===
-                                            trail.id
-                                        )
-                                    }
-                                )
-
+                        
                             return (
                                 <Pressable
                                     key={
@@ -462,21 +399,10 @@ export default function AddTrailScreen({
                                         styles.trailCard,
                                         selected &&
                                             styles.selectedTrailCard,
-                                        alreadyAdded &&
-                                            styles.disabledTrailCard,
                                     ]}
                                     onPress={() => {
-                                        if (
-                                            !alreadyAdded
-                                        ) {
-                                            handleSelectTrail(
-                                                trail
-                                            )
-                                        }
+                                        handleSelectTrail(trail)
                                     }}
-                                    disabled={
-                                        alreadyAdded
-                                    }
                                     accessibilityRole="button"
                                     accessibilityLabel={`select ${trail.name}`}
                                 >
@@ -604,19 +530,9 @@ export default function AddTrailScreen({
                                             styles.selectionIndicator,
                                             selected &&
                                                 styles.selectedIndicator,
-                                            alreadyAdded &&
-                                                styles.alreadyAddedIndicator,
                                         ]}
                                     >
-                                        {alreadyAdded ? (
-                                            <Text
-                                                style={
-                                                    styles.alreadyAddedText
-                                                }
-                                            >
-                                                ✓
-                                            </Text>
-                                        ) : selected ? (
+                                        {selected ? (
                                             <View
                                                 style={
                                                     styles.selectionDot
@@ -988,21 +904,8 @@ export default function AddTrailScreen({
                         >
                             {activePicker ? (
                                 <DateTimePicker
-                                    /*
-                                     * this is the critical fix
-                                     *
-                                     * the picker is recreated every
-                                     * time it opens
-                                     */
-                                    key={`${pickerInstance}-${activePicker}`}
-                                    value={
-                                        activePicker ===
-                                        'date'
-                                            ? selectedDate
-                                            : createPickerTime(
-                                                  selectedTime
-                                              )
-                                    }
+                                    key={activePicker}
+                                    value={pickerValue}
                                     mode={
                                         activePicker ===
                                         'date'

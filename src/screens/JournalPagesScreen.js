@@ -321,204 +321,166 @@ export default function JournalPagesScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            paddingBottom: 100,
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    content: {
+        paddingBottom: 100,
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        header: {
-            alignItems: 'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-        },
+    header: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
 
-        backButton: {
-            alignItems: 'center',
-            height: 42,
-            justifyContent:
-                'center',
-            width: 42,
-        },
+    backButton: {
+        alignItems: 'center',
+        height: 42,
+        justifyContent: 'center',
+        width: 42,
+    },
 
-        backButtonText: {
-            color:
-                theme.colors.forest,
-            fontSize: 36,
-            fontWeight: '300',
-            lineHeight: 38,
-        },
+    backButtonText: {
+        color: theme.colors.forest,
+        fontSize: 36,
+        fontWeight: '300',
+        lineHeight: 38,
+    },
 
-        headerCenter: {
-            flex: 1,
-            marginHorizontal:
-                theme.spacing.sm,
-        },
+    headerCenter: {
+        flex: 1,
+        marginHorizontal: theme.spacing.sm,
+    },
 
-        headerSpacer: {
-            width: 42,
-        },
+    headerSpacer: {
+        width: 42,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 9,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        headerTitle: {
-            color: theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop: 2,
-        },
+    headerTitle: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+        marginTop: 2,
+    },
 
-        pageList: {
-            gap: theme.spacing.lg,
-            marginTop:
-                theme.spacing.xl,
-        },
+    pageList: {
+        gap: theme.spacing.lg,
+        marginTop: theme.spacing.xl,
+    },
 
-        pageCard: {
-            transform: [
-                {
-                    rotate: '-1deg',
-                },
-            ],
-        },
+    pageCard: {
+        transform: [
+            {
+                rotate: '-1deg',
+            },
+        ],
+    },
 
-        pagePaper: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderWidth: 1,
-            minHeight: 220,
-            padding:
-                theme.spacing.xl,
-            ...theme.shadows.card,
-        },
+    pagePaper: {
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderWidth: 1,
+        minHeight: 220,
+        padding: theme.spacing.xl,
+        ...theme.shadows.card,
+    },
 
-        pageNumber: {
-            color:
-                theme.colors.earth,
-            fontSize: 9,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
+    pageNumber: {
+        color: theme.colors.earth,
+        fontSize: 9,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        pageTitle: {
-            color: theme.colors.ink,
-            fontSize: 27,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.lg,
-        },
+    pageTitle: {
+        color: theme.colors.ink,
+        fontSize: 27,
+        fontWeight: '700',
+        marginTop: theme.spacing.lg,
+    },
 
-        pageDate: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            marginTop:
-                theme.spacing.sm,
-        },
+    pageDate: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        marginTop: theme.spacing.sm,
+    },
 
-        pageElementCount: {
-            color:
-                theme.colors.forest,
-            fontSize: 11,
-            marginTop:
-                theme.spacing.xl,
-        },
+    pageElementCount: {
+        color: theme.colors.forest,
+        fontSize: 11,
+        marginTop: theme.spacing.xl,
+    },
 
-        emptyState: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.lg,
-            borderWidth: 1,
-            marginTop:
-                theme.spacing.xl,
-            padding:
-                theme.spacing.xl,
-        },
+    emptyState: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.lg,
+        borderWidth: 1,
+        marginTop: theme.spacing.xl,
+        padding: theme.spacing.xl,
+    },
 
-        emptyIcon: {
-            fontSize: 48,
-        },
+    emptyIcon: {
+        fontSize: 48,
+    },
 
-        emptyTitle: {
-            color: theme.colors.ink,
-            fontSize: 20,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-            textAlign: 'center',
-        },
+    emptyTitle: {
+        color: theme.colors.ink,
+        fontSize: 20,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+        textAlign: 'center',
+    },
 
-        emptyDescription: {
-            color:
-                theme.colors.earth,
-            fontSize: 13,
-            lineHeight: 20,
-            marginTop:
-                theme.spacing.xs,
-            textAlign: 'center',
-        },
+    emptyDescription: {
+        color: theme.colors.earth,
+        fontSize: 13,
+        lineHeight: 20,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
 
-        newPageButton: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
-            flexDirection:
-                'row',
-            justifyContent:
-                'center',
-            marginTop:
-                theme.spacing.xl,
-            minHeight: 52,
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    newPageButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: theme.spacing.xl,
+        minHeight: 52,
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        newPageIcon: {
-            color:
-                theme.colors.parchment,
-            fontSize: 25,
-            fontWeight: '300',
-            marginRight:
-                theme.spacing.sm,
-        },
+    newPageIcon: {
+        color: theme.colors.parchment,
+        fontSize: 25,
+        fontWeight: '300',
+        marginRight: theme.spacing.sm,
+    },
 
-        newPageText: {
-            color:
-                theme.colors.parchment,
-            fontSize: 14,
-            fontWeight: '700',
-        },
+    newPageText: {
+        color: theme.colors.parchment,
+        fontSize: 14,
+        fontWeight: '700',
+    },
 
-        errorText: {
-            color:
-                theme.colors.earth,
-            fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign: 'center',
-        },
-    })
+    errorText: {
+        color: theme.colors.earth,
+        fontSize: 15,
+        margin: theme.spacing.xl,
+        textAlign: 'center',
+    },
+})

@@ -859,606 +859,462 @@ function getDogAccessText(trail) {
     return 'Information unavailable'
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            paddingBottom:
-                theme.spacing.xxl,
-        },
+    content: {
+        paddingBottom: theme.spacing.xxl,
+    },
 
-        hero: {
-            height: 250,
-            position: 'relative',
-        },
+    hero: {
+        height: 250,
+        position: 'relative',
+    },
 
-        heroImage: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            flex: 1,
-            justifyContent:
-                'center',
-        },
+    heroImage: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        flex: 1,
+        justifyContent: 'center',
+    },
 
-        heroImageText: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            fontWeight: '700',
-            letterSpacing: 1,
-        },
+    heroImageText: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.caption
+            .fontSize,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
 
-        backButtonContainer: {
-            alignItems: 'center',
-            backgroundColor:
-                'rgba(248, 245, 235, 0.9)',
-            borderRadius: 22,
-            height: 44,
-            justifyContent:
-                'center',
-            left: theme.spacing.md,
-            position: 'absolute',
-            width: 44,
-        },
+    backButtonContainer: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(248, 245, 235, 0.9)',
+        borderRadius: 22,
+        height: 44,
+        justifyContent: 'center',
+        left: theme.spacing.md,
+        position: 'absolute',
+        width: 44,
+    },
 
-        heroButton: {
-            color:
-                theme.colors.forest,
-            fontSize: 30,
-            lineHeight: 32,
-        },
+    heroButton: {
+        color: theme.colors.forest,
+        fontSize: 30,
+        lineHeight: 32,
+    },
 
-        favoriteButton: {
-            alignItems: 'center',
-            backgroundColor:
-                'rgba(248, 245, 235, 0.9)',
-            borderRadius: 22,
-            height: 44,
-            justifyContent:
-                'center',
-            position: 'absolute',
-            right: theme.spacing.md,
-            width: 44,
-        },
+    favoriteButton: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(248, 245, 235, 0.9)',
+        borderRadius: 22,
+        height: 44,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: theme.spacing.md,
+        width: 44,
+    },
 
-        favoriteIcon: {
-            color:
-                theme.colors.forest,
-            fontSize: 26,
-        },
+    favoriteIcon: {
+        color: theme.colors.forest,
+        fontSize: 26,
+    },
 
-        intro: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.lg,
-        },
+    intro: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.lg,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 30,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 30,
+        fontWeight: '700',
+        marginTop: theme.spacing.xs,
+    },
 
-        parkName: {
-            color:
-                theme.colors.earth,
-            fontSize: 14,
-            marginTop:
-                theme.spacing.xs,
-        },
+    parkName: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        marginTop: theme.spacing.xs,
+    },
 
-        actions: {
-            flexDirection: 'row',
-            gap: theme.spacing.sm,
-            marginTop:
-                theme.spacing.lg,
-        },
+    actions: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+        marginTop: theme.spacing.lg,
+    },
 
-        primaryAction: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
-            flex: 1,
-            justifyContent:
-                'center',
-            minHeight: 48,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    primaryAction: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        flex: 1,
+        justifyContent: 'center',
+        minHeight: 48,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        primaryActionText: {
-            color:
-                theme.colors.parchment,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            fontWeight: '700',
-        },
+    primaryActionText: {
+        color: theme.colors.parchment,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        secondaryAction: {
-            alignItems: 'center',
-            borderColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            justifyContent:
-                'center',
-            minHeight: 48,
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    secondaryAction: {
+        alignItems: 'center',
+        borderColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        justifyContent: 'center',
+        minHeight: 48,
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        secondaryActionText: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            fontWeight: '700',
-        },
+    secondaryActionText: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        stats: {
-            backgroundColor:
-                theme.colors.sage,
-            flexDirection: 'row',
-            marginHorizontal:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.lg,
-            padding:
-                theme.spacing.md,
-            borderRadius:
-                theme.radii.md,
-        },
+    stats: {
+        backgroundColor: theme.colors.sage,
+        flexDirection: 'row',
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.lg,
+        padding: theme.spacing.md,
+        borderRadius: theme.radii.md,
+    },
 
-        stat: {
-            alignItems: 'center',
-            flex: 1,
-        },
+    stat: {
+        alignItems: 'center',
+        flex: 1,
+    },
 
-        statValue: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.body
-                    .fontSize,
-            fontWeight: '700',
-        },
+    statValue: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.body
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        statLabel: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            marginTop:
-                theme.spacing.xs,
-        },
+    statLabel: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption
+            .fontSize,
+        marginTop: theme.spacing.xs,
+    },
 
-        section: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.xl,
-        },
+    section: {
+        paddingHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.xl,
+    },
 
-        sectionHeader: {
-            alignItems: 'flex-start',
-            flexDirection: 'row',
-            justifyContent:
-                'space-between',
-        },
+    sectionHeader: {
+        alignItems: 'flex-start',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
 
-        sectionHeaderContent: {
-            flex: 1,
-            paddingRight:
-                theme.spacing.md,
-        },
+    sectionHeaderContent: {
+        flex: 1,
+        paddingRight: theme.spacing.md,
+    },
 
-        sectionTitle: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.subheading
-                    .fontSize,
-            fontWeight:
-                theme.typography.subheading
-                    .fontWeight,
-        },
+    sectionTitle: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.subheading
+            .fontSize,
+        fontWeight: theme.typography.subheading
+            .fontWeight,
+    },
 
-        sectionIntro: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            lineHeight:
-                theme.typography.caption
-                    .lineHeight,
-            marginTop:
-                theme.spacing.xs,
-        },
+    sectionIntro: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption
+            .fontSize,
+        lineHeight: theme.typography.caption
+            .lineHeight,
+        marginTop: theme.spacing.xs,
+    },
 
-        sectionAction: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            fontWeight: '700',
-        },
+    sectionAction: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.caption
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        body: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.body
-                    .fontSize,
-            lineHeight:
-                theme.typography.body
-                    .lineHeight,
-            marginTop:
-                theme.spacing.sm,
-        },
+    body: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.body
+            .fontSize,
+        lineHeight: theme.typography.body
+            .lineHeight,
+        marginTop: theme.spacing.sm,
+    },
 
-        detailCard: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            marginTop:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.md,
-        },
+    detailCard: {
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        marginTop: theme.spacing.sm,
+        padding: theme.spacing.md,
+    },
 
-        detailRow: {
-            borderBottomColor:
-                theme.colors.sage,
-            borderBottomWidth: 1,
-            flexDirection: 'row',
-            justifyContent:
-                'space-between',
-            paddingVertical:
-                theme.spacing.sm,
-        },
+    detailRow: {
+        borderBottomColor: theme.colors.sage,
+        borderBottomWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: theme.spacing.sm,
+    },
 
-        detailLabel: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-        },
+    detailLabel: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+    },
 
-        detailValue: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            fontWeight: '600',
-            textAlign: 'right',
-        },
+    detailValue: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        fontWeight: '600',
+        textAlign: 'right',
+    },
 
-        wildlifeList: {
-            gap: theme.spacing.sm,
-            marginTop:
-                theme.spacing.sm,
-        },
+    wildlifeList: {
+        gap: theme.spacing.sm,
+        marginTop: theme.spacing.sm,
+    },
 
-        wildlifeRow: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            flexDirection: 'row',
-            padding:
-                theme.spacing.md,
-        },
+    wildlifeRow: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        padding: theme.spacing.md,
+    },
 
-        wildlifeIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent:
-                'center',
-            width: 48,
-        },
+    wildlifeIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 24,
+        height: 48,
+        justifyContent: 'center',
+        width: 48,
+    },
 
-        wildlifeIconText: {
-            color:
-                theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '800',
-            letterSpacing: 1,
-        },
+    wildlifeIconText: {
+        color: theme.colors.forest,
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
 
-        wildlifeContent: {
-            flex: 1,
-            marginLeft:
-                theme.spacing.md,
-        },
+    wildlifeContent: {
+        flex: 1,
+        marginLeft: theme.spacing.md,
+    },
 
-        wildlifeSpecies: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.body
-                    .fontSize,
-            fontWeight: '700',
-        },
+    wildlifeSpecies: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.body
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        wildlifeDescription: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            lineHeight:
-                theme.typography.caption
-                    .lineHeight,
-            marginTop:
-                theme.spacing.xs,
-        },
+    wildlifeDescription: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption
+            .fontSize,
+        lineHeight: theme.typography.caption
+            .lineHeight,
+        marginTop: theme.spacing.xs,
+    },
 
-        reportList: {
-            gap: theme.spacing.sm,
-            marginTop:
-                theme.spacing.sm,
-        },
+    reportList: {
+        gap: theme.spacing.sm,
+        marginTop: theme.spacing.sm,
+    },
 
-        reportCard: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            flexDirection: 'row',
-            padding:
-                theme.spacing.md,
-        },
+    reportCard: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        padding: theme.spacing.md,
+    },
 
-        reportIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent:
-                'center',
-            width: 48,
-        },
+    reportIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 24,
+        height: 48,
+        justifyContent: 'center',
+        width: 48,
+    },
 
-        reportIconText: {
-            color:
-                theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 0.5,
-        },
+    reportIconText: {
+        color: theme.colors.forest,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
 
-        reportContent: {
-            flex: 1,
-            marginLeft:
-                theme.spacing.md,
-        },
+    reportContent: {
+        flex: 1,
+        marginLeft: theme.spacing.md,
+    },
 
-        reportTitleRow: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: theme.spacing.xs,
-        },
+    reportTitleRow: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: theme.spacing.xs,
+    },
 
-        reportSpecies: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.body
-                    .fontSize,
-            fontWeight: '700',
-        },
+    reportSpecies: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.body
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        userLabel: {
-            color:
-                theme.colors.forest,
-            fontSize: 8,
-            fontWeight: '800',
-            letterSpacing: 0.7,
-        },
+    userLabel: {
+        color: theme.colors.forest,
+        fontSize: 8,
+        fontWeight: '800',
+        letterSpacing: 0.7,
+    },
 
-        reportLocation: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            fontWeight: '600',
-            marginTop:
-                theme.spacing.xs,
-        },
+    reportLocation: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.caption
+            .fontSize,
+        fontWeight: '600',
+        marginTop: theme.spacing.xs,
+    },
 
-        reportDescription: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            lineHeight:
-                theme.typography.caption
-                    .lineHeight,
-            marginTop:
-                theme.spacing.xs,
-        },
+    reportDescription: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption
+            .fontSize,
+        lineHeight: theme.typography.caption
+            .lineHeight,
+        marginTop: theme.spacing.xs,
+    },
 
-        reportButton: {
-            alignSelf:
-                'flex-start',
-            borderColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.sm,
-            borderWidth: 1,
-            marginTop:
-                theme.spacing.md,
-            paddingHorizontal:
-                theme.spacing.md,
-            paddingVertical:
-                theme.spacing.sm,
-        },
+    reportButton: {
+        alignSelf: 'flex-start',
+        borderColor: theme.colors.forest,
+        borderRadius: theme.radii.sm,
+        borderWidth: 1,
+        marginTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+    },
 
-        reportButtonText: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            fontWeight: '700',
-        },
+    reportButtonText: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        emptyCard: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            marginTop:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.lg,
-        },
+    emptyCard: {
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        marginTop: theme.spacing.sm,
+        padding: theme.spacing.lg,
+    },
 
-        emptyCardText: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            textAlign: 'center',
-        },
+    emptyCardText: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        textAlign: 'center',
+    },
 
-        planCard: {
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.lg,
-            padding:
-                theme.spacing.lg,
-        },
+    planCard: {
+        backgroundColor: theme.colors.sage,
+        borderRadius: theme.radii.lg,
+        padding: theme.spacing.lg,
+    },
 
-        planEyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '700',
-            letterSpacing: 1.3,
-        },
+    planEyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.3,
+    },
 
-        planTitle: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.subheading
-                    .fontSize,
-            fontWeight:
-                theme.typography.subheading
-                    .fontWeight,
-            marginTop:
-                theme.spacing.xs,
-        },
+    planTitle: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.subheading
+            .fontSize,
+        fontWeight: theme.typography.subheading
+            .fontWeight,
+        marginTop: theme.spacing.xs,
+    },
 
-        planBody: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            lineHeight:
-                theme.typography.bodySmall
-                    .lineHeight,
-            marginTop:
-                theme.spacing.sm,
-        },
+    planBody: {
+        color: theme.colors.earth,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        lineHeight: theme.typography.bodySmall
+            .lineHeight,
+        marginTop: theme.spacing.sm,
+    },
 
-        planButton: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
-            marginTop:
-                theme.spacing.md,
-            minHeight: 50,
-            justifyContent:
-                'center',
-        },
+    planButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        marginTop: theme.spacing.md,
+        minHeight: 50,
+        justifyContent: 'center',
+    },
 
-        planButtonText: {
-            color:
-                theme.colors.parchment,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            fontWeight: '700',
-        },
+    planButtonText: {
+        color: theme.colors.parchment,
+        fontSize: theme.typography.bodySmall
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        errorContainer: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-            justifyContent:
-                'center',
-            padding:
-                theme.spacing.xl,
-        },
+    errorContainer: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+        justifyContent: 'center',
+        padding: theme.spacing.xl,
+    },
 
-        errorTitle: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.heading
-                    .fontSize,
-            fontWeight:
-                theme.typography.heading
-                    .fontWeight,
-            marginBottom:
-                theme.spacing.md,
-            textAlign: 'center',
-        },
+    errorTitle: {
+        color: theme.colors.ink,
+        fontSize: theme.typography.heading
+            .fontSize,
+        fontWeight: theme.typography.heading
+            .fontWeight,
+        marginBottom: theme.spacing.md,
+        textAlign: 'center',
+    },
 
-        backButton: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.body
-                    .fontSize,
-            fontWeight: '700',
-        },
-    })
+    backButton: {
+        color: theme.colors.forest,
+        fontSize: theme.typography.body
+            .fontSize,
+        fontWeight: '700',
+    },
+})

@@ -616,344 +616,262 @@ function MapFilter({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            flex: 1,
-            backgroundColor:
-                theme.colors
-                    .parchment,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: theme.colors
+            .parchment,
+    },
 
-        map: {
-            flex: 1,
-        },
+    map: {
+        flex: 1,
+    },
 
-        topControls: {
-            flexDirection:
-                'row',
-            gap: theme.spacing.sm,
-            left:
-                theme.spacing.lg,
-            position:
-                'absolute',
-            right:
-                theme.spacing.lg,
-        },
+    topControls: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+        left: theme.spacing.lg,
+        position: 'absolute',
+        right: theme.spacing.lg,
+    },
 
-        searchButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius:
-                theme.radii.md,
-            flex: 1,
-            flexDirection:
-                'row',
-            minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
-            ...theme.shadows
-                .card,
-        },
+    searchButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors
+            .parchment,
+        borderRadius: theme.radii.md,
+        flex: 1,
+        flexDirection: 'row',
+        minHeight: 50,
+        paddingHorizontal: theme.spacing.md,
+        ...theme.shadows
+            .card,
+    },
 
-        searchIcon: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 24,
-            marginRight:
-                theme.spacing.sm,
-        },
+    searchIcon: {
+        color: theme.colors
+            .forest,
+        fontSize: 24,
+        marginRight: theme.spacing.sm,
+    },
 
-        searchPlaceholder: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize:
-                theme.typography
-                    .bodySmall
-                    .fontSize,
-        },
+    searchPlaceholder: {
+        color: theme.colors
+            .earth,
+        fontSize: theme.typography
+            .bodySmall
+            .fontSize,
+    },
 
-        controlButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius:
-                theme.radii.md,
-            height: 50,
-            justifyContent:
-                'center',
-            width: 50,
-            ...theme.shadows
-                .card,
-        },
+    controlButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors
+            .parchment,
+        borderRadius: theme.radii.md,
+        height: 50,
+        justifyContent: 'center',
+        width: 50,
+        ...theme.shadows
+            .card,
+    },
 
-        controlIcon: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 22,
-        },
+    controlIcon: {
+        color: theme.colors
+            .forest,
+        fontSize: 22,
+    },
 
-        filterRow: {
-            flexDirection:
-                'row',
-            gap: theme.spacing.sm,
-            left:
-                theme.spacing.lg,
-            position:
-                'absolute',
-            right:
-                theme.spacing.lg,
-        },
+    filterRow: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+        left: theme.spacing.lg,
+        position: 'absolute',
+        right: theme.spacing.lg,
+    },
 
-        filter: {
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius: 20,
-            paddingHorizontal:
-                theme.spacing.md,
-            paddingVertical:
-                theme.spacing.sm,
-            ...theme.shadows
-                .card,
-        },
+    filter: {
+        backgroundColor: theme.colors
+            .parchment,
+        borderRadius: 20,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        ...theme.shadows
+            .card,
+    },
 
-        activeFilter: {
-            backgroundColor:
-                theme.colors
-                    .forest,
-        },
+    activeFilter: {
+        backgroundColor: theme.colors
+            .forest,
+    },
 
-        filterText: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize:
-                theme.typography
-                    .caption
-                    .fontSize,
-            fontWeight:
-                '600',
-        },
+    filterText: {
+        color: theme.colors
+            .earth,
+        fontSize: theme.typography
+            .caption
+            .fontSize,
+        fontWeight: '600',
+    },
 
-        activeFilterText: {
-            color:
-                theme.colors
-                    .parchment,
-        },
+    activeFilterText: {
+        color: theme.colors
+            .parchment,
+    },
 
-        marker: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .forest,
-            borderColor:
-                theme.colors
-                    .parchment,
-            borderRadius: 20,
-            borderWidth: 3,
-            height: 40,
-            justifyContent:
-                'center',
-            width: 40,
-        },
+    marker: {
+        alignItems: 'center',
+        backgroundColor: theme.colors
+            .forest,
+        borderColor: theme.colors
+            .parchment,
+        borderRadius: 20,
+        borderWidth: 3,
+        height: 40,
+        justifyContent: 'center',
+        width: 40,
+    },
 
-        secondaryMarker: {
-            backgroundColor:
-                theme.colors
-                    .earth,
-        },
+    secondaryMarker: {
+        backgroundColor: theme.colors
+            .earth,
+    },
 
-        markerIcon: {
-            fontSize: 18,
-        },
+    markerIcon: {
+        fontSize: 18,
+    },
 
-        selectedCard: {
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius:
-                theme.radii.lg,
-            bottom: 90,
-            flexDirection:
-                'row',
-            left:
-                theme.spacing.lg,
-            overflow:
-                'hidden',
-            position:
-                'absolute',
-            right:
-                theme.spacing.lg,
-            ...theme.shadows
-                .card,
-        },
+    selectedCard: {
+        backgroundColor: theme.colors
+            .parchment,
+        borderRadius: theme.radii.lg,
+        bottom: 90,
+        flexDirection: 'row',
+        left: theme.spacing.lg,
+        overflow: 'hidden',
+        position: 'absolute',
+        right: theme.spacing.lg,
+        ...theme.shadows
+            .card,
+    },
 
-        selectedImage: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .sage,
-            justifyContent:
-                'center',
-            width: 105,
-        },
+    selectedImage: {
+        alignItems: 'center',
+        backgroundColor: theme.colors
+            .sage,
+        justifyContent: 'center',
+        width: 105,
+    },
 
-        secondarySelectedImage: {
-            backgroundColor:
-                theme.colors
-                    .canvas,
-        },
+    secondarySelectedImage: {
+        backgroundColor: theme.colors
+            .canvas,
+    },
 
-        selectedIcon: {
-            fontSize: 32,
-        },
+    selectedIcon: {
+        fontSize: 32,
+    },
 
-        selectedContent: {
-            flex: 1,
-            padding:
-                theme.spacing.md,
-        },
+    selectedContent: {
+        flex: 1,
+        padding: theme.spacing.md,
+    },
 
-        selectedEyebrow: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize:
-                theme.typography
-                    .caption
-                    .fontSize,
-            fontWeight:
-                '700',
-            letterSpacing: 1,
-        },
+    selectedEyebrow: {
+        color: theme.colors
+            .forest,
+        fontSize: theme.typography
+            .caption
+            .fontSize,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
 
-        selectedTitle: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize:
-                theme.typography
-                    .body
-                    .fontSize,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.xs,
-        },
+    selectedTitle: {
+        color: theme.colors
+            .ink,
+        fontSize: theme.typography
+            .body
+            .fontSize,
+        fontWeight: '700',
+        marginTop: theme.spacing.xs,
+    },
 
-        selectedLocation: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize:
-                theme.typography
-                    .caption
-                    .fontSize,
-            marginTop: 2,
-        },
+    selectedLocation: {
+        color: theme.colors
+            .earth,
+        fontSize: theme.typography
+            .caption
+            .fontSize,
+        marginTop: 2,
+    },
 
-        selectedDescription: {
-            color:
-                theme.colors
-                    .bark,
-            fontSize:
-                theme.typography
-                    .caption
-                    .fontSize,
-            lineHeight:
-                theme.typography
-                    .caption
-                    .lineHeight,
-            marginTop:
-                theme.spacing.xs,
-        },
+    selectedDescription: {
+        color: theme.colors
+            .bark,
+        fontSize: theme.typography
+            .caption
+            .fontSize,
+        lineHeight: theme.typography
+            .caption
+            .lineHeight,
+        marginTop: theme.spacing.xs,
+    },
 
-        selectedActions: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            marginTop:
-                theme.spacing.sm,
-        },
+    selectedActions: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: theme.spacing.sm,
+    },
 
-        viewButton: {
-            backgroundColor:
-                theme.colors
-                    .forest,
-            borderRadius:
-                theme.radii.sm,
-            paddingHorizontal:
-                theme.spacing.md,
-            paddingVertical:
-                theme.spacing.xs,
-        },
+    viewButton: {
+        backgroundColor: theme.colors
+            .forest,
+        borderRadius: theme.radii.sm,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.xs,
+    },
 
-        viewButtonText: {
-            color:
-                theme.colors
-                    .parchment,
-            fontSize:
-                theme.typography
-                    .caption
-                    .fontSize,
-            fontWeight:
-                '700',
-        },
+    viewButtonText: {
+        color: theme.colors
+            .parchment,
+        fontSize: theme.typography
+            .caption
+            .fontSize,
+        fontWeight: '700',
+    },
 
-        closeButton: {
-            alignItems:
-                'center',
-            height: 32,
-            justifyContent:
-                'center',
-            width: 32,
-        },
+    closeButton: {
+        alignItems: 'center',
+        height: 32,
+        justifyContent: 'center',
+        width: 32,
+    },
 
-        closeButtonText: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 24,
-        },
+    closeButtonText: {
+        color: theme.colors
+            .earth,
+        fontSize: 24,
+    },
 
-        locationButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius: 25,
-            bottom: 105,
-            height: 50,
-            justifyContent:
-                'center',
-            position:
-                'absolute',
-            right:
-                theme.spacing.lg,
-            width: 50,
-            ...theme.shadows
-                .card,
-        },
+    locationButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors
+            .parchment,
+        borderRadius: 25,
+        bottom: 105,
+        height: 50,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: theme.spacing.lg,
+        width: 50,
+        ...theme.shadows
+            .card,
+    },
 
-        locationIcon: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 28,
-        },
-    })
+    locationIcon: {
+        color: theme.colors
+            .forest,
+        fontSize: 28,
+    },
+})

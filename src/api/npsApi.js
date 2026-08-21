@@ -13,13 +13,9 @@ async function npsRequest(endpoint) {
     }
 
     const separator =
-        endpoint.includes('?')
-            ? '&'
-            : '?'
+        endpoint.includes('?') ? '&' : '?'
 
-    const url =
-        `${NPS_BASE_URL}${endpoint}` +
-        `${separator}api_key=${encodeURIComponent(apiKey)}`
+    const url =  `${NPS_BASE_URL}${endpoint}` + `${separator}api_key=${encodeURIComponent(apiKey)}`
 
     try {
         const response = await fetch(
@@ -31,8 +27,7 @@ async function npsRequest(endpoint) {
             }
         )
 
-        const text =
-            await response.text()
+        const text = await response.text()
 
         let data
 
@@ -88,22 +83,14 @@ function normalizeCoordinates(
     }
 
     const latitudeMatch =
-        latLong.match(
-            /lat:([-0-9.]+)/
-        )
+        latLong.match(/lat:([-0-9.]+)/)
 
     const longitudeMatch =
-        latLong.match(
-            /long:([-0-9.]+)/
-        )
+        latLong.match(/long:([-0-9.]+)/)
 
     return {
-        latitude: latitudeMatch
-            ? Number(latitudeMatch[1])
-            : null,
-        longitude: longitudeMatch
-            ? Number(longitudeMatch[1])
-            : null,
+        latitude: latitudeMatch ? Number(latitudeMatch[1]) : null,
+        longitude: longitudeMatch ? Number(longitudeMatch[1]) : null,
     }
 }
 
@@ -112,19 +99,10 @@ function normalizePark(park) {
     return {
         id: park.parkCode,
         npsId: park.id,
-        name:
-            park.fullName ||
-            park.name ||
-            '',
-        shortName:
-            park.name ||
-            '',
-        designation:
-            park.designation ||
-            '',
-        description:
-            park.description ||
-            '',
+        name: park.fullName || park.name || '',
+        shortName: park.name || '',
+        designation: park.designation || '',
+        description: park.description || '',
 
         states: park.states
             ? park.states
@@ -163,28 +141,21 @@ function normalizePark(park) {
                 emailAddresses: [],
             },
 
-        entranceFees:
-            park.entranceFees || [],
+        entranceFees: park.entranceFees || [],
 
-        entrancePasses:
-            park.entrancePasses || [],
+        entrancePasses: park.entrancePasses || [],
 
         fees: park.fees || [],
 
-        directionsInfo:
-            park.directionsInfo || '',
+        directionsInfo: park.directionsInfo || '',
 
-        directionsUrl:
-            park.directionsUrl || '',
+        directionsUrl: park.directionsUrl || '',
 
-        operatingHours:
-            park.operatingHours || [],
+        operatingHours: park.operatingHours || [],
 
-        addresses:
-            park.addresses || [],
+        addresses: park.addresses || [],
 
-        weatherInfo:
-            park.weatherInfo || '',
+        weatherInfo: park.weatherInfo || '',
 
         url: park.url || '',
     }
@@ -194,8 +165,7 @@ function normalizePark(park) {
 export async function getParks(
     params = {}
 ) {
-    const query =
-        new URLSearchParams()
+    const query = new URLSearchParams()
 
     // restricts the nps request to national parks before data is downloaded
     query.append(
@@ -236,8 +206,7 @@ export async function getParks(
             `/parks?${query.toString()}`
         )
 
-    const result =
-        getNpsResult(response)
+    const result = getNpsResult(response)
 
     return {
         ...result,
@@ -253,10 +222,9 @@ export async function getParks(
 
 // gets all official national parks
 export async function getAllParks() {
-    const response =
-        await getParks({
-            limit: 600,
-        })
+    const response = await getParks({
+        limit: 600,
+    })
 
     return response.data || []
 }
@@ -272,8 +240,7 @@ export async function getParkByCode(
             )}`
         )
 
-    const result =
-        getNpsResult(response)
+    const result = getNpsResult(response)
 
     const park =
         result.data?.find(
@@ -295,15 +262,13 @@ export async function getParkByCode(
 export async function getThingsToDoByPark(
     parkCode
 ) {
-    const response =
-        await npsRequest(
-            `/thingstodo?parkCode=${encodeURIComponent(
-                parkCode
-            )}&limit=50&fields=images`
-        )
+    const response = await npsRequest(
+        `/thingstodo?parkCode=${encodeURIComponent(
+            parkCode
+        )}&limit=50&fields=images`
+    )
 
-    const result =
-        getNpsResult(response)
+    const result = getNpsResult(response)
 
     if (!result.data) {
         return []
@@ -323,8 +288,7 @@ export async function getTrailsByPark(
             )}&limit=50&fields=images`
         )
 
-    const result =
-        getNpsResult(response)
+    const result = getNpsResult(response)
 
     if (!result.data) {
         return []
@@ -400,19 +364,16 @@ export function normalizeNpsTrail(trail) {
 function trailTypeFromNpsTrail(
     trail
 ) {
-    const activity =
-        trail.activities?.find(
-            (item) =>
-                item?.name
-        )?.name
+    const activity = trail.activities?.find(
+        (item) =>
+            item?.name
+    )?.name
 
     if (activity) {
         return activity
     }
 
-    const type =
-        trail.type ||
-        trail.trailType
+    const type = trail.type || trail.trailType
 
     return type || 'Trail'
 }

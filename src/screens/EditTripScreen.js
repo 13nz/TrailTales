@@ -671,22 +671,19 @@ function formatDisplayDate(date) {
 
 const styles = StyleSheet.create({
     screen: {
-        backgroundColor:
-            theme.colors.parchment,
+        backgroundColor: theme.colors.parchment,
         flex: 1,
     },
 
     content: {
         paddingBottom: 130,
-        paddingHorizontal:
-            theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
     },
 
     header: {
         alignItems: 'center',
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
     },
 
     backButton: {
@@ -714,8 +711,7 @@ const styles = StyleSheet.create({
     },
 
     intro: {
-        marginTop:
-            theme.spacing.xl,
+        marginTop: theme.spacing.xl,
     },
 
     eyebrow: {
@@ -729,30 +725,23 @@ const styles = StyleSheet.create({
         color: theme.colors.ink,
         fontSize: 30,
         fontWeight: '700',
-        marginTop:
-            theme.spacing.xs,
+        marginTop: theme.spacing.xs,
     },
 
     description: {
         color: theme.colors.earth,
         fontSize: 14,
         lineHeight: 20,
-        marginTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
     },
 
     errorBox: {
-        backgroundColor:
-            theme.colors.sage,
-        borderColor:
-            theme.colors.forest,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.sage,
+        borderColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
-        marginTop:
-            theme.spacing.lg,
-        padding:
-            theme.spacing.md,
+        marginTop: theme.spacing.lg,
+        padding: theme.spacing.md,
     },
 
     errorBoxText: {
@@ -762,8 +751,7 @@ const styles = StyleSheet.create({
     },
 
     form: {
-        marginTop:
-            theme.spacing.xl,
+        marginTop: theme.spacing.xl,
     },
 
     label: {
@@ -773,8 +761,7 @@ const styles = StyleSheet.create({
     },
 
     spacedLabel: {
-        marginTop:
-            theme.spacing.lg,
+        marginTop: theme.spacing.lg,
     },
 
     optionalText: {
@@ -784,46 +771,35 @@ const styles = StyleSheet.create({
     },
 
     input: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         color: theme.colors.ink,
         fontSize: 14,
-        marginTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
         minHeight: 50,
-        paddingHorizontal:
-            theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
     },
 
     notesInput: {
         minHeight: 120,
-        paddingTop:
-            theme.spacing.md,
+        paddingTop: theme.spacing.md,
     },
 
     lockedPark: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         flexDirection: 'row',
-        marginTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
         minHeight: 72,
-        padding:
-            theme.spacing.sm,
+        padding: theme.spacing.sm,
     },
 
     lockedParkIcon: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: 22,
         height: 44,
         justifyContent: 'center',
@@ -836,8 +812,7 @@ const styles = StyleSheet.create({
 
     lockedParkContent: {
         flex: 1,
-        marginLeft:
-            theme.spacing.sm,
+        marginLeft: theme.spacing.sm,
     },
 
     lockedParkName: {
@@ -855,15 +830,13 @@ const styles = StyleSheet.create({
 
     lockIcon: {
         fontSize: 15,
-        marginLeft:
-            theme.spacing.sm,
+        marginLeft: theme.spacing.sm,
     },
 
     dateRow: {
         flexDirection: 'row',
         gap: theme.spacing.sm,
-        marginTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
     },
 
     dateField: {
@@ -879,19 +852,14 @@ const styles = StyleSheet.create({
 
     dateInput: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
         minHeight: 50,
-        paddingHorizontal:
-            theme.spacing.sm,
+        paddingHorizontal: theme.spacing.sm,
     },
 
     dateText: {
@@ -907,52 +875,40 @@ const styles = StyleSheet.create({
     },
 
     bottomAction: {
-        backgroundColor:
-            theme.colors.parchment,
-        paddingHorizontal:
-            theme.spacing.lg,
-        paddingTop:
-            theme.spacing.sm,
+        backgroundColor: theme.colors.parchment,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
     },
 
     saveButton: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.forest,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
         minHeight: 54,
         justifyContent: 'center',
     },
 
     saveButtonText: {
-        color:
-            theme.colors.parchment,
+        color: theme.colors.parchment,
         fontSize: 15,
         fontWeight: '700',
     },
 
     modalOverlay: {
         alignItems: 'center',
-        backgroundColor:
-            'rgba(30, 40, 25, 0.45)',
+        backgroundColor: 'rgba(30, 40, 25, 0.45)',
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal:
-            theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
     },
 
     dateModal: {
-        backgroundColor:
-            theme.colors.parchment,
-        borderRadius:
-            theme.radii.lg,
+        backgroundColor: theme.colors.parchment,
+        borderRadius: theme.radii.lg,
         maxWidth: 420,
         overflow: 'hidden',
-        paddingHorizontal:
-            theme.spacing.lg,
-        paddingTop:
-            theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.lg,
         width: '100%',
         ...theme.shadows.card,
     },
@@ -960,8 +916,7 @@ const styles = StyleSheet.create({
     modalHeader: {
         alignItems: 'center',
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
     },
 
     modalEyebrow: {
@@ -1000,17 +955,14 @@ const styles = StyleSheet.create({
 
     doneButton: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.forest,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
         minHeight: 50,
         justifyContent: 'center',
     },
 
     doneButtonText: {
-        color:
-            theme.colors.parchment,
+        color: theme.colors.parchment,
         fontSize: 15,
         fontWeight: '700',
     },
@@ -1018,8 +970,7 @@ const styles = StyleSheet.create({
     errorText: {
         color: theme.colors.earth,
         fontSize: 15,
-        margin:
-            theme.spacing.xl,
+        margin: theme.spacing.xl,
         textAlign: 'center',
     },
 })

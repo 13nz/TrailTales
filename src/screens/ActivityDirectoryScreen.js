@@ -19,7 +19,6 @@ import theme from '../constants/theme'
 import mockActivities from '../data/mockActivities'
 
 // provides a searchable directory of park activities
-// the mock data follows the structure we will use when connecting to the nps things to do endpoint
 export default function ActivityDirectoryScreen({
     navigation,
 }) {
@@ -34,10 +33,7 @@ export default function ActivityDirectoryScreen({
     // filters activities using the same fields that will be useful when nps data is connected
     const filteredActivities =
         useMemo(() => {
-            const query =
-                searchQuery
-                    .trim()
-                    .toLowerCase()
+            const query = searchQuery.trim().toLowerCase()
 
             if (!query) {
                 return mockActivities
@@ -46,18 +42,10 @@ export default function ActivityDirectoryScreen({
             return mockActivities.filter(
                 (activity) => {
                     return (
-                        activity.title
-                            .toLowerCase()
-                            .includes(query) ||
-                        activity.parkName
-                            .toLowerCase()
-                            .includes(query) ||
-                        activity.location
-                            .toLowerCase()
-                            .includes(query) ||
-                        activity.shortDescription
-                            .toLowerCase()
-                            .includes(query)
+                        activity.title.toLowerCase().includes(query) ||
+                        activity.parkName.toLowerCase().includes(query) ||
+                        activity.location.toLowerCase().includes(query) ||
+                        activity.shortDescription.toLowerCase().includes(query)
                     )
                 }
             )

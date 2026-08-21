@@ -576,227 +576,169 @@ function getTypeInfo(
     }
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        header: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
-        },
+    header: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
+    },
 
-        backButton: {
-            alignItems:
-                'center',
-            alignSelf:
-                'flex-start',
-            flexDirection:
-                'row',
-            marginBottom:
-                theme.spacing.lg,
-        },
+    backButton: {
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        marginBottom: theme.spacing.lg,
+    },
 
-        backText: {
-            color:
-                theme.colors.forest,
-            fontSize: 13,
-            fontWeight: '600',
-            marginLeft: 2,
-        },
+    backText: {
+        color: theme.colors.forest,
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 2,
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 32,
-            fontWeight: '800',
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 32,
+        fontWeight: '800',
+    },
 
-        searchContainer: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection:
-                'row',
-            marginHorizontal:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.lg,
-            minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    searchContainer: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.lg,
+        minHeight: 50,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        searchInput: {
-            color:
-                theme.colors.ink,
-            flex: 1,
-            fontSize: 14,
-            marginLeft:
-                theme.spacing.sm,
-            minHeight: 48,
-        },
+    searchInput: {
+        color: theme.colors.ink,
+        flex: 1,
+        fontSize: 14,
+        marginLeft: theme.spacing.sm,
+        minHeight: 48,
+    },
 
-        clearButton: {
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
-            padding: 5,
-        },
+    clearButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 5,
+    },
 
-        resultCount: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            fontWeight: '700',
-            letterSpacing: 0.5,
-            marginHorizontal:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.lg,
-            textTransform:
-                'uppercase',
-        },
+    resultCount: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.lg,
+        textTransform: 'uppercase',
+    },
 
-        list: {
-            padding:
-                theme.spacing.lg,
-            paddingBottom:
-                theme.spacing.xxxl,
-        },
+    list: {
+        padding: theme.spacing.lg,
+        paddingBottom: theme.spacing.xxxl,
+    },
 
-        resultCard: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection:
-                'row',
-            marginBottom:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.md,
-        },
+    resultCard: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        marginBottom: theme.spacing.sm,
+        padding: theme.spacing.md,
+    },
 
-        pressed: {
-            opacity: 0.8,
-        },
+    pressed: {
+        opacity: 0.8,
+    },
 
-        resultIcon: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent:
-                'center',
-            width: 48,
-        },
+    resultIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 24,
+        height: 48,
+        justifyContent: 'center',
+        width: 48,
+    },
 
-        resultContent: {
-            flex: 1,
-            marginHorizontal:
-                theme.spacing.md,
-        },
+    resultContent: {
+        flex: 1,
+        marginHorizontal: theme.spacing.md,
+    },
 
-        resultType: {
-            color:
-                theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 0.8,
-            textTransform:
-                'uppercase',
-        },
+    resultType: {
+        color: theme.colors.forest,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+    },
 
-        resultTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 15,
-            fontWeight: '700',
-            marginTop: 3,
-        },
+    resultTitle: {
+        color: theme.colors.ink,
+        fontSize: 15,
+        fontWeight: '700',
+        marginTop: 3,
+    },
 
-        resultSubtitle: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            marginTop: 3,
-        },
+    resultSubtitle: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        marginTop: 3,
+    },
 
-        initialState: {
-            alignItems:
-                'center',
-            flex: 1,
-            justifyContent:
-                'center',
-            paddingHorizontal:
-                theme.spacing.xxl,
-        },
+    initialState: {
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.xxl,
+    },
 
-        initialTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 20,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-        },
+    initialTitle: {
+        color: theme.colors.ink,
+        fontSize: 20,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+    },
 
-        initialText: {
-            color:
-                theme.colors.earth,
-            fontSize: 13,
-            lineHeight: 20,
-            marginTop:
-                theme.spacing.xs,
-            textAlign:
-                'center',
-        },
+    initialText: {
+        color: theme.colors.earth,
+        fontSize: 13,
+        lineHeight: 20,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
 
-        emptyState: {
-            alignItems:
-                'center',
-            paddingHorizontal:
-                theme.spacing.xxl,
-            paddingTop: 80,
-        },
+    emptyState: {
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.xxl,
+        paddingTop: 80,
+    },
 
-        emptyTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-        },
+    emptyTitle: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+    },
 
-        emptyText: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop:
-                theme.spacing.xs,
-            textAlign:
-                'center',
-        },
-    })
+    emptyText: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        lineHeight: 18,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
+})

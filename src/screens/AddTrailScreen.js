@@ -56,7 +56,7 @@ export default function AddTrailScreen({
      * forces the native picker to be recreated
      * whenever the user opens it
      *
-     * this is the implementation that fixed
+     * this is what fixed
      * the iOS time picker problem
      */
     const [pickerInstance, setPickerInstance] =
@@ -72,7 +72,7 @@ export default function AddTrailScreen({
             trail.parkId === trip?.parkId
     )
 
-    // filters the park's trails as the user searches
+    // filters the parks trails as the user searches
     const filteredTrails = parkTrails.filter(
         (trail) =>
             trail.name
@@ -340,7 +340,7 @@ export default function AddTrailScreen({
                     0 ? (
                         <Pressable
                             onPress={() => {
-                                // clears the current search so all trails are visible again
+                                // clear the current search so all trails are visible again
                                 setSearchQuery(
                                     ''
                                 )
@@ -1022,14 +1022,10 @@ function formatDisplayDate(
     return date.toLocaleDateString(
         'en-US',
         {
-            weekday:
-                'short',
-            month:
-                'short',
-            day:
-                'numeric',
-            year:
-                'numeric',
+            weekday: 'short',
+            month: 'short',
+            day:  'numeric',
+            year: 'numeric',
         }
     )
 }
@@ -1045,10 +1041,8 @@ function formatDisplayTime(
     return date.toLocaleTimeString(
         'en-US',
         {
-            hour:
-                'numeric',
-            minute:
-                '2-digit',
+            hour: 'numeric',
+            minute: '2-digit',
         }
     )
 }
@@ -1097,50 +1091,39 @@ function formatDatabaseTime(
 const styles =
     StyleSheet.create({
         screen: {
-            backgroundColor:
-                theme.colors.parchment,
+            backgroundColor: theme.colors.parchment,
             flex: 1,
         },
 
         content: {
             paddingBottom: 130,
-            paddingHorizontal:
-                theme.spacing.lg,
+            paddingHorizontal: theme.spacing.lg,
         },
 
         header: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
         },
 
         backButton: {
-            alignItems:
-                'center',
+            alignItems: 'center',
             height: 42,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 42,
         },
 
         backButtonText: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 36,
-            fontWeight:
-                '300',
+            fontWeight: '300',
             lineHeight: 38,
         },
 
         headerTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 17,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         headerSpacer: {
@@ -1148,123 +1131,90 @@ const styles =
         },
 
         intro: {
-            marginTop:
-                theme.spacing.xl,
+            marginTop: theme.spacing.xl,
         },
 
         eyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 10,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             letterSpacing: 1.5,
         },
 
         title: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 30,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.xs,
+            fontWeight: '700',
+            marginTop: theme.spacing.xs,
         },
 
         parkName: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 14,
-            marginTop:
-                theme.spacing.xs,
+            marginTop: theme.spacing.xs,
         },
 
         searchContainer: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            flexDirection:
-                'row',
-            marginTop:
-                theme.spacing.xl,
+            flexDirection:  'row',
+            marginTop: theme.spacing.xl,
             minHeight: 52,
-            paddingHorizontal:
-                theme.spacing.md,
+            paddingHorizontal: theme.spacing.md,
         },
 
         searchIcon: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 24,
-            marginRight:
-                theme.spacing.sm,
+            marginRight: theme.spacing.sm,
         },
 
         searchInput: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             flex: 1,
             fontSize: 14,
             minHeight: 50,
         },
 
         clearButton: {
-            alignItems:
-                'center',
+            alignItems: 'center',
             height: 30,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 30,
         },
 
         clearText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 22,
         },
 
         resultLabel: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 11,
-            marginTop:
-                theme.spacing.md,
+            marginTop: theme.spacing.md,
         },
 
         trailList: {
-            gap:
-                theme.spacing.sm,
-            marginTop:
-                theme.spacing.sm,
+            gap: theme.spacing.sm,
+            marginTop:  theme.spacing.sm,
         },
 
         trailCard: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            flexDirection:
-                'row',
-            padding:
-                theme.spacing.sm,
+            flexDirection: 'row',
+            padding: theme.spacing.sm,
         },
 
         selectedTrailCard: {
-            backgroundColor:
-                theme.colors.sage,
-            borderColor:
-                theme.colors.forest,
+            backgroundColor: theme.colors.sage,
+            borderColor: theme.colors.forest,
         },
 
         disabledTrailCard: {
@@ -1272,14 +1222,11 @@ const styles =
         },
 
         trailIcon: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.sage,
+            alignItems: 'center',
+            backgroundColor: theme.colors.sage,
             borderRadius: 24,
             height: 48,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 48,
         },
 
@@ -1289,55 +1236,43 @@ const styles =
 
         trailContent: {
             flex: 1,
-            marginLeft:
-                theme.spacing.sm,
+            marginLeft: theme.spacing.sm,
         },
 
         trailName: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 14,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         trailDescription: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 11,
             lineHeight: 16,
             marginTop: 3,
         },
 
         trailFacts: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            marginTop:
-                theme.spacing.sm,
+            alignItems: 'center',
+            flexDirection: 'row',
+            marginTop: theme.spacing.sm,
         },
 
         trailFact: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 11,
-            fontWeight:
-                '600',
+            fontWeight: '600',
         },
 
         trailFactDivider: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 11,
             marginHorizontal: 5,
         },
 
         dogRow: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
+            alignItems: 'center',
+            flexDirection: 'row',
             marginTop: 4,
         },
 
@@ -1346,62 +1281,48 @@ const styles =
         },
 
         dogText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 10,
             marginLeft: 4,
         },
 
         selectionIndicator: {
-            alignItems:
-                'center',
-            borderColor:
-                theme.colors.earth,
+            alignItems: 'center',
+            borderColor: theme.colors.earth,
             borderRadius: 10,
             borderWidth: 1.5,
             height: 20,
-            justifyContent:
-                'center',
-            marginLeft:
-                theme.spacing.sm,
+            justifyContent: 'center',
+            marginLeft: theme.spacing.sm,
             width: 20,
         },
 
         selectedIndicator: {
-            borderColor:
-                theme.colors.forest,
+            borderColor: theme.colors.forest,
         },
 
         selectionDot: {
-            backgroundColor:
-                theme.colors.forest,
+            backgroundColor: theme.colors.forest,
             borderRadius: 5,
             height: 10,
             width: 10,
         },
 
         alreadyAddedIndicator: {
-            backgroundColor:
-                theme.colors.forest,
-            borderColor:
-                theme.colors.forest,
+            backgroundColor: theme.colors.forest,
+            borderColor: theme.colors.forest,
         },
 
         alreadyAddedText: {
-            color:
-                theme.colors.parchment,
+            color: theme.colors.parchment,
             fontSize: 13,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         emptyState: {
-            alignItems:
-                'center',
-            paddingHorizontal:
-                theme.spacing.xl,
-            paddingVertical:
-                theme.spacing.xxl,
+            alignItems: 'center',
+            paddingHorizontal: theme.spacing.xl,
+            paddingVertical: theme.spacing.xxl,
         },
 
         emptyIcon: {
@@ -1409,41 +1330,29 @@ const styles =
         },
 
         emptyTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 19,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.md,
+            fontWeight: '700',
+            marginTop: theme.spacing.md,
         },
 
         emptyDescription: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 13,
-            marginTop:
-                theme.spacing.xs,
+            marginTop: theme.spacing.xs,
         },
 
         previewCard: {
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.lg,
-            marginTop:
-                theme.spacing.lg,
-            padding:
-                theme.spacing.md,
+            backgroundColor: theme.colors.sage,
+            borderRadius: theme.radii.lg,
+            marginTop:  theme.spacing.lg,
+            padding: theme.spacing.md,
         },
 
         previewHeader: {
-            alignItems:
-                'flex-start',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            alignItems:  'flex-start',
+            flexDirection: 'row',
+            justifyContent:  'space-between',
         },
 
         previewHeaderContent: {
@@ -1451,34 +1360,27 @@ const styles =
         },
 
         previewEyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 9,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             letterSpacing: 1.3,
         },
 
         previewTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 18,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             marginTop: 3,
         },
 
         previewClose: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 25,
         },
 
         previewFacts: {
-            flexDirection:
-                'row',
-            marginTop:
-                theme.spacing.md,
+            flexDirection: 'row',
+            marginTop: theme.spacing.md,
         },
 
         fact: {
@@ -1486,50 +1388,37 @@ const styles =
         },
 
         factLabel: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 9,
-            fontWeight:
-                '600',
-            textTransform:
-                'uppercase',
+            fontWeight: '600',
+            textTransform: 'uppercase',
         },
 
         factValue: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 13,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             marginTop: 2,
         },
 
         previewDescription: {
-            color:
-                theme.colors.bark,
+            color: theme.colors.bark,
             fontSize: 12,
             lineHeight: 18,
-            marginTop:
-                theme.spacing.md,
+            marginTop: theme.spacing.md,
         },
 
         scheduleTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 14,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.lg,
+            fontWeight: '700',
+            marginTop: theme.spacing.lg,
         },
 
         scheduleRow: {
-            flexDirection:
-                'row',
-            gap:
-                theme.spacing.sm,
-            marginTop:
-                theme.spacing.sm,
+            flexDirection: 'row',
+            gap: theme.spacing.sm,
+            marginTop: theme.spacing.sm,
         },
 
         scheduleField: {
@@ -1537,195 +1426,141 @@ const styles =
         },
 
         scheduleLabel: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 10,
-            fontWeight:
-                '700',
+            fontWeight:  '700',
             marginBottom: 4,
         },
 
         scheduleInput: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.parchment,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.parchment,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
             minHeight: 46,
-            paddingHorizontal:
-                theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
         },
 
         scheduleText: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             flex: 1,
             fontSize: 11,
         },
 
         scheduleIcon: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 16,
             marginLeft: 4,
         },
 
         bottomAction: {
-            backgroundColor:
-                theme.colors.parchment,
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
+            backgroundColor: theme.colors.parchment,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
         },
 
         addTrailButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.forest,
+            borderRadius: theme.radii.md,
             minHeight: 54,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
         },
 
         disabledAddButton: {
-            backgroundColor:
-                theme.colors.sage,
+            backgroundColor: theme.colors.sage,
         },
 
         addTrailButtonText: {
-            color:
-                theme.colors.parchment,
+            color: theme.colors.parchment,
             fontSize: 15,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         disabledAddButtonText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
         },
 
         modalOverlay: {
-            alignItems:
-                'center',
-            backgroundColor:
-                'rgba(30, 40, 25, 0.45)',
+            alignItems: 'center',
+            backgroundColor:  'rgba(30, 40, 25, 0.45)',
             flex: 1,
-            justifyContent:
-                'center',
-            paddingHorizontal:
-                theme.spacing.lg,
+            justifyContent: 'center',
+            paddingHorizontal: theme.spacing.lg,
         },
 
         dateModal: {
-            backgroundColor:
-                theme.colors.parchment,
-            borderRadius:
-                theme.radii.lg,
+            backgroundColor:  theme.colors.parchment,
+            borderRadius: theme.radii.lg,
             maxWidth: 420,
-            overflow:
-                'hidden',
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.lg,
+            overflow: 'hidden',
+            paddingHorizontal:  theme.spacing.lg,
+            paddingTop: theme.spacing.lg,
             width: '100%',
             ...theme.shadows.card,
         },
 
         modalHeader: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            alignItems: 'center',
+            flexDirection:  'row',
+            justifyContent: 'space-between',
         },
 
         modalEyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 10,
-            fontWeight:
-                '700',
+            fontWeight:  '700',
             letterSpacing: 1.5,
         },
 
         modalTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 22,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             marginTop: 2,
         },
 
         modalClose: {
-            alignItems:
-                'center',
+            alignItems: 'center',
             height: 36,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 36,
         },
 
         modalCloseText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 28,
-            fontWeight:
-                '300',
+            fontWeight: '300',
         },
 
         pickerContainer: {
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
             minHeight: 260,
-            overflow:
-                'hidden',
+            overflow: 'hidden',
         },
 
         doneButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.forest,
+            borderRadius: theme.radii.md,
             minHeight: 50,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
         },
 
         doneButtonText: {
-            color:
-                theme.colors.parchment,
+            color: theme.colors.parchment,
             fontSize: 15,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         errorText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign:
-                'center',
+            margin: theme.spacing.xl,
+            textAlign: 'center',
         },
     })

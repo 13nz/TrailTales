@@ -445,14 +445,12 @@ export default function CampfireScreen({
 const styles =
     StyleSheet.create({
         container: {
-            backgroundColor:
-                '#11100E',
+            backgroundColor: '#11100E',
             flex: 1,
         },
 
         content: {
-            minHeight:
-                '100%',
+            minHeight: '100%',
             paddingHorizontal: 20,
             paddingBottom: 50,
         },
@@ -460,8 +458,7 @@ const styles =
         topBar: {
             alignItems: 'center',
             flexDirection: 'row',
-            justifyContent:
-                'space-between',
+            justifyContent:  'space-between',
             paddingVertical: 14,
         },
 
@@ -498,15 +495,13 @@ const styles =
         campfireArea: {
             alignItems: 'center',
             height: 245,
-            justifyContent:
-                'flex-end',
+            justifyContent: 'flex-end',
             overflow: 'hidden',
             position: 'relative',
         },
 
         moon: {
-            backgroundColor:
-                '#D8D0BA',
+            backgroundColor: '#D8D0BA',
             borderRadius: 35,
             height: 52,
             opacity: 0.75,
@@ -552,8 +547,7 @@ const styles =
         },
 
         fireGlow: {
-            backgroundColor:
-                '#B85F2C',
+            backgroundColor: '#B85F2C',
             borderRadius: 100,
             bottom: 5,
             height: 130,
@@ -565,8 +559,7 @@ const styles =
         fire: {
             fontSize: 82,
             marginBottom: 10,
-            textShadowColor:
-                '#C15F28',
+            textShadowColor:  '#C15F28',
             textShadowOffset: {
                 width: 0,
                 height: 0,
@@ -605,8 +598,7 @@ const styles =
         },
 
         storyDivider: {
-            backgroundColor:
-                '#3A342D',
+            backgroundColor: '#3A342D',
             height: 1,
             marginHorizontal: 45,
             marginVertical: 25,
@@ -644,8 +636,7 @@ const styles =
             borderWidth: 1,
             flex: 1,
             flexDirection: 'row',
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             minHeight: 48,
             paddingHorizontal: 10,
         },

@@ -630,9 +630,7 @@ function createTripDate(
         month,
         day,
     ] =
-        dateString
-            .split('-')
-            .map(Number)
+        dateString.split('-').map(Number)
 
     return new Date(
         year,
@@ -752,50 +750,39 @@ function formatDisplayTime(
 const styles =
     StyleSheet.create({
         screen: {
-            backgroundColor:
-                theme.colors.parchment,
+            backgroundColor: theme.colors.parchment,
             flex: 1,
         },
 
         content: {
             paddingBottom: 130,
-            paddingHorizontal:
-                theme.spacing.lg,
+            paddingHorizontal:  theme.spacing.lg,
         },
 
         header: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent:  'space-between',
         },
 
         backButton: {
-            alignItems:
-                'center',
+            alignItems: 'center',
             height: 42,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 42,
         },
 
         backButtonText: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 36,
-            fontWeight:
-                '300',
+            fontWeight: '300',
             lineHeight: 38,
         },
 
         headerTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 17,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         headerSpacer: {
@@ -803,262 +790,190 @@ const styles =
         },
 
         intro: {
-            marginTop:
-                theme.spacing.xl,
+            marginTop: theme.spacing.xl,
         },
 
         eyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 10,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             letterSpacing: 1.5,
         },
 
         title: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 30,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.xs,
+            fontWeight: '700',
+            marginTop: theme.spacing.xs,
         },
 
         description: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 14,
             lineHeight: 20,
-            marginTop:
-                theme.spacing.sm,
+            marginTop: theme.spacing.sm,
         },
 
         form: {
-            marginTop:
-                theme.spacing.xl,
+            marginTop: theme.spacing.xl,
         },
 
         label: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 12,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         spacedLabel: {
-            marginTop:
-                theme.spacing.lg,
+            marginTop: theme.spacing.lg,
         },
 
         optionalText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 10,
-            fontWeight:
-                '400',
+            fontWeight: '400',
         },
 
         input: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 14,
-            marginTop:
-                theme.spacing.sm,
+            marginTop: theme.spacing.sm,
             minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
+            paddingHorizontal: theme.spacing.md,
         },
 
         notesInput: {
             minHeight: 100,
-            paddingTop:
-                theme.spacing.md,
+            paddingTop: theme.spacing.md,
         },
 
         dateInput: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            marginTop:
-                theme.spacing.sm,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginTop: theme.spacing.sm,
             minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
+            paddingHorizontal: theme.spacing.md,
         },
 
         dateInputText: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 14,
         },
 
         calendarIcon: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 17,
         },
 
         bottomAction: {
-            backgroundColor:
-                theme.colors.parchment,
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
+            backgroundColor: theme.colors.parchment,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
         },
 
         addButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
+            alignItems:  'center',
+            backgroundColor: theme.colors.forest,
+            borderRadius: theme.radii.md,
             minHeight: 54,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
         },
 
         disabledButton: {
-            backgroundColor:
-                theme.colors.sage,
+            backgroundColor: theme.colors.sage,
         },
 
         addButtonText: {
-            color:
-                theme.colors.parchment,
+            color: theme.colors.parchment,
             fontSize: 15,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         modalOverlay: {
-            alignItems:
-                'center',
-            backgroundColor:
-                'rgba(30, 40, 25, 0.45)',
+            alignItems: 'center',
+            backgroundColor: 'rgba(30, 40, 25, 0.45)',
             flex: 1,
-            justifyContent:
-                'center',
-            paddingHorizontal:
-                theme.spacing.lg,
+            justifyContent: 'center',
+            paddingHorizontal: theme.spacing.lg,
         },
 
         modal: {
-            backgroundColor:
-                theme.colors.parchment,
-            borderRadius:
-                theme.radii.lg,
+            backgroundColor: theme.colors.parchment,
+            borderRadius: theme.radii.lg,
             maxWidth: 420,
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.lg,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.lg,
             width: '100%',
             ...theme.shadows.card,
         },
 
         modalHeader: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
         },
 
         modalEyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 10,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             letterSpacing: 1.5,
         },
 
         modalTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 22,
-            fontWeight:
-                '700',
+            fontWeight: '700',
             marginTop: 2,
         },
 
         modalClose: {
-            alignItems:
-                'center',
+            alignItems: 'center',
             height: 36,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 36,
         },
 
         modalCloseText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 28,
-            fontWeight:
-                '300',
+            fontWeight: '300',
         },
 
         pickerContainer: {
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
             minHeight: 260,
-            overflow:
-                'hidden',
+            overflow: 'hidden',
         },
 
         doneButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.forest,
+            borderRadius: theme.radii.md,
             minHeight: 50,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
         },
 
         doneButtonText: {
-            color:
-                theme.colors.parchment,
+            color: theme.colors.parchment,
             fontSize: 15,
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         errorText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign:
-                'center',
+            margin: theme.spacing.xl,
+            textAlign: 'center',
         },
     })

@@ -594,254 +594,194 @@ export default function CampgroundDirectoryScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        loadingContainer: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-            justifyContent:
-                'center',
-            padding:
-                theme.spacing.lg,
-        },
+    loadingContainer: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+        justifyContent: 'center',
+        padding: theme.spacing.lg,
+    },
 
-        loadingTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-        },
+    loadingTitle: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+    },
 
-        backButton: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            marginBottom:
-                theme.spacing.lg,
-        },
+    backButton: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        marginBottom: theme.spacing.lg,
+    },
 
-        backText: {
-            color:
-                theme.colors.forest,
-            fontSize: 13,
-            fontWeight: '600',
-            marginLeft: 2,
-        },
+    backText: {
+        color: theme.colors.forest,
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 2,
+    },
 
-        header: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
-        },
+    header: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 32,
-            fontWeight: '800',
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 32,
+        fontWeight: '800',
+    },
 
-        subtitle: {
-            color:
-                theme.colors.earth,
-            fontSize: 14,
-            marginTop:
-                theme.spacing.xs,
-        },
+    subtitle: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        marginTop: theme.spacing.xs,
+    },
 
-        searchContainer: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            flexDirection:
-                'row',
-            marginHorizontal:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.lg,
-            minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    searchContainer: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.lg,
+        minHeight: 50,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        searchInput: {
-            color:
-                theme.colors.ink,
-            flex: 1,
-            fontSize: 14,
-            marginLeft:
-                theme.spacing.sm,
-            minHeight: 48,
-        },
+    searchInput: {
+        color: theme.colors.ink,
+        flex: 1,
+        fontSize: 14,
+        marginLeft: theme.spacing.sm,
+        minHeight: 48,
+    },
 
-        clearButton: {
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
-            padding: 5,
-        },
+    clearButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 5,
+    },
 
-        resultHeader: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingVertical:
-                theme.spacing.md,
-        },
+    resultHeader: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+    },
 
-        resultCount: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            fontWeight: '700',
-            letterSpacing: 0.5,
-            textTransform:
-                'uppercase',
-        },
+    resultCount: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
 
-        list: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingBottom:
-                theme.spacing.xxxl,
-        },
+    list: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.xxxl,
+    },
 
-        campgroundCard: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            flexDirection:
-                'row',
-            marginBottom:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.md,
-            ...theme.shadows.card,
-        },
+    campgroundCard: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        marginBottom: theme.spacing.sm,
+        padding: theme.spacing.md,
+        ...theme.shadows.card,
+    },
 
-        pressed: {
-            opacity: 0.8,
-        },
+    pressed: {
+        opacity: 0.8,
+    },
 
-        campgroundIcon: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent:
-                'center',
-            width: 48,
-        },
+    campgroundIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 24,
+        height: 48,
+        justifyContent: 'center',
+        width: 48,
+    },
 
-        campgroundEmoji: {
-            fontSize: 22,
-        },
+    campgroundEmoji: {
+        fontSize: 22,
+    },
 
-        campgroundInfo: {
-            flex: 1,
-            marginHorizontal:
-                theme.spacing.md,
-        },
+    campgroundInfo: {
+        flex: 1,
+        marginHorizontal: theme.spacing.md,
+    },
 
-        parkName: {
-            color:
-                theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 0.8,
-            textTransform:
-                'uppercase',
-        },
+    parkName: {
+        color: theme.colors.forest,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+    },
 
-        campgroundName: {
-            color:
-                theme.colors.ink,
-            fontSize: 16,
-            fontWeight: '750',
-            marginTop: 3,
-        },
+    campgroundName: {
+        color: theme.colors.ink,
+        fontSize: 16,
+        fontWeight: '750',
+        marginTop: 3,
+    },
 
-        description: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            lineHeight: 16,
-            marginTop: 4,
-        },
+    description: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        lineHeight: 16,
+        marginTop: 4,
+    },
 
-        metaRow: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            flexWrap:
-                'wrap',
-            marginTop:
-                theme.spacing.sm,
-        },
+    metaRow: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: theme.spacing.sm,
+    },
 
-        meta: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '700',
-        },
+    meta: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+    },
 
-        metaDot: {
-            color:
-                theme.colors.earth,
-            fontSize: 10,
-            marginHorizontal: 5,
-        },
+    metaDot: {
+        color: theme.colors.earth,
+        fontSize: 10,
+        marginHorizontal: 5,
+    },
 
-        emptyState: {
-            alignItems:
-                'center',
-            paddingHorizontal:
-                theme.spacing.xl,
-            paddingTop: 80,
-        },
+    emptyState: {
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.xl,
+        paddingTop: 80,
+    },
 
-        emptyIcon: {
-            fontSize: 42,
-        },
+    emptyIcon: {
+        fontSize: 42,
+    },
 
-        emptyTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-        },
+    emptyTitle: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+    },
 
-        emptyText: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop:
-                theme.spacing.xs,
-            textAlign:
-                'center',
-        },
-    })
+    emptyText: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        lineHeight: 18,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
+})

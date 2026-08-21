@@ -1804,22 +1804,19 @@ function capitalize(value) {
 
 const styles = StyleSheet.create({
     screen: {
-        backgroundColor:
-            theme.colors.parchment,
+        backgroundColor: theme.colors.parchment,
         flex: 1,
     },
 
     content: {
         paddingBottom: 40,
-        paddingHorizontal:
-            theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
     },
 
     header: {
         alignItems: 'center',
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
     },
 
     backButton: {
@@ -1841,8 +1838,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 17,
         fontWeight: '700',
-        marginHorizontal:
-            theme.spacing.sm,
+        marginHorizontal: theme.spacing.sm,
         textAlign: 'center',
     },
 
@@ -1860,21 +1856,17 @@ const styles = StyleSheet.create({
 
     hero: {
         alignItems: 'center',
-        paddingBottom:
-            theme.spacing.xl,
-        paddingTop:
-            theme.spacing.xl,
+        paddingBottom: theme.spacing.xl,
+        paddingTop: theme.spacing.xl,
     },
 
     heroIcon: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         borderRadius: 42,
         height: 84,
         justifyContent: 'center',
-        marginBottom:
-            theme.spacing.md,
+        marginBottom: theme.spacing.md,
         width: 84,
     },
 
@@ -1893,39 +1885,33 @@ const styles = StyleSheet.create({
         color: theme.colors.ink,
         fontSize: 28,
         fontWeight: '700',
-        marginTop:
-            theme.spacing.xs,
+        marginTop: theme.spacing.xs,
         textAlign: 'center',
     },
 
     parkName: {
         color: theme.colors.earth,
         fontSize: 14,
-        marginTop:
-            theme.spacing.xs,
+        marginTop: theme.spacing.xs,
         textAlign: 'center',
     },
 
     dates: {
         color: theme.colors.bark,
         fontSize: 13,
-        marginTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
     },
 
     sectionHeader: {
         alignItems: 'center',
         flexDirection: 'row',
-        marginBottom:
-            theme.spacing.sm,
-        marginTop:
-            theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
+        marginTop: theme.spacing.lg,
     },
 
     sectionIcon: {
         fontSize: 20,
-        marginRight:
-            theme.spacing.sm,
+        marginRight: theme.spacing.sm,
     },
 
     sectionTitle: {
@@ -1936,23 +1922,18 @@ const styles = StyleSheet.create({
 
     savedItem: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.canvas,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
         flexDirection: 'row',
-        marginBottom:
-            theme.spacing.sm,
+        marginBottom: theme.spacing.sm,
         minHeight: 68,
-        padding:
-            theme.spacing.sm,
+        padding: theme.spacing.sm,
         ...theme.shadows.card,
     },
 
     savedItemIcon: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         borderRadius: 20,
         height: 40,
         justifyContent: 'center',
@@ -1965,8 +1946,7 @@ const styles = StyleSheet.create({
 
     savedItemContent: {
         flex: 1,
-        marginLeft:
-            theme.spacing.sm,
+        marginLeft: theme.spacing.sm,
     },
 
     savedItemTitle: {
@@ -1995,14 +1975,10 @@ const styles = StyleSheet.create({
     },
 
     campsiteCard: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderRadius:
-            theme.radii.md,
-        marginBottom:
-            theme.spacing.sm,
-        padding:
-            theme.spacing.sm,
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        marginBottom: theme.spacing.sm,
+        padding: theme.spacing.sm,
         ...theme.shadows.card,
     },
 
@@ -2013,8 +1989,7 @@ const styles = StyleSheet.create({
 
     campsiteIcon: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         borderRadius: 20,
         height: 40,
         justifyContent: 'center',
@@ -2027,22 +2002,17 @@ const styles = StyleSheet.create({
 
     campsiteTitleContainer: {
         flex: 1,
-        marginLeft:
-            theme.spacing.sm,
+        marginLeft: theme.spacing.sm,
     },
 
     detailRow: {
         alignItems: 'center',
-        borderTopColor:
-            theme.colors.sage,
+        borderTopColor: theme.colors.sage,
         borderTopWidth: 1,
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
-        marginTop:
-            theme.spacing.sm,
-        paddingTop:
-            theme.spacing.sm,
+        justifyContent: 'space-between',
+        marginTop: theme.spacing.sm,
+        paddingTop: theme.spacing.sm,
     },
 
     detailLabel: {
@@ -2059,13 +2029,10 @@ const styles = StyleSheet.create({
     },
 
     notesContainer: {
-        borderTopColor:
-            theme.colors.sage,
+        borderTopColor: theme.colors.sage,
         borderTopWidth: 1,
-        marginTop:
-            theme.spacing.sm,
-        paddingTop:
-            theme.spacing.sm,
+        marginTop: theme.spacing.sm,
+        paddingTop: theme.spacing.sm,
     },
 
     notesText: {
@@ -2076,17 +2043,12 @@ const styles = StyleSheet.create({
     },
 
     emptySection: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
-        marginBottom:
-            theme.spacing.sm,
-        padding:
-            theme.spacing.md,
+        marginBottom: theme.spacing.sm,
+        padding: theme.spacing.md,
     },
 
     emptySectionText: {
@@ -2098,18 +2060,15 @@ const styles = StyleSheet.create({
     addButton: {
         alignItems: 'center',
         flexDirection: 'row',
-        marginBottom:
-            theme.spacing.sm,
-        paddingVertical:
-            theme.spacing.xs,
+        marginBottom: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
     },
 
     addButtonText: {
         color: theme.colors.forest,
         fontSize: 20,
         fontWeight: '400',
-        marginRight:
-            theme.spacing.xs,
+        marginRight: theme.spacing.xs,
     },
 
     addButtonLabel: {
@@ -2119,16 +2078,12 @@ const styles = StyleSheet.create({
     },
 
     notesCard: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         minHeight: 120,
-        padding:
-            theme.spacing.md,
+        padding: theme.spacing.md,
     },
 
     notesInput: {
@@ -2152,8 +2107,7 @@ const styles = StyleSheet.create({
 
     checkbox: {
         alignItems: 'center',
-        borderColor:
-            theme.colors.earth,
+        borderColor: theme.colors.earth,
         borderRadius: 5,
         borderWidth: 1.5,
         height: 22,
@@ -2162,15 +2116,12 @@ const styles = StyleSheet.create({
     },
 
     completedCheckbox: {
-        backgroundColor:
-            theme.colors.forest,
-        borderColor:
-            theme.colors.forest,
+        backgroundColor: theme.colors.forest,
+        borderColor: theme.colors.forest,
     },
 
     checkmark: {
-        color:
-            theme.colors.parchment,
+        color: theme.colors.parchment,
         fontSize: 14,
         fontWeight: '700',
     },
@@ -2178,14 +2129,12 @@ const styles = StyleSheet.create({
     checklistLabel: {
         color: theme.colors.ink,
         fontSize: 14,
-        marginLeft:
-            theme.spacing.sm,
+        marginLeft: theme.spacing.sm,
     },
 
     completedChecklistLabel: {
         color: theme.colors.earth,
-        textDecorationLine:
-            'line-through',
+        textDecorationLine: 'line-through',
     },
 
     checklistRemove: {
@@ -2196,20 +2145,16 @@ const styles = StyleSheet.create({
     },
 
     divider: {
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         height: 1,
-        marginTop:
-            theme.spacing.xl,
+        marginTop: theme.spacing.xl,
     },
 
     itineraryHeader: {
         alignItems: 'center',
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
-        marginTop:
-            theme.spacing.xl,
+        justifyContent: 'space-between',
+        marginTop: theme.spacing.xl,
     },
 
     itineraryTitleRow: {
@@ -2219,8 +2164,7 @@ const styles = StyleSheet.create({
 
     itineraryIcon: {
         fontSize: 24,
-        marginRight:
-            theme.spacing.sm,
+        marginRight: theme.spacing.sm,
     },
 
     itinerarySubtitle: {
@@ -2231,8 +2175,7 @@ const styles = StyleSheet.create({
 
     addItineraryButton: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.forest,
+        backgroundColor: theme.colors.forest,
         borderRadius: 18,
         height: 36,
         justifyContent: 'center',
@@ -2240,15 +2183,13 @@ const styles = StyleSheet.create({
     },
 
     addItineraryText: {
-        color:
-            theme.colors.parchment,
+        color: theme.colors.parchment,
         fontSize: 23,
         fontWeight: '300',
     },
 
     itineraryDay: {
-        marginTop:
-            theme.spacing.xl,
+        marginTop: theme.spacing.xl,
     },
 
     itineraryDate: {
@@ -2256,10 +2197,8 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         letterSpacing: 1,
-        marginBottom:
-            theme.spacing.md,
-        textTransform:
-            'uppercase',
+        marginBottom: theme.spacing.md,
+        textTransform: 'uppercase',
     },
 
     timeline: {
@@ -2284,15 +2223,13 @@ const styles = StyleSheet.create({
 
     timelineLineContainer: {
         alignItems: 'center',
-        marginRight:
-            theme.spacing.md,
+        marginRight: theme.spacing.md,
         width: 28,
     },
 
     timelineDot: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         borderRadius: 18,
         height: 36,
         justifyContent: 'center',
@@ -2305,8 +2242,7 @@ const styles = StyleSheet.create({
     },
 
     timelineLine: {
-        backgroundColor:
-            theme.colors.sage,
+        backgroundColor: theme.colors.sage,
         bottom: -2,
         position: 'absolute',
         top: 34,
@@ -2338,8 +2274,7 @@ const styles = StyleSheet.create({
     },
 
     unscheduledSection: {
-        marginTop:
-            theme.spacing.xl,
+        marginTop: theme.spacing.xl,
     },
 
     unscheduledTitle: {
@@ -2347,10 +2282,8 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         letterSpacing: 1,
-        marginBottom:
-            theme.spacing.sm,
-        textTransform:
-            'uppercase',
+        marginBottom: theme.spacing.sm,
+        textTransform: 'uppercase',
     },
 
     bottomSpacer: {
@@ -2360,29 +2293,23 @@ const styles = StyleSheet.create({
     errorText: {
         color: theme.colors.earth,
         fontSize: 15,
-        margin:
-            theme.spacing.xl,
+        margin: theme.spacing.xl,
         textAlign: 'center',
     },
 
     modalOverlay: {
         alignItems: 'center',
-        backgroundColor:
-            'rgba(30, 40, 25, 0.45)',
+        backgroundColor: 'rgba(30, 40, 25, 0.45)',
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal:
-            theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
     },
 
     packingModal: {
-        backgroundColor:
-            theme.colors.parchment,
-        borderRadius:
-            theme.radii.lg,
+        backgroundColor: theme.colors.parchment,
+        borderRadius: theme.radii.lg,
         maxWidth: 420,
-        padding:
-            theme.spacing.lg,
+        padding: theme.spacing.lg,
         width: '100%',
         ...theme.shadows.card,
     },
@@ -2394,35 +2321,27 @@ const styles = StyleSheet.create({
     },
 
     packingInput: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         color: theme.colors.ink,
         fontSize: 14,
-        marginTop:
-            theme.spacing.md,
+        marginTop: theme.spacing.md,
         minHeight: 50,
-        paddingHorizontal:
-            theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
     },
 
     modalActions: {
         flexDirection: 'row',
         gap: theme.spacing.sm,
-        marginTop:
-            theme.spacing.lg,
+        marginTop: theme.spacing.lg,
     },
 
     cancelButton: {
         alignItems: 'center',
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         flex: 1,
         minHeight: 48,
@@ -2437,18 +2356,15 @@ const styles = StyleSheet.create({
 
     savePackingButton: {
         alignItems: 'center',
-        backgroundColor:
-            theme.colors.forest,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
         flex: 1,
         minHeight: 48,
         justifyContent: 'center',
     },
 
     savePackingText: {
-        color:
-            theme.colors.parchment,
+        color: theme.colors.parchment,
         fontSize: 14,
         fontWeight: '700',
     },
@@ -2460,7 +2376,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 
-        statsContainer: {
+    statsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: theme.spacing.sm,
@@ -2468,16 +2384,12 @@ const styles = StyleSheet.create({
     },
 
     statCard: {
-        backgroundColor:
-            theme.colors.canvas,
-        borderColor:
-            theme.colors.sage,
-        borderRadius:
-            theme.radii.md,
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
         borderWidth: 1,
         minHeight: 82,
-        padding:
-            theme.spacing.md,
+        padding: theme.spacing.md,
         width: '48%',
     },
 

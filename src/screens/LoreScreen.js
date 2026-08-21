@@ -326,182 +326,143 @@ export default function LoreScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        container: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    container: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            padding:
-                theme.spacing.md,
-            paddingBottom:
-                theme.spacing.xl,
-        },
+    content: {
+        padding: theme.spacing.md,
+        paddingBottom: theme.spacing.xl,
+    },
 
-        header: {
-            paddingTop:
-                theme.spacing.lg,
-            paddingBottom:
-                theme.spacing.md,
-        },
+    header: {
+        paddingTop: theme.spacing.lg,
+        paddingBottom: theme.spacing.md,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '800',
-            letterSpacing: 2,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 2,
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 34,
-            fontWeight: '800',
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 34,
+        fontWeight: '800',
+        marginTop: theme.spacing.xs,
+    },
 
-        subtitle: {
-            color:
-                theme.colors.earth,
-            fontSize: 14,
-            lineHeight: 21,
-            marginTop:
-                theme.spacing.xs,
-            maxWidth: 300,
-        },
+    subtitle: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        lineHeight: 21,
+        marginTop: theme.spacing.xs,
+        maxWidth: 300,
+    },
 
-        searchContainer: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection: 'row',
-            minHeight: 50,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    searchContainer: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        minHeight: 50,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        searchInput: {
-            color:
-                theme.colors.ink,
-            flex: 1,
-            fontSize: 14,
-            marginLeft:
-                theme.spacing.sm,
-            paddingVertical:
-                theme.spacing.sm,
-        },
+    searchInput: {
+        color: theme.colors.ink,
+        flex: 1,
+        fontSize: 14,
+        marginLeft: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+    },
 
-        sectionHeader: {
-            alignItems: 'baseline',
-            flexDirection: 'row',
-            justifyContent:
-                'space-between',
-            marginTop:
-                theme.spacing.xl,
-            marginBottom:
-                theme.spacing.sm,
-        },
+    sectionHeader: {
+        alignItems: 'baseline',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: theme.spacing.xl,
+        marginBottom: theme.spacing.sm,
+    },
 
-        sectionTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-        },
+    sectionTitle: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+    },
 
-        sectionCount: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-        },
+    sectionCount: {
+        color: theme.colors.earth,
+        fontSize: 11,
+    },
 
-        parkCard: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection: 'row',
-            marginBottom:
-                theme.spacing.sm,
-            minHeight: 88,
-            padding:
-                theme.spacing.md,
-        },
+    parkCard: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        marginBottom: theme.spacing.sm,
+        minHeight: 88,
+        padding: theme.spacing.md,
+    },
 
-        parkIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent:
-                'center',
-            width: 48,
-        },
+    parkIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 24,
+        height: 48,
+        justifyContent: 'center',
+        width: 48,
+    },
 
-        parkInfo: {
-            flex: 1,
-            marginHorizontal:
-                theme.spacing.md,
-        },
+    parkInfo: {
+        flex: 1,
+        marginHorizontal: theme.spacing.md,
+    },
 
-        parkName: {
-            color:
-                theme.colors.ink,
-            fontSize: 16,
-            fontWeight: '700',
-        },
+    parkName: {
+        color: theme.colors.ink,
+        fontSize: 16,
+        fontWeight: '700',
+    },
 
-        parkSubtitle: {
-            color:
-                theme.colors.forest,
-            fontSize: 11,
-            fontWeight: '600',
-            marginTop: 2,
-        },
+    parkSubtitle: {
+        color: theme.colors.forest,
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 2,
+    },
 
-        parkRegion: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            marginTop: 4,
-        },
+    parkRegion: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        marginTop: 4,
+    },
 
-        emptyState: {
-            alignItems: 'center',
-            paddingVertical:
-                theme.spacing.xl * 2,
-        },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: theme.spacing.xl * 2,
+    },
 
-        emptyTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 16,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-        },
+    emptyTitle: {
+        color: theme.colors.ink,
+        fontSize: 16,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+    },
 
-        emptyText: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            marginTop:
-                theme.spacing.xs,
-            textAlign: 'center',
-        },
-    })
+    emptyText: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
+})

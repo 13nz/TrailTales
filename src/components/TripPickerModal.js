@@ -20,8 +20,7 @@ export default function TripPickerModal({
     onCreateTrip,
     onClose,
 }) {
-    const insets =
-        useSafeAreaInsets()
+    const insets = useSafeAreaInsets()
 
     // only shows trips belonging to the selected park
     const parkTrips =
@@ -305,10 +304,9 @@ function formatDateRange(
 function formatDate(
     dateString
 ) {
-    const date =
-        new Date(
-            `${dateString}T12:00:00`
-        )
+    const date = new Date(
+        `${dateString}T12:00:00`
+    )
 
     if (
         Number.isNaN(
@@ -331,43 +329,33 @@ function formatDate(
 const styles =
     StyleSheet.create({
         overlay: {
-            backgroundColor:
-                'rgba(0, 0, 0, 0.35)',
+            backgroundColor: 'rgba(0, 0, 0, 0.35)',
             flex: 1,
-            justifyContent:
-                'flex-end',
+            justifyContent: 'flex-end',
         },
 
         sheet: {
-            backgroundColor:
-                theme.colors.parchment,
-            borderTopLeftRadius:
-                theme.radii.lg,
-            borderTopRightRadius:
-                theme.radii.lg,
+            backgroundColor: theme.colors.parchment,
+            borderTopLeftRadius: theme.radii.lg,
+            borderTopRightRadius: theme.radii.lg,
             maxHeight: '80%',
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
         },
 
         handle: {
             alignSelf: 'center',
-            backgroundColor:
-                theme.colors.sage,
+            backgroundColor: theme.colors.sage,
             borderRadius: 4,
             height: 4,
-            marginBottom:
-                theme.spacing.lg,
+            marginBottom: theme.spacing.lg,
             width: 40,
         },
 
         header: {
             alignItems: 'flex-start',
             flexDirection: 'row',
-            justifyContent:
-                'space-between',
+            justifyContent: 'space-between',
         },
 
         headerContent: {
@@ -375,185 +363,129 @@ const styles =
         },
 
         eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.label
-                    .fontSize,
+            color: theme.colors.forest,
+            fontSize: theme.typography.label.fontSize,
             fontWeight: '700',
             letterSpacing: 1.2,
         },
 
         title: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.heading
-                    .fontSize,
-            fontWeight:
-                theme.typography.heading
-                    .fontWeight,
-            marginTop:
-                theme.spacing.xs,
+            color: theme.colors.ink,
+            fontSize:theme.typography.heading.fontSize,
+            fontWeight: theme.typography.heading.fontWeight,
+            marginTop: theme.spacing.xs,
         },
 
         subtitle: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
-            marginTop:
-                theme.spacing.xs,
+            color: theme.colors.earth,
+            fontSize:  theme.typography.bodySmall.fontSize,
+            marginTop: theme.spacing.xs,
         },
 
         closeButton: {
             alignItems: 'center',
             height: 40,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 40,
         },
 
         closeText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 28,
         },
 
         list: {
-            marginTop:
-                theme.spacing.lg,
+            marginTop: theme.spacing.lg,
         },
 
         sectionLabel: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
+            color: theme.colors.earth,
+            fontSize: theme.typography.caption.fontSize,
             fontWeight: '700',
             letterSpacing: 1,
-            marginBottom:
-                theme.spacing.sm,
+            marginBottom: theme.spacing.sm,
         },
 
         tripCard: {
             alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
+            backgroundColor: theme.colors.canvas,
+            borderRadius: theme.radii.md,
             flexDirection: 'row',
-            marginBottom:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.md,
+            marginBottom: theme.spacing.sm,
+            padding: theme.spacing.md,
         },
 
         tripIcon: {
             alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
+            backgroundColor: theme.colors.sage,
             borderRadius: 22,
             height: 44,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 44,
         },
 
         tripIconText: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 20,
             fontWeight: '700',
         },
 
         tripContent: {
             flex: 1,
-            marginLeft:
-                theme.spacing.md,
+            marginLeft: theme.spacing.md,
         },
 
         tripName: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
+            color: theme.colors.ink,
+            fontSize: theme.typography.bodySmall.fontSize,
             fontWeight: '700',
         },
 
         tripDates: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            marginTop:
-                theme.spacing.xs,
+            color: theme.colors.earth,
+            fontSize: theme.typography.caption.fontSize,
+            marginTop: theme.spacing.xs,
         },
 
         chevron: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 24,
-            marginLeft:
-                theme.spacing.sm,
+            marginLeft: theme.spacing.sm,
         },
 
         emptyCard: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            marginBottom:
-                theme.spacing.md,
-            padding:
-                theme.spacing.lg,
+            backgroundColor: theme.colors.canvas,
+            borderRadius: theme.radii.md,
+            marginBottom: theme.spacing.md,
+            padding: theme.spacing.lg,
         },
 
         emptyTitle: {
-            color:
-                theme.colors.ink,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
+            color: theme.colors.ink,
+            fontSize: theme.typography.bodySmall.fontSize,
             fontWeight: '700',
         },
 
         emptyText: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            lineHeight:
-                theme.typography.caption
-                    .lineHeight,
-            marginTop:
-                theme.spacing.xs,
+            color: theme.colors.earth,
+            fontSize: theme.typography.caption.fontSize,
+            lineHeight: theme.typography.caption.lineHeight,
+            marginTop:  theme.spacing.xs,
         },
 
         createButton: {
             alignItems: 'center',
-            borderColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.md,
+            borderColor: theme.colors.forest,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
             flexDirection: 'row',
-            marginBottom:
-                theme.spacing.lg,
-            marginTop:
-                theme.spacing.sm,
-            padding:
-                theme.spacing.md,
+            marginBottom: theme.spacing.lg,
+            marginTop: theme.spacing.sm,
+            padding: theme.spacing.md,
         },
 
         createIcon: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 24,
             fontWeight: '400',
             width: 44,
@@ -564,22 +496,15 @@ const styles =
         },
 
         createTitle: {
-            color:
-                theme.colors.forest,
-            fontSize:
-                theme.typography.bodySmall
-                    .fontSize,
+            color: theme.colors.forest,
+            fontSize: theme.typography.bodySmall.fontSize,
             fontWeight: '700',
         },
 
         createSubtitle: {
-            color:
-                theme.colors.earth,
-            fontSize:
-                theme.typography.caption
-                    .fontSize,
-            marginTop:
-                theme.spacing.xs,
+            color: theme.colors.earth,
+            fontSize: theme.typography.caption.fontSize,
+            marginTop: theme.spacing.xs,
         },
 
         pressed: {

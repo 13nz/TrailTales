@@ -112,12 +112,8 @@ export default function ActivityDetailScreen({
                 contentContainerStyle={[
                     styles.content,
                     {
-                        paddingTop:
-                            insets.top +
-                            theme.spacing.sm,
-                        paddingBottom:
-                            insets.bottom +
-                            theme.spacing.xxxl,
+                        paddingTop: insets.top +  theme.spacing.sm,
+                        paddingBottom: insets.bottom + theme.spacing.xxxl,
                     },
                 ]}
                 showsVerticalScrollIndicator={

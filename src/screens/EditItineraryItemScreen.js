@@ -1035,383 +1035,261 @@ function formatDisplayTime(
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            paddingBottom: 120,
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    content: {
+        paddingBottom: 120,
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        header: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-        },
+    header: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
 
-        backButton: {
-            alignItems:
-                'center',
-            height: 42,
-            justifyContent:
-                'center',
-            width: 42,
-        },
+    backButton: {
+        alignItems: 'center',
+        height: 42,
+        justifyContent: 'center',
+        width: 42,
+    },
 
-        backButtonText: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 36,
-            fontWeight:
-                '300',
-            lineHeight: 38,
-        },
+    backButtonText: {
+        color: theme.colors.forest,
+        fontSize: 36,
+        fontWeight: '300',
+        lineHeight: 38,
+    },
 
-        headerTitle: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 17,
-            fontWeight:
-                '700',
-        },
+    headerTitle: {
+        color: theme.colors.ink,
+        fontSize: 17,
+        fontWeight: '700',
+    },
 
-        headerSpacer: {
-            width: 42,
-        },
+    headerSpacer: {
+        width: 42,
+    },
 
-        intro: {
-            marginTop:
-                theme.spacing.xl,
-        },
+    intro: {
+        marginTop: theme.spacing.xl,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 10,
-            fontWeight:
-                '700',
-            letterSpacing: 1.5,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        title: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 28,
-            fontWeight:
-                '700',
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 28,
+        fontWeight: '700',
+        marginTop: theme.spacing.xs,
+    },
 
-        description: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 14,
-            marginTop:
-                theme.spacing.xs,
-        },
+    description: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        marginTop: theme.spacing.xs,
+    },
 
-        scheduleCard: {
-            backgroundColor:
-                theme.colors
-                    .canvas,
-            borderColor:
-                theme.colors
-                    .sage,
-            borderRadius:
-                theme.radii.lg,
-            borderWidth: 1,
-            marginTop:
-                theme.spacing.xl,
-            padding:
-                theme.spacing.lg,
-        },
+    scheduleCard: {
+        backgroundColor: theme.color.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.lg,
+        borderWidth: 1,
+        marginTop: theme.spacing.xl,
+        padding: theme.spacing.lg,
+    },
 
-        scheduleHeading: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 18,
-            fontWeight:
-                '700',
-        },
+    scheduleHeading: {
+        color: theme.colors.ink,
+        fontSize: 18,
+        fontWeight: '700',
+    },
 
-        scheduleDescription: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop:
-                theme.spacing.xs,
-        },
+    scheduleDescription: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        lineHeight: 18,
+        marginTop: theme.spacing.xs,
+    },
 
-        label: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 11,
-            fontWeight:
-                '700',
-        },
+    label: {
+        color: theme.colors.ink,
+        fontSize: 11,
+        fontWeight: '700',
+    },
 
-        firstLabel: {
-            marginTop:
-                theme.spacing.lg,
-        },
+    firstLabel: {
+        marginTop: theme.spacing.lg,
+    },
 
-        timeLabel: {
-            marginTop:
-                theme.spacing.lg,
-        },
+    timeLabel: {
+        marginTop: theme.spacing.lg,
+    },
 
-        dateInput: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderColor:
-                theme.colors
-                    .sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            marginTop:
-                theme.spacing.sm,
-            minHeight: 52,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    dateInput: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.parchment,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: theme.spacing.sm,
+        minHeight: 52,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        dateText: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 14,
-        },
+    dateText: {
+        color: theme.colors.ink,
+        fontSize: 14,
+    },
 
-        icon: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 17,
-        },
+    icon: {
+        color: theme.colors.forest,
+        fontSize: 17,
+    },
 
-        warningCard: {
-            alignItems:
-                'flex-start',
-            backgroundColor:
-                '#F4E7C8',
-            borderColor:
-                '#C0392B',
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection:
-                'row',
-            marginTop:
-                theme.spacing.md,
-            padding:
-                theme.spacing.md,
-        },
+    warningCard: {
+        alignItems: 'flex-start',
+        backgroundColor: '#F4E7C8',
+        borderColor: '#C0392B',
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        marginTop: theme.spacing.md,
+        padding: theme.spacing.md,
+    },
 
-        warningIcon: {
-            color:
-                '#C0392B',
-            fontSize: 18,
-        },
+    warningIcon: {
+        color: '#C0392B',
+        fontSize: 18,
+    },
 
-        warningContent: {
-            flex: 1,
-            marginLeft:
-                theme.spacing.sm,
-        },
+    warningContent: {
+        flex: 1,
+        marginLeft: theme.spacing.sm,
+    },
 
-        warningTitle: {
-            color:
-                '#C0392B',
-            fontSize: 13,
-            fontWeight:
-                '700',
-        },
+    warningTitle: {
+        color: '#C0392B',
+        fontSize: 13,
+        fontWeight: '700',
+    },
 
-        warningText: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 11,
-            lineHeight: 17,
-            marginTop: 3,
-        },
+    warningText: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        lineHeight: 17,
+        marginTop: 3,
+    },
 
-        bottomAction: {
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
-        },
+    bottomAction: {
+        backgroundColor: theme.colors.parchment,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
+    },
 
-        saveButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .forest,
-            borderRadius:
-                theme.radii.md,
-            minHeight: 54,
-            justifyContent:
-                'center',
-        },
+    saveButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        minHeight: 54,
+        justifyContent: 'center',
+    },
 
-        saveButtonText: {
-            color:
-                theme.colors
-                    .parchment,
-            fontSize: 15,
-            fontWeight:
-                '700',
-        },
+    saveButtonText: {
+        color: theme.colors.parchment,
+        fontSize: 15,
+        fontWeight: '700',
+    },
 
-        modalOverlay: {
-            alignItems:
-                'center',
-            backgroundColor:
-                'rgba(30, 40, 25, 0.45)',
-            flex: 1,
-            justifyContent:
-                'center',
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    modalOverlay: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(30, 40, 25, 0.45)',
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        modal: {
-            backgroundColor:
-                theme.colors
-                    .parchment,
-            borderRadius:
-                theme.radii.lg,
-            maxWidth: 420,
-            overflow:
-                'hidden',
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.lg,
-            width: '100%',
-            ...theme.shadows.card,
-        },
+    modal: {
+        backgroundColor: theme.colors.parchment,
+        borderRadius: theme.radii.lg,
+        maxWidth: 420,
+        overflow: 'hidden',
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.lg,
+        width: '100%',
+        ...theme.shadows.card,
+    },
 
-        modalHeader: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-        },
+    modalHeader: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
 
-        modalEyebrow: {
-            color:
-                theme.colors
-                    .forest,
-            fontSize: 10,
-            fontWeight:
-                '700',
-            letterSpacing: 1.5,
-        },
+    modalEyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        modalTitle: {
-            color:
-                theme.colors
-                    .ink,
-            fontSize: 22,
-            fontWeight:
-                '700',
-            marginTop: 2,
-        },
+    modalTitle: {
+        color: theme.colors.ink,
+        fontSize: 22,
+        fontWeight: '700',
+        marginTop: 2,
+    },
 
-        modalClose: {
-            alignItems:
-                'center',
-            height: 36,
-            justifyContent:
-                'center',
-            width: 36,
-        },
+    modalClose: {
+        alignItems: 'center',
+        height: 36,
+        justifyContent: 'center',
+        width: 36,
+    },
 
-        modalCloseText: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 28,
-            fontWeight:
-                '300',
-        },
+    modalCloseText: {
+        color: theme.colors.earth,
+        fontSize: 28,
+        fontWeight: '300',
+    },
 
-        pickerContainer: {
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
-            minHeight: 260,
-            overflow:
-                'hidden',
-        },
+    pickerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 260,
+        overflow: 'hidden',
+    },
 
-        doneButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors
-                    .forest,
-            borderRadius:
-                theme.radii.md,
-            minHeight: 50,
-            justifyContent:
-                'center',
-        },
+    doneButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.md,
+        minHeight: 50,
+        justifyContent: 'center',
+    },
 
-        doneButtonText: {
-            color:
-                theme.colors
-                    .parchment,
-            fontSize: 15,
-            fontWeight:
-                '700',
-        },
+    doneButtonText: {
+        color: theme.colors.parchment,
+        fontSize: 15,
+        fontWeight: '700',
+    },
 
-        errorText: {
-            color:
-                theme.colors
-                    .earth,
-            fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign:
-                'center',
-        },
-    })
+    errorText: {
+        color: theme.colors.earth,
+        fontSize: 15,
+        margin: theme.spacing.xl,
+        textAlign: 'center',
+    },
+})

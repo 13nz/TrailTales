@@ -287,8 +287,7 @@ export default function CampfireSelectionScreen({
 const styles =
     StyleSheet.create({
         container: {
-            backgroundColor:
-                '#11100E',
+            backgroundColor: '#11100E',
             flex: 1,
         },
 
@@ -333,8 +332,7 @@ const styles =
         },
 
         divider: {
-            backgroundColor:
-                '#39332D',
+            backgroundColor: '#39332D',
             height: 1,
             marginVertical: 24,
         },
@@ -350,10 +348,8 @@ const styles =
 
         storyCard: {
             alignItems: 'center',
-            backgroundColor:
-                '#1B1916',
-            borderColor:
-                '#38322C',
+            backgroundColor: '#1B1916',
+            borderColor: '#38322C',
             borderRadius: 14,
             borderWidth: 1,
             flexDirection: 'row',
@@ -390,8 +386,7 @@ const styles =
 
         arrow: {
             alignItems: 'center',
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             marginLeft: 10,
         },
 

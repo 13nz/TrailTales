@@ -971,255 +971,216 @@ function ToolbarButton({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        header: {
-            alignItems: 'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            minHeight: 58,
-            paddingHorizontal:
-                theme.spacing.sm,
-        },
+    header: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        minHeight: 58,
+        paddingHorizontal: theme.spacing.sm,
+    },
 
-        headerButton: {
-            alignItems: 'center',
-            height: 42,
-            justifyContent:
-                'center',
-            width: 42,
-        },
+    headerButton: {
+        alignItems: 'center',
+        height: 42,
+        justifyContent: 'center',
+        width: 42,
+    },
 
-        backText: {
-            color:
-                theme.colors.forest,
-            fontSize: 36,
-            fontWeight: '300',
-        },
+    backText: {
+        color: theme.colors.forest,
+        fontSize: 36,
+        fontWeight: '300',
+    },
 
-        headerCenter: {
-            alignItems: 'center',
-            flex: 1,
-        },
+    headerCenter: {
+        alignItems: 'center',
+        flex: 1,
+    },
 
-        headerTitle: {
-            color: theme.colors.ink,
-            fontSize: 17,
-            fontWeight: '700',
-        },
+    headerTitle: {
+        color: theme.colors.ink,
+        fontSize: 17,
+        fontWeight: '700',
+    },
 
-        headerDate: {
-            color:
-                theme.colors.earth,
-            fontSize: 10,
-            marginTop: 2,
-        },
+    headerDate: {
+        color: theme.colors.earth,
+        fontSize: 10,
+        marginTop: 2,
+    },
 
-        moreText: {
-            color:
-                theme.colors.forest,
-            fontSize: 18,
-            fontWeight: '700',
-            letterSpacing: 2,
-        },
+    moreText: {
+        color: theme.colors.forest,
+        fontSize: 18,
+        fontWeight: '700',
+        letterSpacing: 2,
+    },
 
-        canvasArea: {
-            flex: 1,
-            padding:
-                theme.spacing.md,
-        },
+    canvasArea: {
+        flex: 1,
+        padding: theme.spacing.md,
+    },
 
-        paper: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderWidth: 1,
-            flex: 1,
-            overflow: 'hidden',
-            padding:
-                theme.spacing.lg,
-            position: 'relative',
-            ...theme.shadows.card,
-        },
+    paper: {
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderWidth: 1,
+        flex: 1,
+        overflow: 'hidden',
+        padding: theme.spacing.lg,
+        position: 'relative',
+        ...theme.shadows.card,
+    },
 
-        canvasDismissLayer: {
-            ...StyleSheet.absoluteFillObject,
-        },
+    canvasDismissLayer: {
+        ...StyleSheet.absoluteFillObject,
+    },
 
-        emptyCanvas: {
-            alignItems: 'center',
-            flex: 1,
-            justifyContent:
-                'center',
-            paddingHorizontal:
-                theme.spacing.xl,
-        },
+    emptyCanvas: {
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.xl,
+    },
 
-        emptyCanvasIcon: {
-            color:
-                theme.colors.forest,
-            fontSize: 34,
-        },
+    emptyCanvasIcon: {
+        color: theme.colors.forest,
+        fontSize: 34,
+    },
 
-        emptyCanvasTitle: {
-            color: theme.colors.ink,
-            fontSize: 17,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-            textAlign: 'center',
-        },
+    emptyCanvasTitle: {
+        color: theme.colors.ink,
+        fontSize: 17,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+        textAlign: 'center',
+    },
 
-        emptyCanvasText: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop:
-                theme.spacing.xs,
-            textAlign: 'center',
-        },
+    emptyCanvasText: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        lineHeight: 18,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
 
-        textElement: {
-            position: 'absolute',
-        },
+    textElement: {
+        position: 'absolute',
+    },
 
-        textElementEditing: {
-            backgroundColor:
-                'rgba(255,255,255,0.45)',
-            borderColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.sm,
-            borderWidth: 1,
-            borderStyle: 'dashed',
-        },
+    textElementEditing: {
+        backgroundColor: 'rgba(255,255,255,0.45)',
+        borderColor: theme.colors.forest,
+        borderRadius: theme.radii.sm,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+    },
 
-        textInput: {
-            color: theme.colors.ink,
-            flex: 1,
-            padding: 4,
-            textAlignVertical: 'top',
-        },
+    textInput: {
+        color: theme.colors.ink,
+        flex: 1,
+        padding: 4,
+        textAlignVertical: 'top',
+    },
 
-        savedTextContainer: {
-            minHeight: 40,
-            padding: 4,
-        },
+    savedTextContainer: {
+        minHeight: 40,
+        padding: 4,
+    },
 
-        savedText: {
-            color: theme.colors.ink,
-        },
+    savedText: {
+        color: theme.colors.ink,
+    },
 
-        deleteButton: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius: 12,
-            height: 24,
-            justifyContent: 'center',
-            position: 'absolute',
-            right: -10,
-            top: -10,
-            width: 24,
-        },
+    deleteButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: 12,
+        height: 24,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: -10,
+        top: -10,
+        width: 24,
+    },
 
-        deleteButtonText: {
-            color:
-                theme.colors.parchment,
-            fontSize: 18,
-            fontWeight: '700',
-            lineHeight: 20,
-        },
+    deleteButtonText: {
+        color: theme.colors.parchment,
+        fontSize: 18,
+        fontWeight: '700',
+        lineHeight: 20,
+    },
 
-        resizeHandle: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius: 10,
-            bottom: -9,
-            height: 20,
-            justifyContent:
-                'center',
-            position: 'absolute',
-            right: -9,
-            width: 20,
-        },
+    resizeHandle: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: 10,
+        bottom: -9,
+        height: 20,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: -9,
+        width: 20,
+    },
 
-        resizeHandleText: {
-            color:
-                theme.colors.parchment,
-            fontSize: 12,
-            fontWeight: '700',
-        },
+    resizeHandleText: {
+        color: theme.colors.parchment,
+        fontSize: 12,
+        fontWeight: '700',
+    },
 
-        toolbar: {
-            alignItems: 'flex-start',
-            backgroundColor:
-                theme.colors.parchment,
-            borderTopColor:
-                theme.colors.sage,
-            borderTopWidth: 1,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-around',
-            paddingHorizontal:
-                theme.spacing.md,
-            paddingTop:
-                theme.spacing.sm,
-        },
+    toolbar: {
+        alignItems: 'flex-start',
+        backgroundColor: theme.colors.parchment,
+        borderTopColor: theme.colors.sage,
+        borderTopWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingHorizontal: theme.spacing.md,
+        paddingTop: theme.spacing.sm,
+    },
 
-        toolbarButton: {
-            alignItems: 'center',
-            minWidth: 72,
-        },
+    toolbarButton: {
+        alignItems: 'center',
+        minWidth: 72,
+    },
 
-        toolbarButtonDisabled: {
-            opacity: 0.35,
-        },
+    toolbarButtonDisabled: {
+        opacity: 0.35,
+    },
 
-        toolbarIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 22,
-            height: 44,
-            justifyContent:
-                'center',
-            width: 44,
-        },
+    toolbarIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 22,
+        height: 44,
+        justifyContent: 'center',
+        width: 44,
+    },
 
-        toolbarIconText: {
-            color:
-                theme.colors.forest,
-            fontSize: 19,
-            fontWeight: '700',
-        },
+    toolbarIconText: {
+        color: theme.colors.forest,
+        fontSize: 19,
+        fontWeight: '700',
+    },
 
-        toolbarLabel: {
-            color:
-                theme.colors.earth,
-            fontSize: 10,
-            fontWeight: '600',
-            marginTop: 4,
-        },
+    toolbarLabel: {
+        color: theme.colors.earth,
+        fontSize: 10,
+        fontWeight: '600',
+        marginTop: 4,
+    },
 
-        errorText: {
-            color:
-                theme.colors.earth,
-            fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign: 'center',
-        },
-    })
+    errorText: {
+        color: theme.colors.earth,
+        fontSize: 15,
+        margin: theme.spacing.xl,
+        textAlign: 'center',
+    },
+})

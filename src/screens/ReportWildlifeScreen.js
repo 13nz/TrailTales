@@ -332,190 +332,146 @@ export default function ReportWildlifeScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            flex: 1,
-            backgroundColor:
-                theme.colors.parchment,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: theme.colors.parchment,
+    },
 
-        content: {
-            paddingBottom:
-                theme.spacing.xxxl,
-        },
+    content: {
+        paddingBottom: theme.spacing.xxxl,
+    },
 
-        header: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    header: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        backButton: {
-            alignItems:
-                'center',
-            height: 44,
-            justifyContent:
-                'center',
-            width: 44,
-        },
+    backButton: {
+        alignItems: 'center',
+        height: 44,
+        justifyContent: 'center',
+        width: 44,
+    },
 
-        backButtonText: {
-            color:
-                theme.colors.ink,
-            fontSize: 30,
-            lineHeight: 32,
-        },
+    backButtonText: {
+        color: theme.colors.ink,
+        fontSize: 30,
+        lineHeight: 32,
+    },
 
-        headerTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 17,
-            fontWeight: '700',
-        },
+    headerTitle: {
+        color: theme.colors.ink,
+        fontSize: 17,
+        fontWeight: '700',
+    },
 
-        headerSpacer: {
-            height: 44,
-            width: 44,
-        },
+    headerSpacer: {
+        height: 44,
+        width: 44,
+    },
 
-        intro: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.xl,
-        },
+    intro: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.xl,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '800',
-            letterSpacing: 1.2,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1.2,
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 30,
-            fontWeight: '800',
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 30,
+        fontWeight: '800',
+        marginTop: theme.spacing.xs,
+    },
 
-        description: {
-            color:
-                theme.colors.earth,
-            fontSize: 13,
-            lineHeight: 20,
-            marginTop:
-                theme.spacing.sm,
-        },
+    description: {
+        color: theme.colors.earth,
+        fontSize: 13,
+        lineHeight: 20,
+        marginTop: theme.spacing.sm,
+    },
 
-        notice: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderRadius:
-                theme.radii.md,
-            marginTop:
-                theme.spacing.lg,
-            padding:
-                theme.spacing.md,
-        },
+    notice: {
+        backgroundColor: theme.colors.canvas,
+        borderRadius: theme.radii.md,
+        marginTop: theme.spacing.lg,
+        padding: theme.spacing.md,
+    },
 
-        noticeTitle: {
-            color:
-                theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '700',
-        },
+    noticeTitle: {
+        color: theme.colors.forest,
+        fontSize: 12,
+        fontWeight: '700',
+    },
 
-        noticeText: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            lineHeight: 17,
-            marginTop:
-                theme.spacing.xs,
-        },
+    noticeText: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        lineHeight: 17,
+        marginTop: theme.spacing.xs,
+    },
 
-        form: {
-            paddingHorizontal:
-                theme.spacing.lg,
-            paddingTop:
-                theme.spacing.xl,
-        },
+    form: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.xl,
+    },
 
-        label: {
-            color:
-                theme.colors.ink,
-            fontSize: 12,
-            fontWeight: '700',
-            marginBottom:
-                theme.spacing.xs,
-        },
+    label: {
+        color: theme.colors.ink,
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: theme.spacing.xs,
+    },
 
-        spacedLabel: {
-            marginTop:
-                theme.spacing.lg,
-        },
+    spacedLabel: {
+        marginTop: theme.spacing.lg,
+    },
 
-        input: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.sm,
-            borderWidth: 1,
-            color:
-                theme.colors.ink,
-            fontSize: 14,
-            minHeight: 48,
-            paddingHorizontal:
-                theme.spacing.md,
-        },
+    input: {
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.sm,
+        borderWidth: 1,
+        color: theme.colors.ink,
+        fontSize: 14,
+        minHeight: 48,
+        paddingHorizontal: theme.spacing.md,
+    },
 
-        descriptionInput: {
-            minHeight: 120,
-            paddingTop:
-                theme.spacing.md,
-        },
+    descriptionInput: {
+        minHeight: 120,
+        paddingTop: theme.spacing.md,
+    },
 
-        errorText: {
-            color:
-                theme.colors.earth,
-            fontSize: 11,
-            marginTop:
-                theme.spacing.sm,
-        },
+    errorText: {
+        color: theme.colors.earth,
+        fontSize: 11,
+        marginTop: theme.spacing.sm,
+    },
 
-        submitButton: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.sm,
-            marginTop:
-                theme.spacing.xl,
-            paddingVertical:
-                theme.spacing.md,
-        },
+    submitButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.sm,
+        marginTop: theme.spacing.xl,
+        paddingVertical: theme.spacing.md,
+    },
 
-        pressed: {
-            opacity: 0.8,
-        },
+    pressed: {
+        opacity: 0.8,
+    },
 
-        submitButtonText: {
-            color:
-                theme.colors.parchment,
-            fontSize: 13,
-            fontWeight: '700',
-        },
-    })
+    submitButtonText: {
+        color: theme.colors.parchment,
+        fontSize: 13,
+        fontWeight: '700',
+    },
+})

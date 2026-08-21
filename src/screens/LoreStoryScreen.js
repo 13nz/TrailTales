@@ -427,286 +427,233 @@ export default function LoreStoryScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        container: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    container: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            padding:
-                theme.spacing.md,
-            paddingBottom:
-                theme.spacing.xl * 2,
-        },
+    content: {
+        padding: theme.spacing.md,
+        paddingBottom: theme.spacing.xl * 2,
+    },
 
-        header: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent:
-                'space-between',
-            marginBottom:
-                theme.spacing.xl,
-        },
+    header: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.xl,
+    },
 
-        backButton: {
-            alignItems: 'center',
-            flexDirection: 'row',
-        },
+    backButton: {
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
 
-        backText: {
-            color:
-                theme.colors.forest,
-            fontSize: 13,
-            fontWeight: '600',
-            marginLeft: 2,
-        },
+    backText: {
+        color: theme.colors.forest,
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 2,
+    },
 
-        categoryBadge: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 14,
-            flexDirection: 'row',
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-        },
+    categoryBadge: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 14,
+        flexDirection: 'row',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
 
-        categoryText: {
-            color:
-                theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 0.6,
-            marginLeft: 5,
-        },
+    categoryText: {
+        color: theme.colors.forest,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.6,
+        marginLeft: 5,
+    },
 
-        parkName: {
-            color:
-                theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '700',
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-        },
+    parkName: {
+        color: theme.colors.forest,
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
 
-        title: {
-            color:
-                theme.colors.ink,
-            fontSize: 32,
-            fontWeight: '800',
-            lineHeight: 38,
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 32,
+        fontWeight: '800',
+        lineHeight: 38,
+        marginTop: theme.spacing.xs,
+    },
 
-        summary: {
-            color:
-                theme.colors.earth,
-            fontSize: 15,
-            fontStyle: 'italic',
-            lineHeight: 23,
-            marginTop:
-                theme.spacing.md,
-        },
+    summary: {
+        color: theme.colors.earth,
+        fontSize: 15,
+        fontStyle: 'italic',
+        lineHeight: 23,
+        marginTop: theme.spacing.md,
+    },
 
-        divider: {
-            backgroundColor:
-                theme.colors.sage,
-            height: 1,
-            marginVertical:
-                theme.spacing.xl,
-        },
+    divider: {
+        backgroundColor: theme.colors.sage,
+        height: 1,
+        marginVertical: theme.spacing.xl,
+    },
 
-        infoSection: {
-            marginBottom:
-                theme.spacing.xl,
-        },
+    infoSection: {
+        marginBottom: theme.spacing.xl,
+    },
 
-        sectionLabel: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '800',
-            letterSpacing: 1.5,
-            marginBottom:
-                theme.spacing.sm,
-        },
+    sectionLabel: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        marginBottom: theme.spacing.sm,
+    },
 
-        description: {
-            color:
-                theme.colors.ink,
-            fontSize: 15,
-            lineHeight: 24,
-        },
+    description: {
+        color: theme.colors.ink,
+        fontSize: 15,
+        lineHeight: 24,
+    },
 
-        locationCard: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            flexDirection: 'row',
-            padding:
-                theme.spacing.md,
-        },
+    locationCard: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        flexDirection: 'row',
+        padding: theme.spacing.md,
+    },
 
-        locationIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.sage,
-            borderRadius: 20,
-            height: 40,
-            justifyContent:
-                'center',
-            width: 40,
-        },
+    locationIcon: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.sage,
+        borderRadius: 20,
+        height: 40,
+        justifyContent: 'center',
+        width: 40,
+    },
 
-        locationInfo: {
-            flex: 1,
-            marginLeft:
-                theme.spacing.md,
-        },
+    locationInfo: {
+        flex: 1,
+        marginLeft: theme.spacing.md,
+    },
 
-        locationLabel: {
-            color:
-                theme.colors.earth,
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 1,
-        },
+    locationLabel: {
+        color: theme.colors.earth,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
 
-        locationText: {
-            color:
-                theme.colors.ink,
-            fontSize: 13,
-            fontWeight: '600',
-            marginTop: 3,
-        },
+    locationText: {
+        color: theme.colors.ink,
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: 3,
+    },
 
-        sourceSection: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
-            borderWidth: 1,
-            marginTop:
-                theme.spacing.md,
-            padding:
-                theme.spacing.md,
-        },
+    sourceSection: {
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.md,
+        borderWidth: 1,
+        marginTop: theme.spacing.md,
+        padding: theme.spacing.md,
+    },
 
-        sourceHeader: {
-            alignItems: 'center',
-            flexDirection: 'row',
-        },
+    sourceHeader: {
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
 
-        sourceTitle: {
-            color:
-                theme.colors.ink,
-            fontSize: 13,
-            fontWeight: '700',
-            marginLeft:
-                theme.spacing.xs,
-        },
+    sourceTitle: {
+        color: theme.colors.ink,
+        fontSize: 13,
+        fontWeight: '700',
+        marginLeft: theme.spacing.xs,
+    },
 
-        sourceText: {
-            color:
-                theme.colors.earth,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop:
-                theme.spacing.sm,
-        },
+    sourceText: {
+        color: theme.colors.earth,
+        fontSize: 12,
+        lineHeight: 18,
+        marginTop: theme.spacing.sm,
+    },
 
-        sourceLink: {
-            color:
-                theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.sm,
-            textDecorationLine:
-                'underline',
-        },
+    sourceLink: {
+        color: theme.colors.forest,
+        fontSize: 12,
+        fontWeight: '700',
+        marginTop: theme.spacing.sm,
+        textDecorationLine: 'underline',
+    },
 
-        placeholderSource: {
-            alignItems: 'flex-start',
-            flexDirection: 'row',
-            marginTop:
-                theme.spacing.xl,
-        },
+    placeholderSource: {
+        alignItems: 'flex-start',
+        flexDirection: 'row',
+        marginTop: theme.spacing.xl,
+    },
 
-        placeholderSourceText: {
-            color:
-                theme.colors.earth,
-            flex: 1,
-            fontSize: 11,
-            lineHeight: 17,
-            marginLeft:
-                theme.spacing.sm,
-        },
+    placeholderSourceText: {
+        color: theme.colors.earth,
+        flex: 1,
+        fontSize: 11,
+        lineHeight: 17,
+        marginLeft: theme.spacing.sm,
+    },
 
-        campfireButton: {
-            alignItems: 'center',
-            backgroundColor:
-                '#30261E',
-            borderRadius:
-                theme.radii.md,
-            flexDirection: 'row',
-            marginTop:
-                theme.spacing.xl,
-            minHeight: 76,
-            padding:
-                theme.spacing.md,
-        },
+    campfireButton: {
+        alignItems: 'center',
+        backgroundColor: '#30261E',
+        borderRadius: theme.radii.md,
+        flexDirection: 'row',
+        marginTop: theme.spacing.xl,
+        minHeight: 76,
+        padding: theme.spacing.md,
+    },
 
-        campfireIcon: {
-            alignItems: 'center',
-            backgroundColor:
-                '#4A3325',
-            borderRadius: 22,
-            height: 44,
-            justifyContent:
-                'center',
-            width: 44,
-        },
+    campfireIcon: {
+        alignItems: 'center',
+        backgroundColor: '#4A3325',
+        borderRadius: 22,
+        height: 44,
+        justifyContent: 'center',
+        width: 44,
+    },
 
-        campfireEmoji: {
-            fontSize: 22,
-        },
+    campfireEmoji: {
+        fontSize: 22,
+    },
 
-        campfireInfo: {
-            flex: 1,
-            marginHorizontal:
-                theme.spacing.md,
-        },
+    campfireInfo: {
+        flex: 1,
+        marginHorizontal: theme.spacing.md,
+    },
 
-        campfireTitle: {
-            color: '#F4D6A3',
-            fontSize: 15,
-            fontWeight: '800',
-        },
+    campfireTitle: {
+        color: '#F4D6A3',
+        fontSize: 15,
+        fontWeight: '800',
+    },
 
-        campfireText: {
-            color: '#C8B49B',
-            fontSize: 11,
-            marginTop: 3,
-        },
+    campfireText: {
+        color: '#C8B49B',
+        fontSize: 11,
+        marginTop: 3,
+    },
 
-        errorText: {
-            color:
-                theme.colors.earth,
-            fontSize: 15,
-            margin:
-                theme.spacing.xl,
-            textAlign: 'center',
-        },
-    })
+    errorText: {
+        color: theme.colors.earth,
+        fontSize: 15,
+        margin: theme.spacing.xl,
+        textAlign: 'center',
+    },
+})

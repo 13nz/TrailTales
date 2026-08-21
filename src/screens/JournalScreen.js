@@ -199,148 +199,123 @@ export default function JournalScreen({
     )
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            backgroundColor:
-                theme.colors.parchment,
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+    screen: {
+        backgroundColor: theme.colors.parchment,
+        flex: 1,
+    },
 
-        content: {
-            paddingBottom: 100,
-            paddingHorizontal:
-                theme.spacing.lg,
-        },
+    content: {
+        paddingBottom: 100,
+        paddingHorizontal: theme.spacing.lg,
+    },
 
-        intro: {
-            marginBottom:
-                theme.spacing.xl,
-        },
+    intro: {
+        marginBottom: theme.spacing.xl,
+    },
 
-        eyebrow: {
-            color:
-                theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
+    eyebrow: {
+        color: theme.colors.forest,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        title: {
-            color: theme.colors.ink,
-            fontSize: 34,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.xs,
-        },
+    title: {
+        color: theme.colors.ink,
+        fontSize: 34,
+        fontWeight: '700',
+        marginTop: theme.spacing.xs,
+    },
 
-        description: {
-            color:
-                theme.colors.earth,
-            fontSize: 14,
-            lineHeight: 21,
-            marginTop:
-                theme.spacing.sm,
-        },
+    description: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        lineHeight: 21,
+        marginTop: theme.spacing.sm,
+    },
 
-        tripList: {
-            gap: theme.spacing.lg,
-        },
+    tripList: {
+        gap: theme.spacing.lg,
+    },
 
-        tripCard: {
-            borderRadius:
-                theme.radii.lg,
-        },
+    tripCard: {
+        borderRadius: theme.radii.lg,
+    },
 
-        book: {
-            backgroundColor:
-                theme.colors.forest,
-            borderRadius:
-                theme.radii.lg,
-            flexDirection: 'row',
-            minHeight: 190,
-            overflow: 'hidden',
-            ...theme.shadows.card,
-        },
+    book: {
+        backgroundColor: theme.colors.forest,
+        borderRadius: theme.radii.lg,
+        flexDirection: 'row',
+        minHeight: 190,
+        overflow: 'hidden',
+        ...theme.shadows.card,
+    },
 
-        bookBinding: {
-            backgroundColor:
-                theme.colors.bark,
-            width: 14,
-        },
+    bookBinding: {
+        backgroundColor: theme.colors.bark,
+        width: 14,
+    },
 
-        bookContent: {
-            flex: 1,
-            padding:
-                theme.spacing.lg,
-            position: 'relative',
-        },
+    bookContent: {
+        flex: 1,
+        padding: theme.spacing.lg,
+        position: 'relative',
+    },
 
-        bookEyebrow: {
-            color:
-                theme.colors.sage,
-            fontSize: 9,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
+    bookEyebrow: {
+        color: theme.colors.sage,
+        fontSize: 9,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
 
-        bookTitle: {
-            color:
-                theme.colors.parchment,
-            fontSize: 25,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.sm,
-            maxWidth: '78%',
-        },
+    bookTitle: {
+        color: theme.colors.parchment,
+        fontSize: 25,
+        fontWeight: '700',
+        marginTop: theme.spacing.sm,
+        maxWidth: '78%',
+    },
 
-        bookPages: {
-            color:
-                theme.colors.sage,
-            fontSize: 12,
-            marginTop:
-                theme.spacing.md,
-        },
+    bookPages: {
+        color: theme.colors.sage,
+        fontSize: 12,
+        marginTop: theme.spacing.md,
+    },
 
-        bookIcon: {
-            bottom: 16,
-            fontSize: 42,
-            position: 'absolute',
-            right: 18,
-        },
+    bookIcon: {
+        bottom: 16,
+        fontSize: 42,
+        position: 'absolute',
+        right: 18,
+    },
 
-        emptyState: {
-            alignItems: 'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.lg,
-            borderWidth: 1,
-            padding:
-                theme.spacing.xl,
-        },
+    emptyState: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.canvas,
+        borderColor: theme.colors.sage,
+        borderRadius: theme.radii.lg,
+        borderWidth: 1,
+        padding: theme.spacing.xl,
+    },
 
-        emptyIcon: {
-            fontSize: 48,
-        },
+    emptyIcon: {
+        fontSize: 48,
+    },
 
-        emptyTitle: {
-            color: theme.colors.ink,
-            fontSize: 20,
-            fontWeight: '700',
-            marginTop:
-                theme.spacing.md,
-        },
+    emptyTitle: {
+        color: theme.colors.ink,
+        fontSize: 20,
+        fontWeight: '700',
+        marginTop: theme.spacing.md,
+    },
 
-        emptyDescription: {
-            color:
-                theme.colors.earth,
-            fontSize: 13,
-            lineHeight: 20,
-            marginTop:
-                theme.spacing.xs,
-            textAlign: 'center',
-        },
-    })
+    emptyDescription: {
+        color: theme.colors.earth,
+        fontSize: 13,
+        lineHeight: 20,
+        marginTop: theme.spacing.xs,
+        textAlign: 'center',
+    },
+})

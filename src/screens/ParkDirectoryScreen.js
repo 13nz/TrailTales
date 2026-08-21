@@ -5,18 +5,61 @@ import {
     Pressable,
     TextInput,
     StyleSheet,
+    Image
 } from 'react-native'
-import { useState } from 'react'
+
+import { useState, useEffect } from 'react'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
+import { getAllParks } from '../api/npsApi'
 
-// displays the searchable collection of national parks while the real nps data source is being developed
-export default function ParkDirectoryScreen({ navigation }) {
+// displays the searchable collection of national parks from the nps api
+export default function ParkDirectoryScreen({
+    navigation,
+}) {
     const [searchQuery, setSearchQuery] = useState('')
+    const [parks, setParks] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
-    // filters the mock park collection locally so the search experience can be built before api integration
-    const filteredParks = mockParks.filter((park) => {
+    // loads all available parks from the nps api when the directory opens
+    useEffect(() => {
+        async function loadParks() {
+            try {
+                setLoading(true)
+                setError(null)
+
+                const results = await getAllParks()
+
+                // keeps the directory in alphabetical order regardless of api ordering
+                const sortedParks = [...results].sort(
+                    (a, b) =>
+                        a.name.localeCompare(
+                            b.name
+                        )
+                )
+
+                setParks(sortedParks)
+            } catch (requestError) {
+                // keeps the directory usable if the api request fails
+                console.error(
+                    'NPS API error:',
+                    requestError
+                )
+
+                setError(
+                    'Unable to load parks right now.'
+                )
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        loadParks()
+    }, [])
+
+    // filters the api park collection locally so searching does not require a new request
+    const filteredParks = parks.filter((park) => {
         const query = searchQuery.toLowerCase().trim()
 
         if (!query) {
@@ -42,7 +85,9 @@ export default function ParkDirectoryScreen({ navigation }) {
                     onPress={() => navigation.goBack()}
                     accessibilityRole="button"
                 >
-                    <Text style={styles.backButton}>‹ Explore</Text>
+                    <Text style={styles.backButton}>
+                        ‹ Explore
+                    </Text>
                 </Pressable>
 
                 <Text style={styles.eyebrow}>
@@ -77,7 +122,10 @@ export default function ParkDirectoryScreen({ navigation }) {
 
                 <View style={styles.resultsHeader}>
                     <Text style={styles.resultCount}>
-                        {filteredParks.length} parks
+                        {filteredParks.length}{' '}
+                        {filteredParks.length === 1
+                            ? 'park'
+                            : 'parks'}
                     </Text>
 
                     <Pressable
@@ -89,25 +137,50 @@ export default function ParkDirectoryScreen({ navigation }) {
                     </Pressable>
                 </View>
 
-                <View style={styles.list}>
-                    {filteredParks.map((park) => (
-                        <ParkListCard
-                            key={park.id}
-                            park={park}
-                            onPress={() =>
-                                navigation.navigate(
-                                    'ParkDetail',
-                                    {
-                                        parkId: park.id,
-                                    }
-                                )
-                            }
-                        />
-                    ))}
-                </View>
+                {loading ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyTitle}>
+                            Loading parks...
+                        </Text>
+
+                        <Text style={styles.emptyDescription}>
+                            Getting the latest park information from the
+                            National Park Service.
+                        </Text>
+                    </View>
+                ) : error ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyTitle}>
+                            Unable to load parks
+                        </Text>
+
+                        <Text style={styles.emptyDescription}>
+                            {error}
+                        </Text>
+                    </View>
+                ) : (
+                    <View style={styles.list}>
+                        {filteredParks.map((park) => (
+                            <ParkListCard
+                                key={park.id}
+                                park={park}
+                                onPress={() =>
+                                    navigation.navigate(
+                                        'ParkDetail',
+                                        {
+                                            parkId: park.id,
+                                        }
+                                    )
+                                }
+                            />
+                        ))}
+                    </View>
+                )}
 
                 {/* communicates that the current search returned no matching parks */}
-                {filteredParks.length === 0 ? (
+                {!loading &&
+                !error &&
+                filteredParks.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyTitle}>
                             No parks found
@@ -123,7 +196,10 @@ export default function ParkDirectoryScreen({ navigation }) {
     )
 }
 
-function ParkListCard({ park, onPress }) {
+function ParkListCard({
+    park,
+    onPress,
+}) {
     return (
         <Pressable
             onPress={onPress}
@@ -134,18 +210,28 @@ function ParkListCard({ park, onPress }) {
             accessibilityRole="button"
             accessibilityLabel={`view ${park.name}`}
         >
-            {/* this placeholder will eventually display an image supplied by the nps api */}
-            <View style={styles.imagePlaceholder}>
-                <Text style={styles.imageText}>
-                    {park.name.toUpperCase()}
-                </Text>
-            </View>
+            {/* uses the first official nps image when one is available */}
+            {park.images?.[0]?.url ? (
+                <Image
+                    source={{
+                        uri: park.images[0].url,
+                    }}
+                    style={styles.image}
+                />
+            ) : (
+                <View style={styles.imagePlaceholder}>
+                    <Text style={styles.imageText}>
+                        {park.name.toUpperCase()}
+                    </Text>
+                </View>
+            )}
 
             <View style={styles.cardContent}>
                 <View style={styles.cardTitleRow}>
                     <View style={styles.cardTitleContainer}>
                         <Text style={styles.cardEyebrow}>
-                            NATIONAL PARK
+                            {park.designation ||
+                                'NATIONAL PARK'}
                         </Text>
 
                         <Text style={styles.cardTitle}>
@@ -169,20 +255,6 @@ function ParkListCard({ park, onPress }) {
                 >
                     {park.description}
                 </Text>
-
-                <View style={styles.metadata}>
-                    <Text style={styles.metadataText}>
-                        {park.trailCount} trails
-                    </Text>
-
-                    <Text style={styles.metadataDivider}>
-                        ·
-                    </Text>
-
-                    <Text style={styles.metadataText}>
-                        {park.campgroundCount} campgrounds
-                    </Text>
-                </View>
             </View>
         </Pressable>
     )
@@ -286,6 +358,11 @@ const styles = StyleSheet.create({
         opacity: 0.85,
     },
 
+    image: {
+        height: 120,
+        width: '100%',
+    },
+
     imagePlaceholder: {
         alignItems: 'center',
         backgroundColor: theme.colors.sage,
@@ -298,6 +375,8 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.label.fontSize,
         fontWeight: '700',
         letterSpacing: 1,
+        textAlign: 'center',
+        paddingHorizontal: theme.spacing.md,
     },
 
     cardContent: {
@@ -346,23 +425,6 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.bodySmall.fontSize,
         lineHeight: theme.typography.bodySmall.lineHeight,
         marginTop: theme.spacing.sm,
-    },
-
-    metadata: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        marginTop: theme.spacing.md,
-    },
-
-    metadataText: {
-        color: theme.colors.forest,
-        fontSize: theme.typography.caption.fontSize,
-        fontWeight: '600',
-    },
-
-    metadataDivider: {
-        color: theme.colors.earth,
-        marginHorizontal: theme.spacing.sm,
     },
 
     emptyState: {

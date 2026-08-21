@@ -4,6 +4,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Image
 } from 'react-native'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,8 +12,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect } from 'react'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
-import mockTrails from '../data/mockTrails'
 import mockWildlife from '../data/mockWildlife'
 
 import {
@@ -21,6 +20,7 @@ import {
 
 import { useTrips } from '../context/TripContext'
 import TripPickerModal from '../components/TripPickerModal'
+import { getParkByCode, getTrailsByPark } from '../api/npsApi'
 
 // displays the complete information page for a single trail
 export default function TrailDetailScreen({
@@ -33,42 +33,58 @@ export default function TrailDetailScreen({
     const { tripId } = route.params
 
     const [showTripPicker, setShowTripPicker] = useState(false)
+    const [park, setPark] = useState(null)
+    const [trail, setTrail] = useState(null)
+    const [loadingTrail, setLoadingTrail] = useState(true)
+    const [trailError, setTrailError] = useState(null)
 
     const { parkId, trailId } = route.params
-
-    // useEffect(() => {
-    //     if (
-    //         route.params?.openAddTrail
-    //     ) {
-    //         navigation.replace(
-    //             'AddTrail',
-    //             {
-    //                 tripId,
-    //             }
-    //         )
-    //     }
-    // }, [
-    //     route.params?.openAddTrail,
-    //     tripId,
-    //     navigation,
-    // ])
 
     // gets shared user wildlife reports so new reports appear without restarting the app
     const {
         getReportsForTrail,
     } = useWildlifeReports()
 
-    const park =
-        mockParks.find(
-            (item) =>
-                item.id === parkId
-        )
+    // loads the selected national park and trail from the nps api
+    useEffect(() => {
+        async function loadTrail() {
+            try {
+                setLoadingTrail(true)
+                setTrailError(null)
 
-    const trail =
-        mockTrails.find(
-            (item) =>
-                item.id === trailId
-        )
+                const [apiPark, trails] = await Promise.all([
+                    getParkByCode(parkId),
+                    getTrailsByPark(parkId),
+                ])
+
+                const apiTrail = (trails || []).find(
+                    (item) =>
+                        item.id === trailId
+                )
+
+                if (!apiTrail) {
+                    throw new Error(
+                        'Trail not found'
+                    )
+                }
+
+                setPark(apiPark)
+                setTrail(apiTrail)
+            } catch (error) {
+                console.error(
+                    'NPS trail error:',
+                    error
+                )
+                setTrailError(
+                    'Unable to load this trail'
+                )
+            } finally {
+                setLoadingTrail(false)
+            }
+        }
+
+        loadTrail()
+    }, [parkId, trailId])
 
     // gets the official wildlife associated with the park
     const wildlife =
@@ -80,9 +96,7 @@ export default function TrailDetailScreen({
             trailId
         )
 
-
-
-    if (!park || !trail) {
+    if (loadingTrail) {
         return (
             <View
                 style={
@@ -94,8 +108,25 @@ export default function TrailDetailScreen({
                         styles.errorTitle
                     }
                 >
-                    Trail could not be
-                    found
+                    Loading trail...
+                </Text>
+            </View>
+        )
+    }
+
+    if (trailError || !park || !trail) {
+        return (
+            <View
+                style={
+                    styles.errorContainer
+                }
+            >
+                <Text
+                    style={
+                        styles.errorTitle
+                    }
+                >
+                    {trailError || 'Trail could not be found'}
                 </Text>
 
                 <Pressable
@@ -132,19 +163,30 @@ export default function TrailDetailScreen({
                 <View
                     style={styles.hero}
                 >
-                    <View
-                        style={
-                            styles.heroImage
-                        }
-                    >
-                        <Text
+                    {park.images?.[0]?.url ? (
+                        <Image
+                            source={{
+                                uri: park.images[0].url,
+                            }}
+                            style={styles.heroImage}
+                            resizeMode="cover"
+                            accessibilityLabel={`${park.name} trail photo`}
+                        />
+                    ) : (
+                        <View
                             style={
-                                styles.heroImageText
+                                styles.heroImage
                             }
                         >
-                            TRAIL PHOTO
-                        </Text>
-                    </View>
+                            <Text
+                                style={
+                                    styles.heroImageText
+                                }
+                            >
+                                TRAIL PHOTO
+                            </Text>
+                        </View>
+                    )}
 
                     <Pressable
                         style={[
@@ -263,29 +305,10 @@ export default function TrailDetailScreen({
                 </View>
 
                 {/* presents the most important hiking information at a glance */}
-                <View
-                    style={styles.stats}
-                >
-                    <TrailStat
-                        value={
-                            trail.distance
-                        }
-                        label="Distance"
-                    />
-
-                    <TrailStat
-                        value={
-                            trail.difficulty
-                        }
-                        label="Difficulty"
-                    />
-
-                    <TrailStat
-                        value={
-                            trail.duration
-                        }
-                        label="Duration"
-                    />
+                <View style={styles.stats}>
+                    {trail.distance ? <TrailStat value={trail.distance} label="Distance" /> : null}
+                    {trail.difficulty ? <TrailStat value={trail.difficulty} label="Difficulty" /> : null}
+                    {trail.duration ? <TrailStat value={trail.duration} label="Duration" /> : null}
                 </View>
 
                 {/* describes the trail */}
@@ -323,56 +346,13 @@ export default function TrailDetailScreen({
                         Trail details
                     </Text>
 
-                    <View
-                        style={
-                            styles.detailCard
-                        }
-                    >
-                        <TrailDetail
-                            label="Distance"
-                            value={
-                                trail.distance
-                            }
-                        />
-
-                        <TrailDetail
-                            label="Difficulty"
-                            value={
-                                trail.difficulty
-                            }
-                        />
-
-                        <TrailDetail
-                            label="Duration"
-                            value={
-                                trail.duration
-                            }
-                        />
-
-                        <TrailDetail
-                            label="Elevation"
-                            value={
-                                trail.elevation ||
-                                'Not available'
-                            }
-                        />
-
-                        <TrailDetail
-                            label="Trail type"
-                            value={
-                                trail.type ||
-                                'Not available'
-                            }
-                        />
-
-                        <TrailDetail
-                            label="Pets"
-                            value={
-                                trail.petsAllowed
-                                    ? 'Allowed'
-                                    : 'Not allowed'
-                            }
-                        />
+                    <View style={styles.detailCard}>
+                        {trail.distance ? <TrailDetail label="Distance" value={trail.distance} /> : null}
+                        {trail.difficulty ? <TrailDetail label="Difficulty" value={trail.difficulty} /> : null}
+                        {trail.duration ? <TrailDetail label="Duration" value={trail.duration} /> : null}
+                        {trail.elevation ? <TrailDetail label="Elevation" value={trail.elevation} /> : null}
+                        {trail.type ? <TrailDetail label="Trail type" value={trail.type} /> : null}
+                        {trail.petInformationAvailable ? <TrailDetail label="Pets" value={getDogAccessText(trail)} /> : null}
                     </View>
                 </View>
 
@@ -861,6 +841,22 @@ function EmptyCard({
             </Text>
         </View>
     )
+}
+
+function getDogAccessText(trail) {
+    if (trail.petsRestricted) {
+        return 'Allowed with restrictions'
+    }
+
+    if (trail.petsAllowed) {
+        return 'Allowed'
+    }
+
+    if (trail.petInformationAvailable) {
+        return 'Not allowed'
+    }
+
+    return 'Information unavailable'
 }
 
 const styles =

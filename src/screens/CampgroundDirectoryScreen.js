@@ -10,6 +10,7 @@ import {
 import {
     useMemo,
     useState,
+    useEffect,
 } from 'react'
 
 import {
@@ -21,40 +22,125 @@ import {
 } from '@expo/vector-icons'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
 
-// provides a searchable directory of campgrounds across all mock parks
+import {
+    getCampgrounds,
+    getCampgroundsByPark,
+} from '../api/npsApi'
+
+// provides a searchable directory of national park campgrounds
+// displays all campgrounds from explore or only one park when opened from park details
 export default function CampgroundDirectoryScreen({
+    route,
     navigation,
 }) {
     const insets =
         useSafeAreaInsets()
+
+    const parkId =
+        route?.params?.parkId || null
 
     const [
         searchQuery,
         setSearchQuery,
     ] = useState('')
 
-    // flattens the campground data stored inside each park
-    // this keeps the directory compatible with the existing campground detail screen
-    const allCampgrounds =
-        useMemo(() => {
-            return mockParks.flatMap(
-                (park) =>
-                    (park.campgrounds ||
-                        []).map(
-                        (campground) => ({
-                            ...campground,
-                            parkId:
-                                park.id,
-                            parkName:
-                                park.name,
-                        })
-                    )
-            )
-        }, [])
+    const [
+        campgrounds,
+        setCampgrounds,
+    ] = useState([])
 
-    // searches campground names, park names, and campground descriptions
+    const [
+        loading,
+        setLoading,
+    ] = useState(true)
+
+    const [
+        error,
+        setError,
+    ] = useState(null)
+
+    // loads all campgrounds from explore or only the selected park from park details
+    useEffect(() => {
+        let active = true
+
+        async function loadCampgrounds() {
+            try {
+                setLoading(true)
+                setError(null)
+
+                if (parkId) {
+                    const parkCampgrounds =
+                        await getCampgroundsByPark(
+                            parkId
+                        )
+
+                    if (active) {
+                        setCampgrounds(
+                            parkCampgrounds || []
+                        )
+                    }
+
+                    return
+                }
+
+                const allCampgrounds =
+                    await getCampgrounds()
+
+                if (active) {
+                    setCampgrounds(
+                        allCampgrounds || []
+                    )
+                }
+            } catch (loadError) {
+                console.error(
+                    'NPS campground directory error:',
+                    loadError
+                )
+
+                if (active) {
+                    setError(
+                        'Unable to load campgrounds'
+                    )
+                }
+            } finally {
+                if (active) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        loadCampgrounds()
+
+        return () => {
+            active = false
+        }
+    }, [parkId])
+
+    // adds the park name to campgrounds when the directory is opened for a single park
+    const campgroundsWithPark =
+        useMemo(() => {
+            if (!parkId) {
+                return campgrounds
+            }
+
+            return campgrounds.map(
+                (campground) => ({
+                    ...campground,
+                    parkId:
+                        campground.parkId ||
+                        parkId,
+                    parkName:
+                        campground.parkName ||
+                        '',
+                })
+            )
+        }, [
+            campgrounds,
+            parkId,
+        ])
+
+    // searches campground names, park names, and descriptions
     const filteredCampgrounds =
         useMemo(() => {
             const query =
@@ -62,28 +148,36 @@ export default function CampgroundDirectoryScreen({
                     .trim()
                     .toLowerCase()
 
+            const sorted =
+                [...campgroundsWithPark].sort(
+                    (a, b) =>
+                        (a.name || '').localeCompare(
+                            b.name || ''
+                        )
+                )
+
             if (!query) {
-                return allCampgrounds
+                return sorted
             }
 
-            return allCampgrounds.filter(
+            return sorted.filter(
                 (campground) =>
-                    campground.name
+                    (campground.name || '')
                         .toLowerCase()
                         .includes(query) ||
-                    campground.parkName
+                    (campground.parkName || '')
                         .toLowerCase()
                         .includes(query) ||
-                    campground.description
+                    (campground.description || '')
                         .toLowerCase()
                         .includes(query)
             )
         }, [
-            allCampgrounds,
+            campgroundsWithPark,
             searchQuery,
         ])
 
-    // opens the existing campground detail screen using the nested park data structure
+    // opens the campground detail screen using the park and campground ids
     const openCampground = (
         campground
     ) => {
@@ -91,10 +185,62 @@ export default function CampgroundDirectoryScreen({
             'CampgroundDetail',
             {
                 parkId:
+                    campground.parkCode ||
                     campground.parkId,
                 campgroundId:
                     campground.id,
             }
+        )
+    }
+
+    if (loading) {
+        return (
+            <View
+                style={
+                    styles.loadingContainer
+                }
+            >
+                <Text
+                    style={
+                        styles.loadingTitle
+                    }
+                >
+                    Loading campgrounds...
+                </Text>
+            </View>
+        )
+    }
+
+    if (error) {
+        return (
+            <View
+                style={
+                    styles.loadingContainer
+                }
+            >
+                <Text
+                    style={
+                        styles.loadingTitle
+                    }
+                >
+                    {error}
+                </Text>
+
+                <Pressable
+                    onPress={() =>
+                        navigation.goBack()
+                    }
+                    accessibilityRole="button"
+                >
+                    <Text
+                        style={
+                            styles.backButton
+                        }
+                    >
+                        Go back
+                    </Text>
+                </Pressable>
+            </View>
         )
     }
 
@@ -121,7 +267,7 @@ export default function CampgroundDirectoryScreen({
                         navigation.goBack()
                     }
                     accessibilityRole="button"
-                    accessibilityLabel="go back to explore"
+                    accessibilityLabel="go back"
                 >
                     <Ionicons
                         name="chevron-back"
@@ -136,7 +282,9 @@ export default function CampgroundDirectoryScreen({
                             styles.backText
                         }
                     >
-                        Explore
+                        {parkId
+                            ? 'Park'
+                            : 'Explore'}
                     </Text>
                 </Pressable>
 
@@ -238,9 +386,10 @@ export default function CampgroundDirectoryScreen({
                     filteredCampgrounds
                 }
                 keyExtractor={(
-                    item
+                    item,
+                    index
                 ) =>
-                    `${item.parkId}-${item.id}`
+                    `${item.parkCode || item.parkId || 'park'}-${item.id || index}`
                 }
                 contentContainerStyle={
                     styles.list
@@ -287,15 +436,18 @@ export default function CampgroundDirectoryScreen({
                                 styles.campgroundInfo
                             }
                         >
-                            <Text
-                                style={
-                                    styles.parkName
-                                }
-                            >
-                                {
-                                    item.parkName
-                                }
-                            </Text>
+                            {!parkId &&
+                                item.parkName ? (
+                                <Text
+                                    style={
+                                        styles.parkName
+                                    }
+                                >
+                                    {
+                                        item.parkName
+                                    }
+                                </Text>
+                            ) : null}
 
                             <Text
                                 style={
@@ -323,37 +475,22 @@ export default function CampgroundDirectoryScreen({
                                     styles.metaRow
                                 }
                             >
-                                <Text
-                                    style={
-                                        styles.meta
-                                    }
-                                >
-                                    {
-                                        item.sites
-                                    }
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.metaDot
-                                    }
-                                >
-                                    ·
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.meta
-                                    }
-                                >
-                                    {
-                                        item.season
-                                    }
-                                </Text>
-
-                                {item
-                                    .dogsAllowed ? (
+                                {item.totalSites !==
+                                    null &&
+                                    item.totalSites !==
+                                        undefined ? (
                                     <>
+                                        <Text
+                                            style={
+                                                styles.meta
+                                            }
+                                        >
+                                            {
+                                                item.totalSites
+                                            }{' '}
+                                            sites
+                                        </Text>
+
                                         <Text
                                             style={
                                                 styles.metaDot
@@ -361,16 +498,51 @@ export default function CampgroundDirectoryScreen({
                                         >
                                             ·
                                         </Text>
+                                    </>
+                                ) : null}
 
+                                {item.rvOnly !==
+                                    null &&
+                                    item.rvOnly !==
+                                        undefined &&
+                                    Number(
+                                        item.rvOnly
+                                    ) >
+                                        0 ? (
+                                    <>
                                         <Text
                                             style={
                                                 styles.meta
                                             }
                                         >
-                                            dogs
-                                            allowed
+                                            RV
+                                        </Text>
+
+                                        <Text
+                                            style={
+                                                styles.metaDot
+                                            }
+                                        >
+                                            ·
                                         </Text>
                                     </>
+                                ) : null}
+
+                                {item.tentOnly !==
+                                    null &&
+                                    item.tentOnly !==
+                                        undefined &&
+                                    Number(
+                                        item.tentOnly
+                                    ) >
+                                        0 ? (
+                                    <Text
+                                        style={
+                                            styles.meta
+                                        }
+                                    >
+                                        tent
+                                    </Text>
                                 ) : null}
                             </View>
                         </View>
@@ -430,11 +602,23 @@ const styles =
             flex: 1,
         },
 
-        header: {
-            paddingHorizontal:
+        loadingContainer: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.parchment,
+            flex: 1,
+            justifyContent:
+                'center',
+            padding:
                 theme.spacing.lg,
-            paddingTop:
-                theme.spacing.sm,
+        },
+
+        loadingTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 18,
+            fontWeight: '700',
         },
 
         backButton: {
@@ -452,6 +636,13 @@ const styles =
             fontSize: 13,
             fontWeight: '600',
             marginLeft: 2,
+        },
+
+        header: {
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingTop:
+                theme.spacing.sm,
         },
 
         title: {

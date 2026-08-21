@@ -4,19 +4,25 @@ import {
     Text,
     Pressable,
     StyleSheet,
+    Image,
 } from 'react-native'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
 import mockWildlife from '../data/mockWildlife'
 
 import { useWildlifeReports } from '../context/WildlifeReportContext'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTrips } from '../context/TripContext'
 import TripPickerModal from '../components/TripPickerModal'
+
+import {
+    getParkByCode,
+    getTrailsByPark,
+    getCampgroundsByPark,
+} from '../api/npsApi'
 
 // displays detailed campground information and provides actions for saving and trip planning
 export default function CampgroundDetailScreen({
@@ -24,100 +30,181 @@ export default function CampgroundDetailScreen({
     navigation,
 }) {
     const insets = useSafeAreaInsets()
-
     const { trips } = useTrips()
-
     const [showTripPicker, setShowTripPicker] = useState(false)
-
     const { parkId, campgroundId } = route.params
 
     // provides access to shared user wildlife reports
     const { getReportsForCampground } = useWildlifeReports()
 
-    const park =
-        mockParks.find(
-            (item) =>
-                item.id === parkId
-        )
+    const [park, setPark] = useState(null)
+    const [campground, setCampground] = useState(null)
+    const [trails, setTrails] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
-    const campground =
-        park?.campgrounds.find(
-            (item) =>
-                item.id ===
-                campgroundId
-        )
+    // loads the selected campground and its related park and trail data from the nps api
+    useEffect(() => {
+        let active = true
 
-    // gets official wildlife information associated with the park
-    const wildlife =
-        mockWildlife[parkId] || []
+        async function loadCampground() {
+            try {
+                setLoading(true)
+                setError(null)
 
-    // gets only user reports associated with this campground
-    const reports =
-        getReportsForCampground(
-            campgroundId
-        )
+                const apiPark = await getParkByCode(parkId)
+                const [apiTrails, apiCampgrounds] = await Promise.all([
+                    getTrailsByPark(parkId),
+                    getCampgroundsByPark(parkId),
+                ])
 
-    // prevents the screen from crashing when a campground cannot be found
-    if (!park || !campground) {
-        return (
-            <View
-                style={
-                    styles.errorContainer
+                // keeps the screen compatible with either a flat or nested campground response
+                const campgroundList = Array.isArray(apiCampgrounds?.[0])
+                    ? apiCampgrounds.flat()
+                    : apiCampgrounds || []
+
+                const selectedCampground = campgroundList.find(
+                    (item) =>
+                        String(item.id) === String(campgroundId)
+                )
+
+                if (!selectedCampground) {
+                    throw new Error('Campground not found')
                 }
-            >
-                <Text
-                    style={
-                        styles.errorTitle
-                    }
-                >
-                    Campground not found
+
+                if (active) {
+                    setPark({
+                        ...apiPark,
+                        trails: apiTrails || [],
+                        campgrounds: campgroundList,
+                    })
+                    setCampground(selectedCampground)
+                    setTrails(apiTrails || [])
+                }
+            } catch (loadError) {
+                console.error('NPS campground error:', loadError)
+
+                if (active) {
+                    setError('Unable to load this campground')
+                }
+            } finally {
+                if (active) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        loadCampground()
+
+        return () => {
+            active = false
+        }
+    }, [parkId, campgroundId])
+
+    // prevents the screen from rendering campground information before the api request finishes
+    if (loading) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorTitle}>Loading campground...</Text>
+            </View>
+        )
+    }
+
+    // prevents the screen from crashing if the api cannot find the campground
+    if (error || !park || !campground) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorTitle}>
+                    {error || 'Campground not found'}
                 </Text>
 
                 <Pressable
-                    onPress={() =>
-                        navigation.goBack()
-                    }
+                    onPress={() => navigation.goBack()}
                     accessibilityRole="button"
                 >
-                    <Text
-                        style={
-                            styles.backButton
-                        }
-                    >
-                        Go back
-                    </Text>
+                    <Text style={styles.backButton}>Go back</Text>
                 </Pressable>
             </View>
         )
     }
 
+    // gets official wildlife information associated with the park
+    const wildlife = mockWildlife[park.id] || []
+
+
+    // gets only user reports associated with this campground
+    const reports = getReportsForCampground(campgroundId)
+
+    const accessibility = campground.accessibility || {}
+    const amenities = campground.amenities || {}
+    const amenityItems = buildAmenityItems(amenities)
+
+    const hasReservationInformation = Boolean(
+        campground.reservationDescription ||
+        campground.firstComeFirstServe ||
+        campground.reservableSites ||
+        campground.reservationsUrl
+    )
+
+    const hasAccessibilityInformation = Boolean(
+        accessibility.wheelchairaccess ||
+        accessibility.wheelchairAccess ||
+        accessibility.internetinfo ||
+        accessibility.cellphoneinfo ||
+        accessibility.firestovepolicy ||
+        accessibility.additionalinfo ||
+        accessibility.adainfo ||
+        accessibility.rvinfo ||
+        accessibility.accessroads?.length ||
+        accessibility.classifications?.length
+    )
+
+    const hasDirections = Boolean(
+        campground.directionsOverview ||
+        campground.directionsUrl
+    )
+
+    const hasWeather = Boolean(
+        campground.weatherOverview
+    )
+
+    const hasRegulations = Boolean(
+        campground.regulationsOverview ||
+        campground.regulationsUrl
+    )
+
+    const heroImage =
+        campground.image ||
+        park.images?.find(
+            (image) =>
+                image?.url
+        )?.url ||
+        null
+
     return (
-        <View
-            style={styles.screen}
-        >
+        <View style={styles.screen}>
             <ScrollView
-                showsVerticalScrollIndicator={
-                    false
-                }
-                contentContainerStyle={
-                    styles.content
-                }
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.content}
             >
                 {/* provides quick navigation back to the park page */}
                 <View style={styles.hero}>
-                    <View
-                        style={
-                            styles.heroImage
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.heroImageText
-                            }
-                        >
-                            CAMPGROUND PHOTO
-                        </Text>
-                    </View>
+                    {heroImage ? (
+                        <Image
+                            source={{
+                                uri: heroImage,
+                            }}
+                            style={styles.heroImage}
+                            resizeMode="cover"
+                            accessibilityLabel={`${campground.name} campground`}
+                        />
+                    ) : (
+                        <View style={styles.heroImage}>
+                            <Text style={styles.heroImageText}>
+                                CAMPGROUND PHOTO
+                            </Text>
+                        </View>
+                    )}
 
                     <Pressable
                         style={[
@@ -132,12 +219,9 @@ export default function CampgroundDetailScreen({
                             navigation.goBack()
                         }
                         accessibilityRole="button"
+                        accessibilityLabel="go back"
                     >
-                        <Text
-                            style={
-                                styles.heroButton
-                            }
-                        >
+                        <Text style={styles.heroButton}>
                             ‹
                         </Text>
                     </Pressable>
@@ -155,78 +239,43 @@ export default function CampgroundDetailScreen({
                         accessibilityRole="button"
                         accessibilityLabel={`save ${campground.name}`}
                     >
-                        <Text
-                            style={
-                                styles.favoriteIcon
-                            }
-                        >
+                        <Text style={styles.favoriteIcon}>
                             ♡
                         </Text>
                     </Pressable>
                 </View>
 
-                <View
-                    style={styles.header}
-                >
-                    <Text
-                        style={
-                            styles.eyebrow
-                        }
-                    >
+                <View style={styles.header}>
+                    <Text style={styles.eyebrow}>
                         {park.name.toUpperCase()}
                     </Text>
 
-                    <Text
-                        style={
-                            styles.title
-                        }
-                    >
+                    <Text style={styles.title}>
                         {campground.name}
                     </Text>
 
-                    <Text
-                        style={
-                            styles.location
-                        }
-                    >
-                        {campground.season}
+                    <Text style={styles.location}>
+                        {getCampgroundLocation(campground)}
                     </Text>
 
-                    <View
-                        style={
-                            styles.actions
-                        }
-                    >
+                    <View style={styles.actions}>
                         <Pressable
-                            style={
-                                styles.primaryAction
-                            }
+                            style={styles.primaryAction}
                             accessibilityRole="button"
                         >
-                            <Text
-                                style={
-                                    styles.primaryActionText
-                                }
-                            >
+                            <Text style={styles.primaryActionText}>
                                 Save
                             </Text>
                         </Pressable>
 
                         <Pressable
-                            style={
-                                styles.secondaryAction
-                            }
-                            // top + Trip button
+                            style={styles.secondaryAction}
                             onPress={() => {
                                 setShowTripPicker(true)
                             }}
                             accessibilityRole="button"
                         >
-                            <Text
-                                style={
-                                    styles.secondaryActionText
-                                }
-                            >
+                            <Text style={styles.secondaryActionText}>
                                 + Trip
                             </Text>
                         </Pressable>
@@ -234,168 +283,265 @@ export default function CampgroundDetailScreen({
                 </View>
 
                 {/* highlights the campground information needed when planning a stay */}
-                <View
-                    style={styles.stats}
-                >
-                    <View
-                        style={
-                            styles.statsRow
-                        }
-                    >
+                <View style={styles.stats}>
+                    <View style={styles.statsRow}>
                         <CampgroundStat
-                            value={
-                                campground.sites
-                            }
+                            value={campground.totalSites}
                             label="Sites"
                         />
 
                         <CampgroundStat
-                            value={
-                                campground.season
-                            }
-                            label="Season"
+                            value={campground.tentOnly}
+                            label="Tent sites"
                         />
-                    </View>
 
-                    <View
-                        style={
-                            styles.petStat
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.petIcon
-                            }
-                        >
-                            🐕
-                        </Text>
-
-                        <View>
-                            <Text
-                                style={
-                                    styles.petLabel
-                                }
-                            >
-                                Dogs
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.petValue
-                                }
-                            >
-                                {campground.dogsAllowed
-                                    ? 'Allowed'
-                                    : 'Not allowed'}
-                            </Text>
-                        </View>
+                        <CampgroundStat
+                            value={campground.rvOnly}
+                            label="RV sites"
+                        />
                     </View>
                 </View>
 
-                <View
-                    style={styles.section}
-                >
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
                         About
                     </Text>
 
-                    <Text
-                        style={
-                            styles.body
-                        }
-                    >
-                        {
-                            campground.description
-                        }
-                    </Text>
+                    {campground.description ? (
+                        <Text style={styles.body}>
+                            {campground.description}
+                        </Text>
+                    ) : (
+                        <EmptyCard
+                            text="No campground description available"
+                        />
+                    )}
                 </View>
 
-                <View
-                    style={styles.section}
-                >
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
                         Campground details
                     </Text>
 
-                    <View
-                        style={
-                            styles.detailList
-                        }
-                    >
+                    <View style={styles.detailList}>
                         <DetailRow
-                            label="Sites"
-                            value={
-                                campground.sites
-                            }
+                            label="Total sites"
+                            value={campground.totalSites}
                         />
 
                         <DetailRow
-                            label="Season"
-                            value={
-                                campground.season
-                            }
+                            label="Tent-only sites"
+                            value={campground.tentOnly}
                         />
 
                         <DetailRow
-                            label="Dogs"
+                            label="RV-only sites"
+                            value={campground.rvOnly}
+                        />
+
+                        <DetailRow
+                            label="Group sites"
+                            value={campground.groupSites}
+                        />
+
+                        <DetailRow
+                            label="Horse sites"
+                            value={campground.horseSites}
+                        />
+
+                        <DetailRow
+                            label="Electrical hookups"
+                            value={campground.electricalHookups}
+                        />
+
+                        <DetailRow
+                            label="Walk/boat-to sites"
+                            value={campground.walkBoatTo}
+                        />
+
+                        <DetailRow
+                            label="RV access"
                             value={
-                                campground.dogsAllowed
+                                accessibility.rvallowed ===
+                                1
                                     ? 'Allowed'
-                                    : 'Not allowed'
+                                    : accessibility.rvallowed ===
+                                      0
+                                    ? 'Not allowed'
+                                    : null
                             }
                         />
 
                         <DetailRow
-                            label="Reservation"
-                            value="Information coming soon"
+                            label="Trailer access"
+                            value={
+                                accessibility.trailerallowed ===
+                                1
+                                    ? 'Allowed'
+                                    : accessibility.trailerallowed ===
+                                      0
+                                    ? 'Not allowed'
+                                    : null
+                            }
+                        />
+
+                        <DetailRow
+                            label="RV information"
+                            value={
+                                accessibility.rvinfo
+                            }
+                        />
+
+                        <DetailRow
+                            label="Trailer maximum length"
+                            value={
+                                accessibility.trailermaxlength
+                                    ? `${accessibility.trailermaxlength} ft`
+                                    : null
+                            }
+                        />
+
+                        <DetailRow
+                            label="RV maximum length"
+                            value={
+                                accessibility.rvmaxlength
+                                    ? `${accessibility.rvmaxlength} ft`
+                                    : null
+                            }
+                        />
+
+                        <DetailRow
+                            label="Classification"
+                            value={
+                                Array.isArray(
+                                    accessibility.classifications
+                                )
+                                    ? accessibility.classifications.join(
+                                          ', '
+                                      )
+                                    : null
+                            }
                         />
                     </View>
                 </View>
 
-                <View
-                    style={styles.section}
-                >
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
+               
+
+                {/* {hasReservationInformation && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Reservations
+                        </Text>
+
+                        <View style={styles.detailList}>
+                            <DetailRow
+                                label="Reservation information"
+                                value={
+                                    campground.reservationDescription
+                                }
+                            />
+
+                            <DetailRow
+                                label="First come, first served"
+                                value={
+                                    campground.firstComeFirstServe
+                                }
+                            />
+
+                            <DetailRow
+                                label="Reservable sites"
+                                value={
+                                    campground.reservableSites
+                                }
+                            />
+
+                            <DetailRow
+                                label="Reservations"
+                                value={
+                                    campground.reservationsUrl
+                                }
+                            />
+                        </View>
+                    </View>
+                )} */}
+
+                {/* {hasDirections && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Directions
+                        </Text>
+
+                        <View style={styles.detailList}>
+                            <DetailRow
+                                label="Directions"
+                                value={
+                                    campground.directionsOverview
+                                }
+                            />
+
+                            <DetailRow
+                                label="Directions link"
+                                value={
+                                    campground.directionsUrl
+                                }
+                            />
+                        </View>
+                    </View>
+                )} */}
+
+                {/* {hasWeather && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Weather
+                        </Text>
+
+                        <Text style={styles.body}>
+                            {campground.weatherOverview}
+                        </Text>
+                    </View>
+                )} */}
+
+                {/* {hasRegulations && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Regulations
+                        </Text>
+
+                        <View style={styles.detailList}>
+                            <DetailRow
+                                label="Regulations"
+                                value={
+                                    campground.regulationsOverview
+                                }
+                            />
+
+                            <DetailRow
+                                label="Regulations link"
+                                value={
+                                    campground.regulationsUrl
+                                }
+                            />
+                        </View>
+                    </View>
+                )} */}
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
                         Nearby trails
                     </Text>
 
-                    <Text
-                        style={
-                            styles.sectionDescription
-                        }
-                    >
-                        Explore trails that can
-                        be added to your trip
+                    <Text style={styles.sectionDescription}>
+                        Explore trails that can be added to your trip
                         alongside this campground.
                     </Text>
 
-                    <View
-                        style={
-                            styles.nearbyList
-                        }
-                    >
-                        {park.trails
+                    <View style={styles.nearbyList}>
+                        {trails
                             .slice(0, 3)
                             .map(
-                                (
-                                    trail
-                                ) => (
+                                (trail) => (
                                     <Pressable
-                                        key={
-                                            trail.id
-                                        }
+                                        key={trail.id}
                                         style={({
                                             pressed,
                                         }) => [
@@ -441,24 +587,30 @@ export default function CampgroundDetailScreen({
                                                     styles.nearbyTrailName
                                                 }
                                             >
-                                                {
-                                                    trail.name
-                                                }
+                                                {trail.name}
                                             </Text>
 
-                                            <Text
-                                                style={
-                                                    styles.nearbyTrailMeta
-                                                }
-                                            >
-                                                {
-                                                    trail.distance
-                                                }{' '}
-                                                ·{' '}
-                                                {
+                                            {(trail.distance ||
+                                                trail.difficulty) && (
+                                                <Text
+                                                    style={
+                                                        styles.nearbyTrailMeta
+                                                    }
+                                                >
+                                                    {
+                                                        trail.distance ||
+                                                        'Distance unavailable'
+                                                    }
+                                                    {trail.distance &&
                                                     trail.difficulty
-                                                }
-                                            </Text>
+                                                        ? ' · '
+                                                        : ''}
+                                                    {
+                                                        trail.difficulty ||
+                                                        ''
+                                                    }
+                                                </Text>
+                                            )}
                                         </View>
 
                                         <Text
@@ -474,53 +626,85 @@ export default function CampgroundDetailScreen({
                     </View>
                 </View>
 
-                <View
-                    style={styles.section}
-                >
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
+                {/* <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
                         Amenities
                     </Text>
 
-                    <View
-                        style={
-                            styles.amenityGrid
-                        }
-                    >
-                        <Amenity
-                            icon="◉"
-                            label="Campsites"
+                    {amenityItems.length > 0 ? (
+                        <View style={styles.amenityGrid}>
+                            {amenityItems.map(
+                                (amenity) => (
+                                    <Amenity
+                                        key={
+                                            amenity.key
+                                        }
+                                        icon={
+                                            amenity.icon
+                                        }
+                                        label={
+                                            amenity.label
+                                        }
+                                        value={
+                                            amenity.value
+                                        }
+                                    />
+                                )
+                            )}
+                        </View>
+                    ) : (
+                        <EmptyCard
+                            text="No campground amenities available"
                         />
+                    )}
+                </View> */}
+                {Object.entries(campground.amenities || {}).filter(
+                    ([_, value]) =>
+                        value !== null &&
+                        value !== undefined &&
+                        value !== '' &&
+                        !(Array.isArray(value) && value.length === 0)
+                ).length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Amenities
+                        </Text>
 
-                        <Amenity
-                            icon="♨"
-                            label="Campfire"
-                        />
+                        <View style={styles.detailList}>
+                            {Object.entries(campground.amenities || {})
+                                .filter(
+                                    ([_, value]) =>
+                                        value !== null &&
+                                        value !== undefined &&
+                                        value !== '' &&
+                                        !(Array.isArray(value) && value.length === 0)
+                                )
+                                .map(([key, value]) => {
+                                    const label = key
+                                        .replace(/([A-Z])/g, ' $1')
+                                        .replace(/^./, (letter) =>
+                                            letter.toUpperCase()
+                                        )
 
-                        <Amenity
-                            icon="⌁"
-                            label="Restrooms"
-                        />
+                                    const displayValue = Array.isArray(value)
+                                        ? value.join(', ')
+                                        : String(value)
 
-                        <Amenity
-                            icon="♧"
-                            label="Nature"
-                        />
+                                    return (
+                                        <DetailRow
+                                            key={key}
+                                            label={label}
+                                            value={displayValue}
+                                        />
+                                    )
+                                })}
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* displays official wildlife information separately from user reports */}
-                <View
-                    style={styles.section}
-                >
-                    <View
-                        style={
-                            styles.sectionHeader
-                        }
-                    >
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
                         <View
                             style={
                                 styles.sectionHeaderContent
@@ -539,23 +723,19 @@ export default function CampgroundDetailScreen({
                                     styles.sectionDescription
                                 }
                             >
-                                Wildlife known to
-                                live in this area
+                                Wildlife known to live in this area
                             </Text>
                         </View>
                     </View>
 
-                    {wildlife.length >
-                    0 ? (
+                    {wildlife.length > 0 ? (
                         <View
                             style={
                                 styles.wildlifeList
                             }
                         >
                             {wildlife.map(
-                                (
-                                    animal
-                                ) => (
+                                (animal) => (
                                     <WildlifeRow
                                         key={
                                             animal.id
@@ -575,14 +755,8 @@ export default function CampgroundDetailScreen({
                 </View>
 
                 {/* displays only community reports associated with this campground */}
-                <View
-                    style={styles.section}
-                >
-                    <View
-                        style={
-                            styles.sectionHeader
-                        }
-                    >
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
                         <View
                             style={
                                 styles.sectionHeaderContent
@@ -601,9 +775,7 @@ export default function CampgroundDetailScreen({
                                     styles.sectionDescription
                                 }
                             >
-                                Wildlife reports
-                                submitted by
-                                TrailTales users
+                                Wildlife reports submitted by TrailTales users
                             </Text>
                         </View>
 
@@ -632,17 +804,14 @@ export default function CampgroundDetailScreen({
                         </Pressable>
                     </View>
 
-                    {reports.length >
-                    0 ? (
+                    {reports.length > 0 ? (
                         <View
                             style={
                                 styles.reportList
                             }
                         >
                             {reports.map(
-                                (
-                                    report
-                                ) => (
+                                (report) => (
                                     <WildlifeReportRow
                                         key={
                                             report.id
@@ -688,9 +857,73 @@ export default function CampgroundDetailScreen({
                     </Pressable>
                 </View>
 
-                <View
-                    style={styles.section}
-                >
+                 {hasAccessibilityInformation && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Accessibility
+                        </Text>
+
+                        <View style={styles.detailList}>
+                            <DetailRow
+                                label="Wheelchair access"
+                                value={
+                                    accessibility.wheelchairaccess ||
+                                    accessibility.wheelchairAccess
+                                }
+                            />
+
+                            <DetailRow
+                                label="ADA information"
+                                value={
+                                    accessibility.adainfo
+                                }
+                            />
+
+                            <DetailRow
+                                label="Access roads"
+                                value={
+                                    Array.isArray(
+                                        accessibility.accessroads
+                                    )
+                                        ? accessibility.accessroads.join(
+                                              ', '
+                                          )
+                                        : null
+                                }
+                            />
+
+                            <DetailRow
+                                label="Additional information"
+                                value={
+                                    accessibility.additionalinfo
+                                }
+                            />
+
+                            <DetailRow
+                                label="Internet information"
+                                value={
+                                    accessibility.internetinfo
+                                }
+                            />
+
+                            <DetailRow
+                                label="Cell service information"
+                                value={
+                                    accessibility.cellphoneinfo
+                                }
+                            />
+
+                            <DetailRow
+                                label="Fire stove policy"
+                                value={
+                                    accessibility.firestovepolicy
+                                }
+                            />
+                        </View>
+                    </View>
+                )}
+
+                <View style={styles.section}>
                     <View
                         style={
                             styles.planCard
@@ -748,9 +981,15 @@ export default function CampgroundDetailScreen({
             </ScrollView>
 
             <TripPickerModal
-                visible={showTripPicker}
-                trips={trips}
-                park={park}
+                visible={
+                    showTripPicker
+                }
+                trips={
+                    trips
+                }
+                park={
+                    park
+                }
                 onClose={() =>
                     setShowTripPicker(false)
                 }
@@ -760,7 +999,8 @@ export default function CampgroundDetailScreen({
                     navigation.navigate(
                         'AddCampsite',
                         {
-                            tripId: trip.id,
+                            tripId:
+                                trip.id,
                         }
                     )
                 }}
@@ -770,9 +1010,11 @@ export default function CampgroundDetailScreen({
                     navigation.navigate(
                         'Trips',
                         {
-                            screen: 'CreateTrip',
+                            screen:
+                                'CreateTrip',
                             params: {
-                                parkId: park.id,
+                                parkId:
+                                    park.id,
                             },
                         }
                     )
@@ -786,16 +1028,25 @@ function CampgroundStat({
     value,
     label,
 }) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return null
+    }
+
     return (
         <View
-            style={styles.stat}
+            style={
+                styles.stat
+            }
         >
             <Text
                 style={
                     styles.statValue
                 }
             >
-                {value}
+                {String(value)}
             </Text>
 
             <Text
@@ -813,9 +1064,24 @@ function DetailRow({
     label,
     value,
 }) {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ''
+    ) {
+        return null
+    }
+
+    const displayValue =
+        Array.isArray(value)
+            ? value.join(', ')
+            : String(value)
+
     return (
         <View
-            style={styles.detailRow}
+            style={
+                styles.detailRow
+            }
         >
             <Text
                 style={
@@ -830,7 +1096,7 @@ function DetailRow({
                     styles.detailValue
                 }
             >
-                {value}
+                {displayValue}
             </Text>
         </View>
     )
@@ -839,10 +1105,13 @@ function DetailRow({
 function Amenity({
     icon,
     label,
+    value,
 }) {
     return (
         <View
-            style={styles.amenity}
+            style={
+                styles.amenity
+            }
         >
             <View
                 style={
@@ -864,9 +1133,229 @@ function Amenity({
                 }
             >
                 {label}
+                {value
+                    ? `: ${value}`
+                    : ''}
             </Text>
         </View>
     )
+}
+
+// converts the nps amenity object into displayable campground amenity cards
+function buildAmenityItems(
+    amenities
+) {
+    const items = [
+        {
+            key: 'trash',
+            icon: '♻',
+            label: 'Trash & recycling',
+            value:
+                amenities.trashrecyclingcollection,
+        },
+        {
+            key: 'toilets',
+            icon: '⌁',
+            label: 'Restrooms',
+            value:
+                amenities.toilets,
+        },
+        {
+            key: 'showers',
+            icon: '♨',
+            label: 'Showers',
+            value:
+                amenities.showers,
+        },
+        {
+            key: 'water',
+            icon: '◉',
+            label: 'Potable water',
+            value:
+                amenities.potablewater,
+        },
+        {
+            key: 'internet',
+            icon: '⌁',
+            label: 'Internet',
+            value:
+                typeof amenities.internetconnectivity ===
+                'boolean'
+                    ? amenities.internetconnectivity
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.internetconnectivity,
+        },
+        {
+            key: 'cell',
+            icon: '⌁',
+            label: 'Cell reception',
+            value:
+                typeof amenities.cellphonereception ===
+                'boolean'
+                    ? amenities.cellphonereception
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.cellphonereception,
+        },
+        {
+            key: 'laundry',
+            icon: '◉',
+            label: 'Laundry',
+            value:
+                typeof amenities.laundry ===
+                'boolean'
+                    ? amenities.laundry
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.laundry,
+        },
+        {
+            key: 'dump',
+            icon: '◉',
+            label: 'Dump station',
+            value:
+                typeof amenities.dumpstation ===
+                'boolean'
+                    ? amenities.dumpstation
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.dumpstation,
+        },
+        {
+            key: 'store',
+            icon: '⌂',
+            label: 'Camp store',
+            value:
+                typeof amenities.campstore ===
+                'boolean'
+                    ? amenities.campstore
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.campstore,
+        },
+        {
+            key: 'host',
+            icon: 'W',
+            label: 'Staff / host',
+            value:
+                amenities.stafforvolunteerhostonsite,
+        },
+        {
+            key: 'ice',
+            icon: '◆',
+            label: 'Ice',
+            value:
+                typeof amenities.iceavailableforsale ===
+                'boolean'
+                    ? amenities.iceavailableforsale
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.iceavailableforsale,
+        },
+        {
+            key: 'firewood',
+            icon: '♨',
+            label: 'Firewood',
+            value:
+                typeof amenities.firewoodforsale ===
+                'boolean'
+                    ? amenities.firewoodforsale
+                        ? 'Available'
+                        : 'Not available'
+                    : amenities.firewoodforsale,
+        },
+        {
+            key: 'food-lockers',
+            icon: '▣',
+            label: 'Food storage lockers',
+            value:
+                amenities.foodstoragelockers,
+        },
+        {
+            key: 'amphitheater',
+            icon: '♧',
+            label: 'Amphitheater',
+            value:
+                amenities.amphitheater ||
+                amenities.ampitheater,
+        },
+    ]
+
+    return items
+        .map(
+            (item) => ({
+                ...item,
+                value:
+                    formatAmenityValue(
+                        item.value
+                    ),
+            })
+        )
+        .filter(
+            (item) =>
+                item.value !==
+                    null &&
+                item.value !==
+                    undefined &&
+                item.value !== ''
+        )
+}
+
+function formatAmenityValue(
+    value
+) {
+    if (
+        Array.isArray(value)
+    ) {
+        return value.join(
+            ', '
+        )
+    }
+
+    if (
+        typeof value ===
+        'boolean'
+    ) {
+        return value
+            ? 'Available'
+            : 'Not available'
+    }
+
+    return value
+}
+
+function getCampgroundLocation(
+    campground
+) {
+    const physicalAddress =
+        campground.addresses?.find(
+            (address) =>
+                address?.type ===
+                'Physical'
+        )
+
+    if (
+        physicalAddress
+    ) {
+        const parts = [
+            physicalAddress.city,
+            physicalAddress.stateCode,
+        ].filter(Boolean)
+
+        if (
+            parts.length >
+            0
+        ) {
+            return parts.join(
+                ', '
+            )
+        }
+    }
+
+    return campground.parkCode
+        ? campground.parkCode.toUpperCase()
+        : 'National Park'
 }
 
 // displays official wildlife information without species-specific emojis
@@ -1032,12 +1521,16 @@ function EmptyCard({
 function formatReportTime(
     reportedAt
 ) {
-    if (!reportedAt) {
+    if (
+        !reportedAt
+    ) {
         return ''
     }
 
     const date =
-        new Date(reportedAt)
+        new Date(
+            reportedAt
+        )
 
     if (
         Number.isNaN(
@@ -1050,8 +1543,10 @@ function formatReportTime(
     return date.toLocaleDateString(
         undefined,
         {
-            month: 'short',
-            day: 'numeric',
+            month:
+                'short',
+            day:
+                'numeric',
         }
     )
 }
@@ -1510,6 +2005,7 @@ const styles =
             fontWeight: '600',
             marginTop:
                 theme.spacing.sm,
+            textAlign: 'center',
         },
 
         /* official wildlife information */

@@ -8,6 +8,7 @@ import {
 } from 'react-native'
 
 import {
+    useEffect,
     useMemo,
     useState,
 } from 'react'
@@ -20,40 +21,156 @@ import {
     Ionicons,
 } from '@expo/vector-icons'
 
-import mockParks from '../data/mockParks'
-
 import theme from '../constants/theme'
 
-// provides a searchable directory of trails across all mock parks
+import {
+    getAllParks,
+    getTrailsByPark,
+    getParkByCode
+} from '../api/npsApi'
+
+// provides a searchable directory of trails across all national parks
 export default function TrailDirectoryScreen({
     navigation,
+    route
 }) {
-    const insets =
-        useSafeAreaInsets()
+    const insets = useSafeAreaInsets()
+
+    const parkId = route.params?.parkId || null
 
     const [
         searchQuery,
         setSearchQuery,
     ] = useState('')
 
-    // flattens the trails stored on each park so the directory can display them together
-    const allTrails =
-        useMemo(() => {
-            return mockParks.flatMap(
-                (park) =>
-                    park.trails.map(
-                        (trail) => ({
-                            ...trail,
-                            parkId:
-                                park.id,
-                            parkName:
-                                park.name,
-                        })
-                    )
-            )
-        }, [])
+    const [
+        trails,
+        setTrails,
+    ] = useState([])
 
-    // filters the directory using both trail and park names
+    const [
+        loadingTrails,
+        setLoadingTrails,
+    ] = useState(true)
+
+    const [
+        trailError,
+        setTrailError,
+    ] = useState(null)
+
+    // loads trails from the nps national park list or for specific park
+    useEffect(() => {
+        async function loadTrails() {
+            try {
+                setLoadingTrails(true)
+                setTrailError(null)
+
+                if (parkId) {
+                    const parkTrails =
+                        await getTrailsByPark(
+                            parkId
+                        )
+
+                    const park =
+                        await getParkByCode(
+                            parkId
+                        )
+
+                    const normalizedTrails =
+                        (parkTrails || [])
+                            .map(
+                                (trail) => ({
+                                    ...trail,
+                                    parkId:
+                                        park.id,
+                                    parkName:
+                                        park.name,
+                                })
+                            )
+                            .sort(
+                                (a, b) =>
+                                    a.name.localeCompare(
+                                        b.name
+                                    )
+                            )
+
+                    setTrails(
+                        normalizedTrails
+                    )
+                    return
+                }
+
+                const parks =
+                    await getAllParks()
+
+                const trailResults =
+                    await Promise.all(
+                        parks.map(
+                            async (park) => {
+                                try {
+                                    const parkTrails =
+                                        await getTrailsByPark(
+                                            park.id
+                                        )
+
+                                    return (
+                                        parkTrails ||
+                                        []
+                                    ).map(
+                                        (
+                                            trail
+                                        ) => ({
+                                            ...trail,
+                                            parkId:
+                                                park.id,
+                                            parkName:
+                                                park.name,
+                                        })
+                                    )
+                                } catch (
+                                    error
+                                ) {
+                                    console.error(
+                                        `NPS trail error for ${park.name}:`,
+                                        error
+                                    )
+
+                                    return []
+                                }
+                            }
+                        )
+                    )
+
+                setTrails(
+                    trailResults
+                        .flat()
+                        .sort(
+                            (a, b) =>
+                                a.name.localeCompare(
+                                    b.name
+                                )
+                        )
+                )
+            } catch (error) {
+                console.error(
+                    'NPS trail directory error:',
+                    error
+                )
+
+                setTrailError(
+                    'Unable to load trails'
+                )
+            } finally {
+                setLoadingTrails(
+                    false
+                )
+            }
+        }
+
+        loadTrails()
+    }, [parkId])
+
+    // filters the directory using trail, park, and difficulty names
     const filteredTrails =
         useMemo(() => {
             const query =
@@ -62,23 +179,29 @@ export default function TrailDirectoryScreen({
                     .toLowerCase()
 
             if (!query) {
-                return allTrails
+                return trails
             }
 
-            return allTrails.filter(
+            return trails.filter(
                 (trail) =>
                     trail.name
-                        .toLowerCase()
-                        .includes(query) ||
+                        ?.toLowerCase()
+                        .includes(
+                            query
+                        ) ||
                     trail.parkName
-                        .toLowerCase()
-                        .includes(query) ||
+                        ?.toLowerCase()
+                        .includes(
+                            query
+                        ) ||
                     trail.difficulty
-                        .toLowerCase()
-                        .includes(query)
+                        ?.toLowerCase()
+                        .includes(
+                            query
+                        )
             )
         }, [
-            allTrails,
+            trails,
             searchQuery,
         ])
 
@@ -94,6 +217,186 @@ export default function TrailDirectoryScreen({
                 trailId:
                     trail.id,
             }
+        )
+    }
+
+    if (loadingTrails) {
+        return (
+            <View
+                style={[
+                    styles.screen,
+                    {
+                        paddingTop:
+                            insets.top,
+                    },
+                ]}
+            >
+                <View
+                    style={
+                        styles.header
+                    }
+                >
+                    <Pressable
+                        style={
+                            styles.backButton
+                        }
+                        onPress={() =>
+                            navigation.goBack()
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel="go back to explore"
+                    >
+                        <Ionicons
+                            name="chevron-back"
+                            size={22}
+                            color={
+                                theme.colors
+                                    .forest
+                            }
+                        />
+
+                        <Text
+                            style={
+                                styles.backText
+                            }
+                        >
+                            Explore
+                        </Text>
+                    </Pressable>
+
+                    <Text
+                        style={
+                            styles.title
+                        }
+                    >
+                        Trails
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.subtitle
+                        }
+                    >
+                        Find your next path
+                    </Text>
+                </View>
+
+                <View
+                    style={
+                        styles.emptyState
+                    }
+                >
+                    <Text
+                        style={
+                            styles.emptyIcon
+                        }
+                    >
+                        🥾
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.emptyTitle
+                        }
+                    >
+                        Loading trails...
+                    </Text>
+                </View>
+            </View>
+        )
+    }
+
+    if (trailError) {
+        return (
+            <View
+                style={[
+                    styles.screen,
+                    {
+                        paddingTop:
+                            insets.top,
+                    },
+                ]}
+            >
+                <View
+                    style={
+                        styles.header
+                    }
+                >
+                    <Pressable
+                        style={
+                            styles.backButton
+                        }
+                        onPress={() =>
+                            navigation.goBack()
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel="go back to explore"
+                    >
+                        <Ionicons
+                            name="chevron-back"
+                            size={22}
+                            color={
+                                theme.colors
+                                    .forest
+                            }
+                        />
+
+                        <Text
+                            style={
+                                styles.backText
+                            }
+                        >
+                            Explore
+                        </Text>
+                    </Pressable>
+
+                    <Text
+                        style={
+                            styles.title
+                        }
+                    >
+                        Trails
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.subtitle
+                        }
+                    >
+                        Find your next path
+                    </Text>
+                </View>
+
+                <View
+                    style={
+                        styles.emptyState
+                    }
+                >
+                    <Text
+                        style={
+                            styles.emptyIcon
+                        }
+                    >
+                        🥾
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.emptyTitle
+                        }
+                    >
+                        Unable to load trails
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.emptyText
+                        }
+                    >
+                        Please try again later.
+                    </Text>
+                </View>
+            </View>
         )
     }
 
@@ -126,7 +429,8 @@ export default function TrailDirectoryScreen({
                         name="chevron-back"
                         size={22}
                         color={
-                            theme.colors.forest
+                            theme.colors
+                                .forest
                         }
                     />
 
@@ -205,7 +509,8 @@ export default function TrailDirectoryScreen({
                             name="close-circle"
                             size={19}
                             color={
-                                theme.colors.earth
+                                theme.colors
+                                    .earth
                             }
                         />
                     </Pressable>
@@ -235,9 +540,10 @@ export default function TrailDirectoryScreen({
                     filteredTrails
                 }
                 keyExtractor={(
-                    item
+                    item,
+                    index
                 ) =>
-                    `${item.parkId}-${item.id}`
+                    `${item.parkId}-${item.id}-${index}`
                 }
                 contentContainerStyle={
                     styles.list
@@ -302,69 +608,86 @@ export default function TrailDirectoryScreen({
                                 {item.name}
                             </Text>
 
-                            <Text
-                                style={
-                                    styles.description
-                                }
-                                numberOfLines={
-                                    2
-                                }
-                            >
-                                {
-                                    item.description
-                                }
-                            </Text>
+                            {item.description ? (
+                                <Text
+                                    style={
+                                        styles.description
+                                    }
+                                    numberOfLines={
+                                        2
+                                    }
+                                >
+                                    {
+                                        item.description
+                                    }
+                                </Text>
+                            ) : null}
 
                             <View
                                 style={
                                     styles.metaRow
                                 }
                             >
-                                <Text
-                                    style={
-                                        styles.meta
-                                    }
-                                >
-                                    {
-                                        item.distance
-                                    }
-                                </Text>
+                                {item.distance ? (
+                                    <>
+                                        <Text
+                                            style={
+                                                styles.meta
+                                            }
+                                        >
+                                            {
+                                                item.distance
+                                            }
+                                        </Text>
 
-                                <Text
-                                    style={
-                                        styles.metaDot
-                                    }
-                                >
-                                    ·
-                                </Text>
+                                        {item.difficulty ||
+                                        item.elevation ? (
+                                            <Text
+                                                style={
+                                                    styles.metaDot
+                                                }
+                                            >
+                                                ·
+                                            </Text>
+                                        ) : null}
+                                    </>
+                                ) : null}
 
-                                <Text
-                                    style={
-                                        styles.meta
-                                    }
-                                >
-                                    {
-                                        item.difficulty
-                                    }
-                                </Text>
+                                {item.difficulty ? (
+                                    <>
+                                        <Text
+                                            style={
+                                                styles.meta
+                                            }
+                                        >
+                                            {
+                                                item.difficulty
+                                            }
+                                        </Text>
 
-                                <Text
-                                    style={
-                                        styles.metaDot
-                                    }
-                                >
-                                    ·
-                                </Text>
+                                        {item.elevation ? (
+                                            <Text
+                                                style={
+                                                    styles.metaDot
+                                                }
+                                            >
+                                                ·
+                                            </Text>
+                                        ) : null}
+                                    </>
+                                ) : null}
 
-                                <Text
-                                    style={
-                                        styles.meta
-                                    }
-                                >
-                                    {
-                                        item.elevation
-                                    }
-                                </Text>
+                                {item.elevation ? (
+                                    <Text
+                                        style={
+                                            styles.meta
+                                        }
+                                    >
+                                        {
+                                            item.elevation
+                                        }
+                                    </Text>
+                                ) : null}
                             </View>
                         </View>
 

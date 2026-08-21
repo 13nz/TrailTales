@@ -146,7 +146,7 @@ export default function TripDetailScreen({
 
                 {trip.trails?.length > 0 ? (
                     trip.trails.map(
-                        (trailReservation) => {
+                        (trailReservation, index) => {
                             const trailId =
                                 typeof trailReservation ===
                                 'string'
@@ -178,7 +178,8 @@ export default function TripDetailScreen({
 
                             return (
                                 <SavedItem
-                                    key={trail.id}
+                                // identify reservation instead of just trail id to allow multiple entries
+                                    key={`trail-${trail.id}-${index}`}
                                     title={
                                         trail.name
                                     }
@@ -219,14 +220,11 @@ export default function TripDetailScreen({
                                                 trails:
                                                     trip.trails.filter(
                                                         (
-                                                            item
+                                                            item,
+                                                            itemIndex
                                                         ) =>
-                                                            typeof item ===
-                                                            'string'
-                                                                ? item !==
-                                                                  trail.id
-                                                                : item.id !==
-                                                                  trail.id
+                                                            itemIndex !==
+                                                            index
                                                     ),
                                             }
                                         )
@@ -1359,7 +1357,7 @@ function DynamicItinerary({
     const trailEvents = (
         trip.trails || []
     )
-        .map((trailReservation) => {
+        .map((trailReservation, index) => {
             const trailId =
                 typeof trailReservation ===
                 'string'
@@ -1376,7 +1374,8 @@ function DynamicItinerary({
             }
 
             return {
-                id: `trail-${trail.id}`,
+                // reservation to allow multiple entries
+                id: `trail-${trail.id}-${index}`,
                 sourceId: trail.id,
                 date:
                     typeof trailReservation ===

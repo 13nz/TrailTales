@@ -11,6 +11,7 @@ import {
 } from '@react-navigation/native'
 
 import { Ionicons } from '@expo/vector-icons'
+import { useEffect, useState } from 'react'
 
 import ExploreStack from './ExploreStack'
 import MapStack from './MapStack'
@@ -21,14 +22,15 @@ import LoreStack from './LoreStack'
 import CreateTripScreen from '../screens/CreateTripScreen'
 import AddTrailScreen from '../screens/AddTrailScreen'
 import AddCampsiteScreen from '../screens/AddCampsiteScreen'
+import AuthScreen from '../screens/AuthScreen'
+
+import { supabase } from '../services/supabase'
 
 import theme from '../constants/theme'
 
-const Tab =
-    createBottomTabNavigator()
+const Tab = createBottomTabNavigator()
 
-const RootStack =
-    createNativeStackNavigator()
+const RootStack = createNativeStackNavigator()
 
 // contains the application's primary bottom-tab navigation
 function MainTabs() {
@@ -207,8 +209,86 @@ function MainTabs() {
     )
 }
 
-// manages the main application navigation and workflow screens launched from other sections
+// manages authentication before allowing access to the main application
 export default function AppNavigator() {
+    const [authReady, setAuthReady] =
+        useState(false)
+
+    const [session, setSession] =
+        useState(null)
+
+    useEffect(() => {
+        // checks whether supabase already has an authenticated session
+        const initializeAuth =
+            async () => {
+                try {
+                    const {
+                        data,
+                        error,
+                    } =
+                        await supabase.auth.getSession()
+
+                        //await supabase.auth.signOut()
+
+                    if (error) {
+                        console.error(
+                            'supabase session error:',
+                            error
+                        )
+                    }
+
+                    setSession(
+                        data.session ||
+                            null
+                    )
+                } catch (error) {
+                    console.error(
+                        'supabase authentication initialization error:',
+                        error
+                    )
+                } finally {
+                    setAuthReady(true)
+                }
+            }
+
+        initializeAuth()
+
+        // updates the application whenever the user signs in, signs up, or signs out
+        const {
+            data:
+                authListener,
+        } =
+            supabase.auth.onAuthStateChange(
+                (
+                    event,
+                    nextSession
+                ) => {
+                    console.log(
+                        'supabase auth event:',
+                        event,
+                        'has session:',
+                        Boolean(
+                            nextSession
+                        )
+                    )
+
+                    setSession(
+                        nextSession ||
+                            null
+                    )
+                }
+            )
+
+        return () => {
+            authListener.subscription.unsubscribe()
+        }
+    }, [])
+
+    // waits until the initial supabase session check is complete
+    if (!authReady) {
+        return null
+    }
+
     return (
         <RootStack.Navigator
             screenOptions={{
@@ -220,38 +300,50 @@ export default function AppNavigator() {
                     'slide_from_right',
             }}
         >
-            {/* contains the normal bottom-tab application */}
-            <RootStack.Screen
-                name="Main"
-                component={
-                    MainTabs
-                }
-            />
+            {session ? (
+                <>
+                    {/* contains the normal bottom-tab application */}
+                    <RootStack.Screen
+                        name="Main"
+                        component={
+                            MainTabs
+                        }
+                    />
 
-            {/* these routes are intentionally at the root level
-                so detail pages can open them without inheriting
-                the TripsStack navigation history */}
+                    {/* these routes are intentionally at the root level
+                        so detail pages can open them without inheriting
+                        the TripsStack navigation history */}
 
-            <RootStack.Screen
-                name="CreateTrip"
-                component={
-                    CreateTripScreen
-                }
-            />
+                    <RootStack.Screen
+                        name="CreateTrip"
+                        component={
+                            CreateTripScreen
+                        }
+                    />
 
-            <RootStack.Screen
-                name="AddTrail"
-                component={
-                    AddTrailScreen
-                }
-            />
+                    <RootStack.Screen
+                        name="AddTrail"
+                        component={
+                            AddTrailScreen
+                        }
+                    />
 
-            <RootStack.Screen
-                name="AddCampsite"
-                component={
-                    AddCampsiteScreen
-                }
-            />
+                    <RootStack.Screen
+                        name="AddCampsite"
+                        component={
+                            AddCampsiteScreen
+                        }
+                    />
+                </>
+            ) : (
+                // shows authentication before the user enters the application
+                <RootStack.Screen
+                    name="Auth"
+                    component={
+                        AuthScreen
+                    }
+                />
+            )}
         </RootStack.Navigator>
     )
 }

@@ -274,7 +274,7 @@ export default function ExploreScreen() {
                     </View>
                 </View>
 
-                <View style={styles.section}>
+                {/* <View style={styles.section}>
                     <SectionHeader title="Your journey" />
 
                     <View style={styles.journeyCard}>
@@ -290,7 +290,7 @@ export default function ExploreScreen() {
                         <Pressable
                             style={styles.journeyButton}
                             onPress={() => {
-                                // opens the passport experience when it is available
+                                // opens the passport after i make it
                                 navigation.navigate(
                                     'Passport'
                                 )
@@ -303,7 +303,7 @@ export default function ExploreScreen() {
                             </Text>
                         </Pressable>
                     </View>
-                </View>
+                </View> */}
             </ScrollView>
         </SafeAreaView>
     )

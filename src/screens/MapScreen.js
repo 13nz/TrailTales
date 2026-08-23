@@ -3,83 +3,25 @@ import {
     Text,
     Pressable,
     StyleSheet,
+    TextInput,
+    Keyboard
 } from 'react-native'
 import MapView, { Marker } from 'react-native-maps'
-import { useMemo, useRef, useState } from 'react'
+import {
+    useEffect,
+    useRef,
+    useState,
+} from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Location from 'expo-location'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
 
-// provides temporary geographic data for map categories that will later come from the nps api and supabase
-const mockMapLocations = {
-    Trails: [
-        {
-            id: 'trail-laurel-falls',
-            name: 'Laurel Falls Trail',
-            type: 'trail',
-            parkId: 'great-smoky-mountains',
-            trailId: 'laurel-falls',
-            latitude: 35.6285,
-            longitude: -83.5885,
-            subtitle: '2.6 mi · Moderate',
-            description:
-                'A popular forest trail leading to a historic waterfall in the Great Smoky Mountains.',
-        },
-        {
-            id: 'trail-fairy-falls',
-            name: 'Fairy Falls Trail',
-            type: 'trail',
-            parkId: 'yellowstone',
-            trailId: 'fairy-falls',
-            latitude: 44.5297,
-            longitude: -110.775,
-            subtitle: '5.4 mi · Moderate',
-            description:
-                'A scenic Yellowstone trail leading through lodgepole pine forest to a beautiful waterfall.',
-        },
-        {
-            id: 'trail-delicate-arch',
-            name: 'Delicate Arch Trail',
-            type: 'trail',
-            parkId: 'arches',
-            trailId: 'delicate-arch',
-            latitude: 38.7359,
-            longitude: -109.5209,
-            subtitle: '3.2 mi · Moderate',
-            description:
-                'A classic desert hike leading to one of the most recognizable arches in the park.',
-        },
-    ],
-
-    Campgrounds: [
-        {
-            id: 'camp-elkmont',
-            name: 'Elkmont Campground',
-            type: 'campground',
-            parkId: 'great-smoky-mountains',
-            campgroundId: 'elkmont',
-            latitude: 35.647,
-            longitude: -83.582,
-            subtitle: '200 sites · Seasonal',
-            description:
-                'A historic campground surrounded by forest and close to several popular trails.',
-        },
-        {
-            id: 'camp-madison',
-            name: 'Madison Campground',
-            type: 'campground',
-            parkId: 'yellowstone',
-            campgroundId: 'madison',
-            latitude: 44.646,
-            longitude: -110.865,
-            subtitle: '278 sites · Seasonal',
-            description:
-                'A riverside Yellowstone campground with easy access to nearby geothermal areas and wildlife viewing.',
-        },
-    ],
-}
+import {
+    getAllParks,
+    getTrailsByPark,
+    getCampgrounds,
+} from '../api/npsApi'
 
 // provides the main geographic discovery experience for parks and other outdoor locations
 export default function MapScreen({ navigation }) {
@@ -90,51 +32,336 @@ export default function MapScreen({ navigation }) {
     const [selectedLocation, setSelectedLocation] =
         useState(null)
 
+    const [searchQuery, setSearchQuery] =
+        useState('')
+
     const [mapType, setMapType] =
         useState('standard')
 
     const [activeFilter, setActiveFilter] =
         useState('Parks')
 
-    // determines which geographic markers should be visible based on the selected map filter
-    const visibleLocations = useMemo(() => {
-        if (activeFilter === 'Parks') {
-            return mockParks.map((park) => ({
-                id: park.id,
-                name: park.name,
-                type: 'park',
-                latitude:
-                    park.coordinates.latitude,
-                longitude:
-                    park.coordinates.longitude,
-                subtitle:
-                    park.states.join(' · '),
-                description:
-                    park.description,
-                park,
-            }))
+    const [parks, setParks] =
+        useState([])
+
+    const [trails, setTrails] =
+        useState([])
+
+    const [campgrounds, setCampgrounds] =
+        useState([])
+
+    const [loadedFilters, setLoadedFilters] =
+        useState({})
+
+    // loads the national parks when the map screen first opens
+    useEffect(() => {
+        let active = true
+
+        async function loadParks() {
+            try {
+                const parkData =
+                    await getAllParks()
+
+                if (active) {
+                    setParks(
+                        parkData || []
+                    )
+
+                    setLoadedFilters(
+                        (current) => ({
+                            ...current,
+                            Parks: true,
+                        })
+                    )
+                }
+            } catch (error) {
+                console.error(
+                    'NPS map parks error:',
+                    error
+                )
+            }
         }
 
-        return (
-            mockMapLocations[
-                activeFilter
-            ] || []
-        )
-    }, [activeFilter])
+        loadParks()
 
-    const handleMarkerPress = (
-        location
-    ) => {
-        // selecting a marker shows a preview card instead of immediately leaving the map
+        return () => {
+            active = false
+        }
+    }, [])
+
+    // loads the selected map category only when the user needs it
+    useEffect(() => {
+        let active = true
+
+        async function loadSelectedCategory() {
+            if (
+                loadedFilters[
+                    activeFilter
+                ]
+            ) {
+                return
+            }
+
+            try {
+                if (
+                    activeFilter ===
+                    'Trails'
+                ) {
+                    const parkData =
+                        parks.length > 0
+                            ? parks
+                            : await getAllParks()
+
+                    const trailResults =
+                        await Promise.all(
+                            parkData.map(
+                                async (
+                                    park
+                                ) => {
+                                    try {
+                                        const parkTrails =
+                                            await getTrailsByPark(
+                                                park.id
+                                            )
+
+                                        return (
+                                            parkTrails ||
+                                            []
+                                        ).map(
+                                            (
+                                                trail
+                                            ) => ({
+                                                ...trail,
+                                                parkId:
+                                                    park.id,
+                                                parkName:
+                                                    park.name,
+                                            })
+                                        )
+                                    } catch (
+                                        parkError
+                                    ) {
+                                        console.error(
+                                            `NPS map trail error for ${park.name}:`,
+                                            parkError
+                                        )
+
+                                        return []
+                                    }
+                                }
+                            )
+                        )
+
+                    if (!active) {
+                        return
+                    }
+
+                    setTrails(
+                        trailResults.flat()
+                    )
+
+                    setParks(
+                        parkData
+                    )
+
+                    setLoadedFilters(
+                        (current) => ({
+                            ...current,
+                            Trails: true,
+                        })
+                    )
+                }
+
+                if (
+                    activeFilter ===
+                    'Campgrounds'
+                ) {
+                    const campgroundData =
+                        await getCampgrounds()
+
+                    if (!active) {
+                        return
+                    }
+
+                    setCampgrounds(
+                        campgroundData || []
+                    )
+
+                    setLoadedFilters(
+                        (current) => ({
+                            ...current,
+                            Campgrounds: true,
+                        })
+                    )
+                }
+            } catch (error) {
+                console.error(
+                    `NPS map ${activeFilter.toLowerCase()} error:`,
+                    error
+                )
+            }
+        }
+
+        loadSelectedCategory()
+
+        return () => {
+            active = false
+        }
+    }, [
+        activeFilter,
+        loadedFilters,
+        parks,
+    ])
+
+    // converts the api records into the marker structure used by the map
+    const visibleLocations =
+        activeFilter === 'Parks'
+            ? parks
+                  .filter(
+                      (park) =>
+                          park.coordinates
+                              ?.latitude !==
+                              null &&
+                          park.coordinates
+                              ?.longitude !==
+                              null
+                  )
+                  .map(
+                      (park) => ({
+                          id: park.id,
+                          name: park.name,
+                          type: 'park',
+                          latitude:
+                              park.coordinates
+                                  .latitude,
+                          longitude:
+                              park.coordinates
+                                  .longitude,
+                          subtitle:
+                              park.states.join(
+                                  ' · '
+                              ),
+                          description:
+                              park.description,
+                          park,
+                      })
+                  )
+            : activeFilter ===
+              'Trails'
+              ? trails
+                    .filter(
+                        (trail) =>
+                            trail.latitude !==
+                                null &&
+                            trail.longitude !==
+                                null
+                    )
+                    .map(
+                        (trail) => ({
+                            id: trail.id,
+                            name: trail.name,
+                            type: 'trail',
+                            parkId:
+                                trail.parkId,
+                            trailId:
+                                trail.id,
+                            latitude:
+                                trail.latitude,
+                            longitude:
+                                trail.longitude,
+                            subtitle:
+                                [
+                                    trail.distance,
+                                    trail.difficulty,
+                                ]
+                                    .filter(
+                                        Boolean
+                                    )
+                                    .join(
+                                        ' · '
+                                    ),
+                            description:
+                                trail.description,
+                            trail,
+                        })
+                    )
+              : campgrounds
+                    .filter(
+                        (campground) =>
+                            campground.latitude !==
+                                null &&
+                            campground.longitude !==
+                                null
+                    )
+                    .map(
+                        (
+                            campground
+                        ) => ({
+                            id:
+                                campground.id,
+                            name:
+                                campground.name,
+                            type: 'campground',
+                            parkId:
+                                campground.parkCode,
+                            campgroundId:
+                                campground.id,
+                            latitude:
+                                campground.latitude,
+                            longitude:
+                                campground.longitude,
+                            subtitle:
+                                campground.totalSites
+                                    ? `${campground.totalSites} sites`
+                                    : 'Campground',
+                            description:
+                                campground.description,
+                            campground,
+                        })
+                    )
+
+    const uniqueLocations = Array.from(
+        new Map(
+            visibleLocations.map((location) => [
+                `${location.type}-${location.id}`,
+                location,
+            ])
+        ).values()
+    )
+
+    // filters the currently loaded locations by name
+    const filteredLocations = uniqueLocations.filter(
+        (location) =>
+            location.name
+                ?.toLowerCase()
+                .includes(
+                    searchQuery.trim().toLowerCase()
+                )
+    )
+
+    const handleMarkerPress = (location) => {
+        Keyboard.dismiss()
         setSelectedLocation(location)
     }
+
+   const handleMapPress = () => {
+        // dismisses the keyboard when the user taps outside the search field
+        Keyboard.dismiss()
+
+        // closes the selected location preview when the user taps elsewhere on the map
+        setSelectedLocation(
+            null
+        )
+    }   
+
+    
 
     const handleViewLocation = () => {
         if (!selectedLocation) {
             return
         }
 
-        // routes the selected location to its corresponding detail screen after the user chooses to view it
+        // routes the selected park to its corresponding park detail screen
         if (
             selectedLocation.type ===
             'park'
@@ -149,6 +376,7 @@ export default function MapScreen({ navigation }) {
             )
         }
 
+        // routes the selected trail to its corresponding trail detail screen
         if (
             selectedLocation.type ===
             'trail'
@@ -164,6 +392,7 @@ export default function MapScreen({ navigation }) {
             )
         }
 
+        // routes the selected campground to its corresponding campground detail screen
         if (
             selectedLocation.type ===
             'campground'
@@ -243,44 +472,35 @@ export default function MapScreen({ navigation }) {
         >
             <MapView
                 ref={mapRef}
-                style={
-                    styles.map
-                }
-                mapType={
-                    mapType
-                }
+                style={styles.map}
+                mapType={mapType}
                 initialRegion={{
-                    latitude:
-                        39.8283,
-                    longitude:
-                        -98.5795,
-                    latitudeDelta:
-                        35,
-                    longitudeDelta:
-                        45,
+                    latitude: 39.8283,
+                    longitude: -98.5795,
+                    latitudeDelta: 35,
+                    longitudeDelta: 45,
                 }}
-                showsUserLocation={
-                    true
-                }
-                showsMyLocationButton={
-                    false
-                }
+                showsUserLocation={true}
+                showsMyLocationButton={false}
                 showsCompass
+                
             >
                 {/* renders only the locations belonging to the currently selected map category */}
-                {visibleLocations.map(
+                {filteredLocations.map(
                     (
                         location
                     ) => (
                         <Marker
-                            key={
-                                location.id
-                            }
+                            key={`${location.type}-${location.id}`}
                             coordinate={{
                                 latitude:
-                                    location.latitude,
+                                    Number(
+                                        location.latitude
+                                    ),
                                 longitude:
-                                    location.longitude,
+                                    Number(
+                                        location.longitude
+                                    ),
                             }}
                             title={
                                 location.name
@@ -345,13 +565,50 @@ export default function MapScreen({ navigation }) {
                         ⌕
                     </Text>
 
-                    <Text
+                    <TextInput
                         style={
-                            styles.searchPlaceholder
+                            styles.searchInput
                         }
-                    >
-                        Search parks, trails...
-                    </Text>
+                        value={
+                            searchQuery
+                        }
+                        onChangeText={
+                            setSearchQuery
+                        }
+                        placeholder="Search parks, trails..."
+                        placeholderTextColor={
+                            theme.colors.earth
+                        }
+                        autoCapitalize="none"
+                        autoCorrect={
+                            false
+                        }
+                        returnKeyType="search"
+                    />
+
+                    {searchQuery.length >
+                    0 ? (
+                        <Pressable
+                            style={
+                                styles.searchClearButton
+                            }
+                            onPress={() => {
+                                Keyboard.dismiss()
+                                setSearchQuery('')
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel="clear map search"
+                            hitSlop={8}
+                        >
+                            <Text
+                                style={
+                                    styles.searchClearText
+                                }
+                            >
+                                ×
+                            </Text>
+                        </Pressable>
+                    ) : null}
                 </View>
 
                 <Pressable
@@ -359,6 +616,7 @@ export default function MapScreen({ navigation }) {
                         styles.controlButton
                     }
                     onPress={() => {
+                        Keyboard.dismiss()
                         // switches between the standard and satellite map styles
                         setMapType(
                             (
@@ -413,12 +671,16 @@ export default function MapScreen({ navigation }) {
                                 filter
                             }
                             onPress={() => {
+                                Keyboard.dismiss()
                                 // changes the visible map category without leaving the map screen
                                 setActiveFilter(
                                     filter
                                 )
                                 setSelectedLocation(
                                     null
+                                )
+                                setSearchQuery(
+                                    ''
                                 )
                             }}
                         />
@@ -433,6 +695,28 @@ export default function MapScreen({ navigation }) {
                         styles.selectedCard
                     }
                 >
+                    <Pressable
+                        style={
+                            styles.selectedCloseButton
+                        }
+                        onPress={() =>
+                            setSelectedLocation(
+                                null
+                            )
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel="close location preview"
+                        hitSlop={8}
+                    >
+                        <Text
+                            style={
+                                styles.selectedCloseButtonText
+                            }
+                        >
+                            ×
+                        </Text>
+                    </Pressable>
+
                     <View
                         style={[
                             styles.selectedImage,
@@ -450,7 +734,7 @@ export default function MapScreen({ navigation }) {
                             'park'
                                 ? '🌲'
                                 : selectedLocation.type ===
-                                  'trail'
+                                'trail'
                                     ? '🥾'
                                     : '🏕️'}
                         </Text>
@@ -470,7 +754,7 @@ export default function MapScreen({ navigation }) {
                             'park'
                                 ? 'NATIONAL PARK'
                                 : selectedLocation.type ===
-                                  'trail'
+                                'trail'
                                     ? 'TRAIL'
                                     : 'CAMPGROUND'}
                         </Text>
@@ -531,7 +815,7 @@ export default function MapScreen({ navigation }) {
                                     'park'
                                         ? 'View park'
                                         : selectedLocation.type ===
-                                          'trail'
+                                        'trail'
                                             ? 'View trail'
                                             : 'View campground'}
                                 </Text>
@@ -541,13 +825,15 @@ export default function MapScreen({ navigation }) {
                                 style={
                                     styles.closeButton
                                 }
-                                onPress={() =>
+                                onPress={() => {
+                                    Keyboard.dismiss()
                                     setSelectedLocation(
                                         null
                                     )
-                                }
+                                }}
                                 accessibilityRole="button"
                                 accessibilityLabel="close location preview"
+                                hitSlop={8}
                             >
                                 <Text
                                     style={
@@ -567,9 +853,10 @@ export default function MapScreen({ navigation }) {
                 style={
                     styles.locationButton
                 }
-                onPress={
-                    handleShowUserLocation
-                }
+                onPress={async () => {
+                    Keyboard.dismiss()
+                    await handleShowUserLocation()
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="show my location"
             >
@@ -619,8 +906,7 @@ function MapFilter({
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
     },
 
     map: {
@@ -637,47 +923,52 @@ const styles = StyleSheet.create({
 
     searchButton: {
         alignItems: 'center',
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: theme.radii.md,
         flex: 1,
         flexDirection: 'row',
         minHeight: 50,
         paddingHorizontal: theme.spacing.md,
-        ...theme.shadows
-            .card,
+        ...theme.shadows.card,
     },
 
     searchIcon: {
-        color: theme.colors
-            .forest,
+        color: theme.colors.forest,
         fontSize: 24,
         marginRight: theme.spacing.sm,
     },
 
-    searchPlaceholder: {
-        color: theme.colors
-            .earth,
-        fontSize: theme.typography
-            .bodySmall
-            .fontSize,
+    searchInput: {
+        color: theme.colors.ink,
+        flex: 1,
+        fontSize: theme.typography.bodySmall.fontSize,
+        paddingVertical: 0,
+    },
+
+    searchClearButton: {
+        alignItems: 'center',
+        height: 32,
+        justifyContent: 'center',
+        width: 32,
+    },
+
+    searchClearText: {
+        color: theme.colors.earth,
+        fontSize: 24,
     },
 
     controlButton: {
         alignItems: 'center',
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: theme.radii.md,
         height: 50,
         justifyContent: 'center',
         width: 50,
-        ...theme.shadows
-            .card,
+        ...theme.shadows.card,
     },
 
     controlIcon: {
-        color: theme.colors
-            .forest,
+        color: theme.colors.forest,
         fontSize: 22,
     },
 
@@ -690,40 +981,31 @@ const styles = StyleSheet.create({
     },
 
     filter: {
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: 20,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
-        ...theme.shadows
-            .card,
+        ...theme.shadows.card,
     },
 
     activeFilter: {
-        backgroundColor: theme.colors
-            .forest,
+        backgroundColor: theme.colors.forest,
     },
 
     filterText: {
-        color: theme.colors
-            .earth,
-        fontSize: theme.typography
-            .caption
-            .fontSize,
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption.fontSize,
         fontWeight: '600',
     },
 
     activeFilterText: {
-        color: theme.colors
-            .parchment,
+        color: theme.colors.parchment,
     },
 
     marker: {
         alignItems: 'center',
-        backgroundColor: theme.colors
-            .forest,
-        borderColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.forest,
+        borderColor: theme.colors.parchment,
         borderRadius: 20,
         borderWidth: 3,
         height: 40,
@@ -732,8 +1014,7 @@ const styles = StyleSheet.create({
     },
 
     secondaryMarker: {
-        backgroundColor: theme.colors
-            .earth,
+        backgroundColor: theme.colors.earth,
     },
 
     markerIcon: {
@@ -741,8 +1022,7 @@ const styles = StyleSheet.create({
     },
 
     selectedCard: {
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: theme.radii.lg,
         bottom: 90,
         flexDirection: 'row',
@@ -750,21 +1030,37 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         position: 'absolute',
         right: theme.spacing.lg,
-        ...theme.shadows
-            .card,
+        ...theme.shadows.card,
+    },
+
+    selectedCloseButton: {
+        alignItems: 'center',
+        backgroundColor: theme.colors.parchment,
+        borderRadius: 16,
+        height: 32,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: theme.spacing.xs,
+        top: theme.spacing.xs,
+        width: 32,
+        zIndex: 2,
+    },
+
+    selectedCloseButtonText: {
+        color: theme.colors.earth,
+        fontSize: 24,
+        lineHeight: 26,
     },
 
     selectedImage: {
         alignItems: 'center',
-        backgroundColor: theme.colors
-            .sage,
+        backgroundColor: theme.colors.sage,
         justifyContent: 'center',
         width: 105,
     },
 
     secondarySelectedImage: {
-        backgroundColor: theme.colors
-            .canvas,
+        backgroundColor: theme.colors.canvas,
     },
 
     selectedIcon: {
@@ -774,46 +1070,33 @@ const styles = StyleSheet.create({
     selectedContent: {
         flex: 1,
         padding: theme.spacing.md,
+        paddingRight: theme.spacing.lg,
     },
 
     selectedEyebrow: {
-        color: theme.colors
-            .forest,
-        fontSize: theme.typography
-            .caption
-            .fontSize,
+        color: theme.colors.forest,
+        fontSize: theme.typography.caption.fontSize,
         fontWeight: '700',
         letterSpacing: 1,
     },
 
     selectedTitle: {
-        color: theme.colors
-            .ink,
-        fontSize: theme.typography
-            .body
-            .fontSize,
+        color: theme.colors.ink,
+        fontSize: theme.typography.body.fontSize,
         fontWeight: '700',
         marginTop: theme.spacing.xs,
     },
 
     selectedLocation: {
-        color: theme.colors
-            .earth,
-        fontSize: theme.typography
-            .caption
-            .fontSize,
+        color: theme.colors.earth,
+        fontSize: theme.typography.caption.fontSize,
         marginTop: 2,
     },
 
     selectedDescription: {
-        color: theme.colors
-            .bark,
-        fontSize: theme.typography
-            .caption
-            .fontSize,
-        lineHeight: theme.typography
-            .caption
-            .lineHeight,
+        color: theme.colors.bark,
+        fontSize: theme.typography.caption.fontSize,
+        lineHeight: theme.typography.caption.lineHeight,
         marginTop: theme.spacing.xs,
     },
 
@@ -825,39 +1108,21 @@ const styles = StyleSheet.create({
     },
 
     viewButton: {
-        backgroundColor: theme.colors
-            .forest,
+        backgroundColor: theme.colors.forest,
         borderRadius: theme.radii.sm,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.xs,
     },
 
     viewButtonText: {
-        color: theme.colors
-            .parchment,
-        fontSize: theme.typography
-            .caption
-            .fontSize,
+        color: theme.colors.parchment,
+        fontSize: theme.typography.caption.fontSize,
         fontWeight: '700',
-    },
-
-    closeButton: {
-        alignItems: 'center',
-        height: 32,
-        justifyContent: 'center',
-        width: 32,
-    },
-
-    closeButtonText: {
-        color: theme.colors
-            .earth,
-        fontSize: 24,
     },
 
     locationButton: {
         alignItems: 'center',
-        backgroundColor: theme.colors
-            .parchment,
+        backgroundColor: theme.colors.parchment,
         borderRadius: 25,
         bottom: 105,
         height: 50,
@@ -865,13 +1130,11 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: theme.spacing.lg,
         width: 50,
-        ...theme.shadows
-            .card,
+        ...theme.shadows.card,
     },
 
     locationIcon: {
-        color: theme.colors
-            .forest,
+        color: theme.colors.forest,
         fontSize: 28,
     },
 })

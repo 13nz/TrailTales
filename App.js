@@ -1,9 +1,11 @@
+console.log('===== APP START =====')
 import { NavigationContainer } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import AppNavigator from './src/navigation/AppNavigator'
 import { TripProvider } from './src/context/TripContext'
 import { WildlifeReportProvider } from './src/context/WildlifeReportContext'
+
 
 export default function App() {
     return (

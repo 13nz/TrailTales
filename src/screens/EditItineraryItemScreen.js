@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
     },
 
     scheduleCard: {
-        backgroundColor: theme.color.canvas,
+        backgroundColor: theme.colors.canvas,
         borderColor: theme.colors.sage,
         borderRadius: theme.radii.lg,
         borderWidth: 1,

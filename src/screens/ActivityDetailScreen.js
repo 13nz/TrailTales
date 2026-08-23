@@ -437,181 +437,138 @@ const styles =
         },
 
         heroIcon: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.sage,
+            alignItems: 'center',
+            backgroundColor: theme.colors.sage,
             borderRadius: 42,
             height: 84,
-            justifyContent:
-                'center',
+            justifyContent: 'center',
             width: 84,
         },
 
         eyebrow: {
-            color:
-                theme.colors.forest,
+            color: theme.colors.forest,
             fontSize: 10,
             fontWeight: '800',
             letterSpacing: 1.5,
-            marginTop:
-                theme.spacing.lg,
+            marginTop: theme.spacing.lg,
         },
 
         title: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 30,
             fontWeight: '800',
             lineHeight: 36,
-            marginTop:
-                theme.spacing.xs,
-            textAlign:
-                'center',
+            marginTop: theme.spacing.xs,
+            textAlign: 'center',
         },
 
         parkName: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 14,
-            marginTop:
-                theme.spacing.xs,
-            textAlign:
-                'center',
+            marginTop: theme.spacing.xs,
+            textAlign: 'center',
         },
 
         infoGrid: {
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            marginTop:
-                theme.spacing.xl,
-            padding:
-                theme.spacing.md,
+            marginTop: theme.spacing.xl,
+            padding: theme.spacing.md,
         },
 
         infoItem: {
-            alignItems:
-                'center',
-            flexDirection:
-                'row',
+            alignItems: 'center',
+            flexDirection: 'row',
             minHeight: 44,
         },
 
         infoLabel: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 11,
-            marginLeft:
-                theme.spacing.sm,
+            marginLeft: theme.spacing.sm,
             width: 68,
         },
 
         infoValue: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             flex: 1,
             fontSize: 12,
             fontWeight: '600',
-            marginLeft:
-                theme.spacing.sm,
+            marginLeft: theme.spacing.sm,
         },
 
         section: {
-            marginTop:
-                theme.spacing.xxl,
+            marginTop:  theme.spacing.xxl,
         },
 
         sectionTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 20,
             fontWeight: '750',
-            marginBottom:
-                theme.spacing.sm,
+            marginBottom: theme.spacing.sm,
         },
 
         body: {
-            color:
-                theme.colors.earth,
+            color:  theme.colors.earth,
             fontSize: 14,
             lineHeight: 22,
         },
 
         locationCard: {
-            alignItems:
-                'center',
-            backgroundColor:
-                theme.colors.canvas,
-            borderColor:
-                theme.colors.sage,
-            borderRadius:
-                theme.radii.md,
+            alignItems: 'center',
+            backgroundColor: theme.colors.canvas,
+            borderColor: theme.colors.sage,
+            borderRadius: theme.radii.md,
             borderWidth: 1,
-            flexDirection:
-                'row',
-            padding:
-                theme.spacing.md,
+            flexDirection:  'row',
+            padding: theme.spacing.md,
         },
 
         locationContent: {
             flex: 1,
-            marginLeft:
-                theme.spacing.md,
+            marginLeft:  theme.spacing.md,
         },
 
         locationTitle: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 13,
             fontWeight: '700',
         },
 
         locationText: {
-            color:
-                theme.colors.earth,
+            color: theme.colors.earth,
             fontSize: 11,
             marginTop: 3,
         },
 
         sourceSection: {
-            borderTopColor:
-                theme.colors.sage,
+            borderTopColor:  theme.colors.sage,
             borderTopWidth: 1,
-            marginTop:
-                theme.spacing.xxxl,
-            paddingTop:
-                theme.spacing.lg,
+            marginTop: theme.spacing.xxxl,
+            paddingTop: theme.spacing.lg,
         },
 
         sourceLabel: {
-            color:
-                theme.colors.forest,
+            color:  theme.colors.forest,
             fontSize: 9,
             fontWeight: '800',
             letterSpacing: 1.2,
         },
 
         sourceText: {
-            color:
-                theme.colors.ink,
+            color: theme.colors.ink,
             fontSize: 12,
             fontWeight: '600',
-            marginTop:
-                theme.spacing.xs,
+            marginTop: theme.spacing.xs,
         },
 
         sourceUrl: {
-            color:
-                theme.colors.earth,
+            color:  theme.colors.earth,
             fontSize: 10,
             lineHeight: 15,
-            marginTop:
-                theme.spacing.xs,
+            marginTop:  theme.spacing.xs,
         },
 
         errorState: {

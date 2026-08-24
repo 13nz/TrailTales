@@ -9,123 +9,281 @@ import {
     Modal,
 } from 'react-native'
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import {
+    useSafeAreaInsets,
+} from 'react-native-safe-area-context'
+
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { useState, useEffect } from 'react'
+
+import {
+    useState,
+    useEffect,
+} from 'react'
 
 import theme from '../constants/theme'
-import mockTrails from '../data/mockTrails'
-import mockParks from '../data/mockParks'
-import { useTrips } from '../context/TripContext'
+
+import {
+    useTrips,
+} from '../context/TripContext'
+
+import {
+    getParkByCode,
+    getTrailsByPark,
+} from '../api/npsApi'
 
 // provides a searchable trail selection experience for adding trails to an adventure
 export default function AddTrailScreen({
     route,
     navigation,
 }) {
-    const insets = useSafeAreaInsets()
-    const { trips, updateTrip } = useTrips()
+    const insets =
+        useSafeAreaInsets()
 
-    const { tripId } = route.params
+    const {
+        trips,
+        updateTrip,
+    } = useTrips()
 
-    const trip = trips.find(
-        (item) => item.id === tripId
-    )
+    const {
+        tripId,
+    } = route.params
 
-    const [searchQuery, setSearchQuery] = useState('')
+    const trip =
+        trips.find(
+            (item) =>
+                item.id === tripId
+        )
 
-    const [selectedTrail, setSelectedTrail] = useState(null)
+    const [
+        searchQuery,
+        setSearchQuery,
+    ] = useState('')
 
-    const [selectedDate, setSelectedDate] = useState(() =>
+    const [
+        selectedTrail,
+        setSelectedTrail,
+    ] = useState(null)
+
+    const [
+        selectedDate,
+        setSelectedDate,
+    ] = useState(() =>
         createTripDate(
             trip?.startDate
         )
     )
 
     // stores time separately from the calendar date so date and time can never overwrite each other
-    const [selectedTime, setSelectedTime] = useState({
+    const [
+        selectedTime,
+        setSelectedTime,
+    ] = useState({
         hour: 8,
         minute: 0,
     })
 
-    const [activePicker, setActivePicker] = useState(null)
+    const [
+        activePicker,
+        setActivePicker,
+    ] = useState(null)
 
-    const [pickerValue, setPickerValue] = useState(new Date())
+    /*
+     * stores the value shown inside the native picker.
+     *
+     * keeping this separate prevents the ios picker
+     * from reopening with an old value.
+     */
+    const [
+        pickerValue,
+        setPickerValue,
+    ] = useState(
+        new Date()
+    )
 
     /*
      * forces the native picker to be recreated
-     * whenever the user opens it
+     * whenever the user opens it.
      *
-     * this is what fixed
-     * the iOS time picker problem
+     * this helps keep the ios picker responsive
+     * when switching between date and time.
      */
-    const [pickerInstance, setPickerInstance] =
-        useState(0)
+    const [
+        pickerKey,
+        setPickerKey,
+    ] = useState(0)
 
-    const park = mockParks.find(
-        (item) => item.id === trip?.parkId
-    )
+    const [
+        park,
+        setPark,
+    ] = useState(null)
 
-    // only displays trails belonging to the park associated with this trip
-    const parkTrails = mockTrails.filter(
-        (trail) =>
-            trail.parkId === trip?.parkId
-    )
+    const [
+        trails,
+        setTrails,
+    ] = useState([])
 
-    // filters the parks trails as the user searches
-    const filteredTrails = parkTrails.filter(
-        (trail) =>
-            trail.name
-                .toLowerCase()
-                .includes(
-                    searchQuery.toLowerCase()
+    const [
+        loadingPark,
+        setLoadingPark,
+    ] = useState(true)
+
+    const [
+        loadingTrails,
+        setLoadingTrails,
+    ] = useState(true)
+
+    const [
+        trailError,
+        setTrailError,
+    ] = useState(null)
+
+    useEffect(() => {
+        loadParkAndTrails()
+    }, [])
+
+    useEffect(() => {
+        if (
+            trip?.startDate
+        ) {
+            setSelectedDate(
+                createTripDate(
+                    trip.startDate
                 )
-    )
+            )
+        }
+    }, [
+        trip?.startDate,
+    ])
 
-    const handleSelectTrail = (trail) => {
-        // dismisses the keyboard before displaying the trail preview
-        Keyboard.dismiss()
+    async function loadParkAndTrails() {
+        try {
+            setLoadingPark(true)
+            setLoadingTrails(true)
+            setTrailError(null)
 
-        setSelectedTrail(trail)
+            if (
+                !trip?.parkId
+            ) {
+                setTrailError(
+                    'No park selected for this trip.'
+                )
 
-        // starts each newly selected trail with the trip's first day
-        setSelectedDate(
-            createTripDate(
-                trip?.startDate
+                return
+            }
+
+            const parkData =
+                await getParkByCode(
+                    trip.parkId
+                )
+
+            setPark(
+                parkData
+            )
+
+            const trailData =
+                await getTrailsByPark(
+                    trip.parkId
+                )
+
+            setTrails(
+                trailData
+            )
+        } catch (
+            error
+        ) {
+            console.error(
+                'nps add trail error:',
+                error
+            )
+
+            setTrailError(
+                error?.message ||
+                'Unable to load trails.'
+            )
+        } finally {
+            setLoadingPark(false)
+            setLoadingTrails(false)
+        }
+    }
+
+    const filteredTrails =
+        trails.filter(
+            (trail) =>
+                trail.name
+                    ?.toLowerCase()
+                    .includes(
+                        searchQuery
+                            .toLowerCase()
+                    )
+        )
+
+    function handleSelectTrail(
+        trail
+    ) {
+        setSelectedTrail(
+            trail
+        )
+    }
+
+    function handleOpenDatePicker() {
+        const currentDate =
+            selectedDate ||
+            new Date()
+
+        setPickerValue(
+            new Date(
+                currentDate
             )
         )
 
-        // starts each newly selected trail at 8:00 AM
-        setSelectedTime({
-            hour: 8,
-            minute: 0,
-        })
+        setPickerKey(
+            (value) =>
+                value + 1
+        )
+
+        setActivePicker(
+            'date'
+        )
     }
 
-    const openPicker = (picker) => {
-        Keyboard.dismiss()
+    function handleOpenTimePicker() {
+        const currentDate =
+            new Date()
 
-        const value =
-            picker === 'date'
-                ? new Date(selectedDate)
-                : createPickerTime(
-                    selectedTime
-                )
+        currentDate.setHours(
+            selectedTime.hour
+        )
 
-        setPickerValue(value)
-        setActivePicker(picker)
+        currentDate.setMinutes(
+            selectedTime.minute
+        )
+
+        setPickerValue(
+            currentDate
+        )
+
+        setPickerKey(
+            (value) =>
+                value + 1
+        )
+
+        setActivePicker(
+            'time'
+        )
     }
 
-    const closePicker = () => {
-        setActivePicker(null)
-    }
-
-    const handlePickerChange = (
+    function handlePickerChange(
         event,
         value
-    ) => {
-        if (event?.type === 'dismissed') {
-            closePicker()
+    ) {
+        if (
+            event?.type ===
+            'dismissed'
+        ) {
+            setActivePicker(
+                null
+            )
+
             return
         }
 
@@ -133,21 +291,35 @@ export default function AddTrailScreen({
             return
         }
 
-        setPickerValue(value)
-
-        if (activePicker === 'date') {
-            setSelectedDate(value)
+        if (
+            activePicker ===
+            'date'
+        ) {
+            setSelectedDate(
+                value
+            )
         }
 
-        if (activePicker === 'time') {
-            setSelectedTime({
-                hour: value.getHours(),
-                minute: value.getMinutes(),
-            })
+        if (
+            activePicker ===
+            'time'
+        ) {
+            setSelectedTime(
+                {
+                    hour:
+                        value.getHours(),
+                    minute:
+                        value.getMinutes(),
+                }
+            )
         }
+
+        setActivePicker(
+            null
+        )
     }
 
-    const handleAddTrail = () => {
+    async function handleAddTrail() {
         if (
             !selectedTrail ||
             !trip
@@ -155,33 +327,56 @@ export default function AddTrailScreen({
             return
         }
 
-    
+        const alreadyAdded =
+            trip.trails.some(
+                (item) => {
+                    if (
+                        typeof item ===
+                        'string'
+                    ) {
+                        return (
+                            item ===
+                            selectedTrail.id
+                        )
+                    }
 
-        const trailReservation = {
-            id:
-                selectedTrail.id,
+                    return (
+                        item.id ===
+                        selectedTrail.id
+                    )
+                }
+            )
 
+        if (
+            alreadyAdded
+        ) {
+            return
+        }
+
+        const trailToSave = {
+            ...selectedTrail,
             date:
-                formatDatabaseDate(
+                formatDateForStorage(
                     selectedDate
                 ),
-
             time:
-                formatDatabaseTime(
+                formatTimeForStorage(
                     selectedTime
                 ),
         }
 
-        /*
-         * stores the trail together with its
-         * planned date and start time
-         */
-        updateTrip(trip.id, {
+        const updatedTrip = {
+            ...trip,
             trails: [
                 ...trip.trails,
-                trailReservation,
+                trailToSave,
             ],
-        })
+        }
+
+        await updateTrip(
+            trip.id,
+            updatedTrip
+        )
 
         navigation.goBack()
     }
@@ -190,7 +385,7 @@ export default function AddTrailScreen({
         return (
             <View
                 style={
-                    styles.screen
+                    styles.centered
                 }
             >
                 <Text
@@ -198,8 +393,7 @@ export default function AddTrailScreen({
                         styles.errorText
                     }
                 >
-                    Trip could not be
-                    found.
+                    Trip not found.
                 </Text>
             </View>
         )
@@ -207,18 +401,21 @@ export default function AddTrailScreen({
 
     return (
         <View
-            style={
-                styles.screen
-            }
+            style={[
+                styles.screen,
+                {
+                    paddingTop:
+                        insets.top,
+                },
+            ]}
         >
             <ScrollView
                 contentContainerStyle={[
-                    styles.content,
+                    styles.container,
                     {
-                        // keeps the screen content below the device safe area
-                        paddingTop:
-                            insets.top +
-                            theme.spacing.sm,
+                        paddingBottom:
+                            insets.bottom +
+                            theme.spacing.xl,
                     },
                 ]}
                 keyboardShouldPersistTaps="handled"
@@ -226,83 +423,113 @@ export default function AddTrailScreen({
                     false
                 }
             >
-                {/* header */}
-
                 <View
                     style={
                         styles.header
                     }
                 >
                     <Pressable
+                        onPress={() =>
+                            navigation.goBack()
+                        }
                         style={
                             styles.backButton
                         }
-                        onPress={() => {
-                            // dismisses the keyboard before returning to the trip
-                            Keyboard.dismiss()
-                            navigation.goBack()
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="go back"
                     >
                         <Text
                             style={
-                                styles.backButtonText
+                                styles.backText
                             }
                         >
                             ‹
                         </Text>
                     </Pressable>
 
-                    <Text
-                        style={
-                            styles.headerTitle
-                        }
-                    >
-                        Add Trail
-                    </Text>
-
                     <View
                         style={
-                            styles.headerSpacer
+                            styles.headerText
                         }
-                    />
+                    >
+                        <Text
+                            style={
+                                styles.title
+                            }
+                        >
+                            Add a trail
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.subtitle
+                            }
+                        >
+                            Choose a trail for your trip
+                        </Text>
+                    </View>
                 </View>
 
-                {/* introduction */}
-
-                <View
-                    style={
-                        styles.intro
-                    }
-                >
-                    <Text
+                {loadingPark ? (
+                    <View
                         style={
-                            styles.eyebrow
+                            styles.loadingContainer
                         }
                     >
-                        ADD TO YOUR ADVENTURE
-                    </Text>
-
-                    <Text
+                        <Text
+                            style={
+                                styles.loadingText
+                            }
+                        >
+                            Loading park...
+                        </Text>
+                    </View>
+                ) : park ? (
+                    <View
                         style={
-                            styles.title
+                            styles.parkCard
                         }
                     >
-                        Choose a trail
-                    </Text>
+                        <View
+                            style={
+                                styles.parkIcon
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.parkEmoji
+                                }
+                            >
+                                🏞️
+                            </Text>
+                        </View>
 
-                    <Text
-                        style={
-                            styles.parkName
-                        }
-                    >
-                        {park?.name ||
-                            'National Park'}
-                    </Text>
-                </View>
+                        <View
+                            style={
+                                styles.parkContent
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.parkLabel
+                                }
+                            >
+                                PARK
+                            </Text>
 
-                {/* search */}
+                            <Text
+                                style={
+                                    styles.parkName
+                                }
+                                numberOfLines={
+                                    2
+                                }
+                            >
+                                {
+                                    park.name
+                                }
+                            </Text>
+                        </View>
+                    </View>
+                ) : null}
 
                 <View
                     style={
@@ -314,7 +541,7 @@ export default function AddTrailScreen({
                             styles.searchIcon
                         }
                     >
-                        ⌕
+                        🔎
                     </Text>
 
                     <TextInput
@@ -333,23 +560,22 @@ export default function AddTrailScreen({
                             styles.searchInput
                         }
                         returnKeyType="search"
-                        accessibilityLabel="search trails"
+                        onSubmitEditing={() =>
+                            Keyboard.dismiss()
+                        }
                     />
 
                     {searchQuery.length >
                     0 ? (
                         <Pressable
-                            onPress={() => {
-                                // clear the current search so all trails are visible again
+                            onPress={() =>
                                 setSearchQuery(
                                     ''
                                 )
-                            }}
+                            }
                             style={
                                 styles.clearButton
                             }
-                            accessibilityRole="button"
-                            accessibilityLabel="clear trail search"
                         >
                             <Text
                                 style={
@@ -362,192 +588,301 @@ export default function AddTrailScreen({
                     ) : null}
                 </View>
 
-                <Text
-                    style={
-                        styles.resultLabel
-                    }
-                >
-                    {
-                        filteredTrails.length
-                    }{' '}
-                    {filteredTrails.length ===
-                    1
-                        ? 'trail'
-                        : 'trails'}
-                </Text>
+                {!loadingTrails &&
+                !trailError ? (
+                    <Text
+                        style={
+                            styles.resultLabel
+                        }
+                    >
+                        {filteredTrails.length}{' '}
+                        {filteredTrails.length ===
+                        1
+                            ? 'trail'
+                            : 'trails'}
+                    </Text>
+                ) : null}
+
+                {loadingTrails ? (
+                    <View
+                        style={
+                            styles.loadingContainer
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.loadingText
+                            }
+                        >
+                            Loading trails...
+                        </Text>
+                    </View>
+                ) : null}
+
+                {trailError ? (
+                    <View
+                        style={
+                            styles.errorContainer
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.errorIcon
+                            }
+                        >
+                            ⚠️
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.errorTitle
+                            }
+                        >
+                            Unable to load
+                            trails
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.errorDescription
+                            }
+                        >
+                            Please try again.
+                        </Text>
+                    </View>
+                ) : null}
 
                 {/* trail results */}
 
-                <View
-                    style={
-                        styles.trailList
-                    }
-                >
-                    {filteredTrails.map(
-                        (trail) => {
-                            const selected =
-                                selectedTrail?.id ===
-                                trail.id
+                {!loadingTrails &&
+                !trailError ? (
+                    <ScrollView
+                        style={
+                            styles.trailList
+                        }
+                        contentContainerStyle={
+                            styles.trailListContent
+                        }
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={
+                            true
+                        }
+                    >
+                        {filteredTrails.map(
+                            (trail) => {
+                                const selected =
+                                    selectedTrail?.id ===
+                                    trail.id
 
-                        
-                            return (
-                                <Pressable
-                                    key={
-                                        trail.id
-                                    }
-                                    style={[
-                                        styles.trailCard,
-                                        selected &&
-                                            styles.selectedTrailCard,
-                                    ]}
-                                    onPress={() => {
-                                        handleSelectTrail(trail)
-                                    }}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={`select ${trail.name}`}
-                                >
-                                    <View
-                                        style={
-                                            styles.trailIcon
+                                const alreadyAdded =
+                                    trip.trails.some(
+                                        (
+                                            item
+                                        ) => {
+                                            if (
+                                                typeof item ===
+                                                'string'
+                                            ) {
+                                                return (
+                                                    item ===
+                                                    trail.id
+                                                )
+                                            }
+
+                                            return (
+                                                item.id ===
+                                                trail.id
+                                            )
                                         }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.trailEmoji
-                                            }
-                                        >
-                                            🥾
-                                        </Text>
-                                    </View>
+                                    )
 
-                                    <View
-                                        style={
-                                            styles.trailContent
+                                return (
+                                    <Pressable
+                                        key={
+                                            String(
+                                                trail.id
+                                            )
                                         }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.trailName
-                                            }
-                                        >
-                                            {
-                                                trail.name
-                                            }
-                                        </Text>
-
-                                        <Text
-                                            style={
-                                                styles.trailDescription
-                                            }
-                                            numberOfLines={
-                                                2
-                                            }
-                                        >
-                                            {
-                                                trail.description
-                                            }
-                                        </Text>
-
-                                        <View
-                                            style={
-                                                styles.trailFacts
-                                            }
-                                        >
-                                            <Text
-                                                style={
-                                                    styles.trailFact
-                                                }
-                                            >
-                                                {
-                                                    trail.distance
-                                                }
-                                            </Text>
-
-                                            <Text
-                                                style={
-                                                    styles.trailFactDivider
-                                                }
-                                            >
-                                                ·
-                                            </Text>
-
-                                            <Text
-                                                style={
-                                                    styles.trailFact
-                                                }
-                                            >
-                                                {
-                                                    trail.difficulty
-                                                }
-                                            </Text>
-
-                                            <Text
-                                                style={
-                                                    styles.trailFactDivider
-                                                }
-                                            >
-                                                ·
-                                            </Text>
-
-                                            <Text
-                                                style={
-                                                    styles.trailFact
-                                                }
-                                            >
-                                                {
-                                                    trail.duration
-                                                }
-                                            </Text>
-                                        </View>
-
-                                        <View
-                                            style={
-                                                styles.dogRow
-                                            }
-                                        >
-                                            <Text
-                                                style={
-                                                    styles.dogIcon
-                                                }
-                                            >
-                                                🐕
-                                            </Text>
-
-                                            <Text
-                                                style={
-                                                    styles.dogText
-                                                }
-                                            >
-                                                {trail.dogsAllowed
-                                                    ? 'dogs allowed'
-                                                    : 'dogs not allowed'}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <View
                                         style={[
-                                            styles.selectionIndicator,
+                                            styles.trailCard,
                                             selected &&
-                                                styles.selectedIndicator,
+                                                styles.selectedTrailCard,
+                                            alreadyAdded &&
+                                                styles.disabledTrailCard,
                                         ]}
+                                        onPress={() => {
+                                            if (
+                                                !alreadyAdded
+                                            ) {
+                                                handleSelectTrail(
+                                                    trail
+                                                )
+                                            }
+                                        }}
+                                        disabled={
+                                            alreadyAdded
+                                        }
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`select ${trail.name}`}
                                     >
-                                        {selected ? (
+                                        <View
+                                            style={
+                                                styles.trailIcon
+                                            }
+                                        >
+                                            <Text
+                                                style={
+                                                    styles.trailEmoji
+                                                }
+                                            >
+                                                🥾
+                                            </Text>
+                                        </View>
+
+                                        <View
+                                            style={
+                                                styles.trailContent
+                                            }
+                                        >
+                                            <Text
+                                                style={
+                                                    styles.trailName
+                                                }
+                                            >
+                                                {
+                                                    trail.name
+                                                }
+                                            </Text>
+
+                                            <Text
+                                                style={
+                                                    styles.trailDescription
+                                                }
+                                                numberOfLines={
+                                                    2
+                                                }
+                                            >
+                                                {
+                                                    trail.description
+                                                }
+                                            </Text>
+
                                             <View
                                                 style={
-                                                    styles.selectionDot
+                                                    styles.trailFacts
                                                 }
-                                            />
-                                        ) : null}
-                                    </View>
-                                </Pressable>
-                            )
-                        }
-                    )}
-                </View>
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.trailFact
+                                                    }
+                                                >
+                                                    {
+                                                        trail.distance
+                                                    }
+                                                </Text>
 
-                {filteredTrails.length ===
-                0 ? (
+                                                <Text
+                                                    style={
+                                                        styles.trailFactDivider
+                                                    }
+                                                >
+                                                    ·
+                                                </Text>
+
+                                                <Text
+                                                    style={
+                                                        styles.trailFact
+                                                    }
+                                                >
+                                                    {
+                                                        trail.difficulty
+                                                    }
+                                                </Text>
+
+                                                <Text
+                                                    style={
+                                                        styles.trailFactDivider
+                                                    }
+                                                >
+                                                    ·
+                                                </Text>
+
+                                                <Text
+                                                    style={
+                                                        styles.trailFact
+                                                    }
+                                                >
+                                                    {
+                                                        trail.duration
+                                                    }
+                                                </Text>
+                                            </View>
+
+                                            <View
+                                                style={
+                                                    styles.dogRow
+                                                }
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.dogIcon
+                                                    }
+                                                >
+                                                    🐕
+                                                </Text>
+
+                                                <Text
+                                                    style={
+                                                        styles.dogText
+                                                    }
+                                                >
+                                                    {trail.dogsAllowed
+                                                        ? 'dogs allowed'
+                                                        : 'dogs not allowed'}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <View
+                                            style={[
+                                                styles.selectionIndicator,
+                                                selected &&
+                                                    styles.selectedIndicator,
+                                                alreadyAdded &&
+                                                    styles.alreadyAddedIndicator,
+                                            ]}
+                                        >
+                                            {alreadyAdded ? (
+                                                <Text
+                                                    style={
+                                                        styles.alreadyAddedText
+                                                    }
+                                                >
+                                                    ✓
+                                                </Text>
+                                            ) : selected ? (
+                                                <View
+                                                    style={
+                                                        styles.selectionDot
+                                                    }
+                                                />
+                                            ) : null}
+                                        </View>
+                                    </Pressable>
+                                )
+                            }
+                        )}
+                    </ScrollView>
+                ) : null}
+
+                {/* empty search state */}
+
+                {!loadingTrails &&
+                !trailError &&
+                filteredTrails.length ===
+                    0 ? (
                     <View
                         style={
                             styles.emptyState
@@ -574,108 +909,82 @@ export default function AddTrailScreen({
                                 styles.emptyDescription
                             }
                         >
-                            Try a different search
-                            term.
+                            Try a different search.
                         </Text>
                     </View>
                 ) : null}
 
-                {/* selected trail preview */}
+                {/* selected trail */}
 
                 {selectedTrail ? (
                     <View
                         style={
-                            styles.previewCard
+                            styles.selectedSection
                         }
                     >
+                        <Text
+                            style={
+                                styles.sectionTitle
+                            }
+                        >
+                            Selected trail
+                        </Text>
+
                         <View
                             style={
-                                styles.previewHeader
+                                styles.selectedCard
                             }
                         >
                             <View
                                 style={
-                                    styles.previewHeaderContent
+                                    styles.selectedIcon
                                 }
                             >
                                 <Text
                                     style={
-                                        styles.previewEyebrow
+                                        styles.selectedEmoji
                                     }
                                 >
-                                    SELECTED TRAIL
+                                    🥾
                                 </Text>
+                            </View>
 
+                            <View
+                                style={
+                                    styles.selectedContent
+                                }
+                            >
                                 <Text
                                     style={
-                                        styles.previewTitle
+                                        styles.selectedName
+                                    }
+                                    numberOfLines={
+                                        2
                                     }
                                 >
                                     {
                                         selectedTrail.name
                                     }
                                 </Text>
-                            </View>
 
-                            <Pressable
-                                onPress={() =>
-                                    setSelectedTrail(
-                                        null
-                                    )
-                                }
-                                accessibilityRole="button"
-                                accessibilityLabel="clear selected trail"
-                            >
                                 <Text
                                     style={
-                                        styles.previewClose
+                                        styles.selectedDescription
+                                    }
+                                    numberOfLines={
+                                        2
                                     }
                                 >
-                                    ×
+                                    {
+                                        selectedTrail.description
+                                    }
                                 </Text>
-                            </Pressable>
-                        </View>
-
-                        <View
-                            style={
-                                styles.previewFacts
-                            }
-                        >
-                            <Fact
-                                label="Distance"
-                                value={
-                                    selectedTrail.distance
-                                }
-                            />
-
-                            <Fact
-                                label="Difficulty"
-                                value={
-                                    selectedTrail.difficulty
-                                }
-                            />
-
-                            <Fact
-                                label="Elevation"
-                                value={
-                                    selectedTrail.elevation
-                                }
-                            />
+                            </View>
                         </View>
 
                         <Text
                             style={
-                                styles.previewDescription
-                            }
-                        >
-                            {
-                                selectedTrail.description
-                            }
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.scheduleTitle
+                                styles.sectionTitle
                             }
                         >
                             When are you hiking?
@@ -683,114 +992,151 @@ export default function AddTrailScreen({
 
                         <View
                             style={
-                                styles.scheduleRow
+                                styles.dateTimeRow
                             }
                         >
-                            {/* date */}
-
-                            <View
+                            <Pressable
+                                onPress={
+                                    handleOpenDatePicker
+                                }
                                 style={
-                                    styles.scheduleField
+                                    styles.dateTimeButton
                                 }
                             >
                                 <Text
                                     style={
-                                        styles.scheduleLabel
+                                        styles.dateTimeLabel
                                     }
                                 >
-                                    Date
+                                    DATE
                                 </Text>
 
-                                <Pressable
+                                <Text
                                     style={
-                                        styles.scheduleInput
+                                        styles.dateTimeValue
                                     }
-                                    onPress={() =>
-                                        openPicker(
-                                            'date'
-                                        )
-                                    }
-                                    accessibilityRole="button"
-                                    accessibilityLabel="select trail date"
                                 >
-                                    <Text
-                                        style={
-                                            styles.scheduleText
-                                        }
-                                    >
-                                        {formatDisplayDate(
-                                            selectedDate
-                                        )}
-                                    </Text>
+                                    {formatDisplayDate(
+                                        selectedDate
+                                    )}
+                                </Text>
+                            </Pressable>
 
-                                    <Text
-                                        style={
-                                            styles.scheduleIcon
-                                        }
-                                    >
-                                        ▣
-                                    </Text>
-                                </Pressable>
-                            </View>
-
-                            {/* time */}
-
-                            <View
+                            <Pressable
+                                onPress={
+                                    handleOpenTimePicker
+                                }
                                 style={
-                                    styles.scheduleField
+                                    styles.dateTimeButton
                                 }
                             >
                                 <Text
                                     style={
-                                        styles.scheduleLabel
+                                        styles.dateTimeLabel
                                     }
                                 >
-                                    Start time
+                                    START TIME
                                 </Text>
 
-                                <Pressable
+                                <Text
                                     style={
-                                        styles.scheduleInput
+                                        styles.dateTimeValue
                                     }
-                                    onPress={() =>
-                                        openPicker(
-                                            'time'
-                                        )
-                                    }
-                                    accessibilityRole="button"
-                                    accessibilityLabel="select trail start time"
                                 >
-                                    <Text
-                                        style={
-                                            styles.scheduleText
-                                        }
-                                    >
-                                        {formatDisplayTime(
-                                            selectedTime
-                                        )}
-                                    </Text>
-
-                                    <Text
-                                        style={
-                                            styles.scheduleIcon
-                                        }
-                                    >
-                                        ◷
-                                    </Text>
-                                </Pressable>
-                            </View>
+                                    {formatDisplayTime(
+                                        selectedTime
+                                    )}
+                                </Text>
+                            </Pressable>
                         </View>
+
+                        {activePicker ? (
+                            <Modal
+                                transparent
+                                animationType="fade"
+                                visible={
+                                    true
+                                }
+                                onRequestClose={() =>
+                                    setActivePicker(
+                                        null
+                                    )
+                                }
+                            >
+                                <View
+                                    style={
+                                        styles.pickerOverlay
+                                    }
+                                >
+                                    <View
+                                        style={
+                                            styles.pickerCard
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.pickerTitle
+                                            }
+                                        >
+                                            {activePicker ===
+                                            'date'
+                                                ? 'Choose date'
+                                                : 'Choose start time'}
+                                        </Text>
+
+                                        <DateTimePicker
+                                            key={
+                                                pickerKey
+                                            }
+                                            value={
+                                                pickerValue
+                                            }
+                                            mode={
+                                                activePicker
+                                            }
+                                            display="spinner"
+                                            onChange={
+                                                handlePickerChange
+                                            }
+                                            minimumDate={
+                                                activePicker ===
+                                                'date'
+                                                    ? new Date()
+                                                    : undefined
+                                            }
+                                            themeVariant="light"
+                                        />
+
+                                        <Pressable
+                                            onPress={() =>
+                                                setActivePicker(
+                                                    null
+                                                )
+                                            }
+                                            style={
+                                                styles.pickerDoneButton
+                                            }
+                                        >
+                                            <Text
+                                                style={
+                                                    styles.pickerDoneText
+                                                }
+                                            >
+                                                Done
+                                            </Text>
+                                        </Pressable>
+                                    </View>
+                                </View>
+                            </Modal>
+                        ) : null}
                     </View>
                 ) : null}
             </ScrollView>
 
-            {/* bottom action */}
-
             <View
                 style={[
-                    styles.bottomAction,
+                    styles.bottomBar,
                     {
-                        // keeps the add button above the device safe area
                         paddingBottom:
                             insets.bottom +
                             theme.spacing.sm,
@@ -799,7 +1145,7 @@ export default function AddTrailScreen({
             >
                 <Pressable
                     style={[
-                        styles.addTrailButton,
+                        styles.addButton,
                         !selectedTrail &&
                             styles.disabledAddButton,
                     ]}
@@ -809,168 +1155,16 @@ export default function AddTrailScreen({
                     disabled={
                         !selectedTrail
                     }
-                    accessibilityRole="button"
-                    accessibilityLabel="add selected trail to trip"
                 >
                     <Text
-                        style={[
-                            styles.addTrailButtonText,
-                            !selectedTrail &&
-                                styles.disabledAddButtonText,
-                        ]}
+                        style={
+                            styles.addButtonText
+                        }
                     >
                         Add to trip
                     </Text>
                 </Pressable>
             </View>
-
-            {/* native date/time picker */}
-
-            <Modal
-                visible={
-                    activePicker !== null
-                }
-                transparent
-                animationType="fade"
-                onRequestClose={
-                    closePicker
-                }
-            >
-                <View
-                    style={
-                        styles.modalOverlay
-                    }
-                >
-                    <View
-                        style={[
-                            styles.dateModal,
-                            {
-                                paddingBottom:
-                                    insets.bottom +
-                                    theme.spacing.md,
-                            },
-                        ]}
-                    >
-                        <View
-                            style={
-                                styles.modalHeader
-                            }
-                        >
-                            <View>
-                                <Text
-                                    style={
-                                        styles.modalEyebrow
-                                    }
-                                >
-                                    SELECT
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.modalTitle
-                                    }
-                                >
-                                    {activePicker ===
-                                    'date'
-                                        ? 'Trail date'
-                                        : 'Trail start time'}
-                                </Text>
-                            </View>
-
-                            <Pressable
-                                onPress={
-                                    closePicker
-                                }
-                                style={
-                                    styles.modalClose
-                                }
-                                accessibilityRole="button"
-                                accessibilityLabel="close picker"
-                            >
-                                <Text
-                                    style={
-                                        styles.modalCloseText
-                                    }
-                                >
-                                    ×
-                                </Text>
-                            </Pressable>
-                        </View>
-
-                        <View
-                            style={
-                                styles.pickerContainer
-                            }
-                        >
-                            {activePicker ? (
-                                <DateTimePicker
-                                    key={activePicker}
-                                    value={pickerValue}
-                                    mode={
-                                        activePicker ===
-                                        'date'
-                                            ? 'date'
-                                            : 'time'
-                                    }
-                                    display="spinner"
-                                    onChange={
-                                        handlePickerChange
-                                    }
-                                    themeVariant="light"
-                                />
-                            ) : null}
-                        </View>
-
-                        <Pressable
-                            style={
-                                styles.doneButton
-                            }
-                            onPress={
-                                closePicker
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel="done selecting"
-                        >
-                            <Text
-                                style={
-                                    styles.doneButtonText
-                                }
-                            >
-                                Done
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </Modal>
-        </View>
-    )
-}
-
-function Fact({
-    label,
-    value,
-}) {
-    return (
-        <View
-            style={
-                styles.fact
-            }
-        >
-            <Text
-                style={
-                    styles.factLabel
-                }
-            >
-                {label}
-            </Text>
-
-            <Text
-                style={
-                    styles.factValue
-                }
-            >
-                {value}
-            </Text>
         </View>
     )
 }
@@ -982,99 +1176,52 @@ function createTripDate(
         return new Date()
     }
 
-    const [
-        year,
-        month,
-        day,
-    ] =
-        dateString
-            .split('-')
-            .map(Number)
-
-    return new Date(
-        year,
-        month - 1,
-        day,
-        12,
-        0,
-        0,
-        0
-    )
-}
-
-function createPickerTime(
-    time
-) {
-    return new Date(
-        2000,
-        0,
-        1,
-        time.hour,
-        time.minute,
-        0,
-        0
-    )
-}
-
-function formatDisplayDate(
-    date
-) {
-    return date.toLocaleDateString(
-        'en-US',
-        {
-            weekday: 'short',
-            month: 'short',
-            day:  'numeric',
-            year: 'numeric',
-        }
-    )
-}
-
-function formatDisplayTime(
-    time
-) {
     const date =
-        createPickerTime(
-            time
+        new Date(
+            `${dateString}T12:00:00`
         )
 
-    return date.toLocaleTimeString(
-        'en-US',
-        {
-            hour: 'numeric',
-            minute: '2-digit',
-        }
-    )
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return new Date()
+    }
+
+    return date
 }
 
-function formatDatabaseDate(
+function formatDateForStorage(
     date
 ) {
+    if (!date) {
+        return null
+    }
+
     const year =
         date.getFullYear()
 
     const month =
         String(
             date.getMonth() + 1
-        ).padStart(
-            2,
-            '0'
-        )
+        ).padStart(2, '0')
 
     const day =
         String(
             date.getDate()
-        ).padStart(
-            2,
-            '0'
-        )
+        ).padStart(2, '0')
 
     return `${year}-${month}-${day}`
 }
 
-function formatDatabaseTime(
+function formatTimeForStorage(
     time
 ) {
+    if (!time) {
+        return null
+    }
+
     return `${String(
         time.hour
     ).padStart(
@@ -1088,479 +1235,809 @@ function formatDatabaseTime(
     )}`
 }
 
+function formatDisplayDate(
+    date
+) {
+    if (!date) {
+        return 'Select date'
+    }
+
+    return date.toLocaleDateString(
+        'en-US',
+        {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        }
+    )
+}
+
+function formatDisplayTime(
+    time
+) {
+    if (!time) {
+        return 'Select time'
+    }
+
+    const date =
+        new Date()
+
+    date.setHours(
+        time.hour
+    )
+
+    date.setMinutes(
+        time.minute
+    )
+
+    return date.toLocaleTimeString(
+        'en-US',
+        {
+            hour: 'numeric',
+            minute: '2-digit',
+        }
+    )
+}
+
 const styles =
     StyleSheet.create({
         screen: {
-            backgroundColor: theme.colors.parchment,
+            backgroundColor:
+                theme.colors
+                    .parchment,
             flex: 1,
         },
 
-        content: {
-            paddingBottom: 130,
-            paddingHorizontal: theme.spacing.lg,
+        container: {
+            padding:
+                theme.spacing.md,
+        },
+
+        centered: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .parchment,
+            flex: 1,
+            justifyContent:
+                'center',
+            padding:
+                theme.spacing.lg,
         },
 
         header: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.lg,
         },
 
         backButton: {
-            alignItems: 'center',
+            alignItems:
+                'center',
             height: 42,
-            justifyContent: 'center',
+            justifyContent:
+                'center',
+            marginRight:
+                theme.spacing.sm,
             width: 42,
         },
 
-        backButtonText: {
-            color: theme.colors.forest,
+        backText: {
+            color:
+                theme.colors
+                    .forest,
             fontSize: 36,
-            fontWeight: '300',
-            lineHeight: 38,
+            lineHeight: 36,
         },
 
-        headerTitle: {
-            color: theme.colors.ink,
-            fontSize: 17,
-            fontWeight: '700',
-        },
-
-        headerSpacer: {
-            width: 42,
-        },
-
-        intro: {
-            marginTop: theme.spacing.xl,
-        },
-
-        eyebrow: {
-            color: theme.colors.forest,
-            fontSize: 10,
-            fontWeight: '700',
-            letterSpacing: 1.5,
+        headerText: {
+            flex: 1,
         },
 
         title: {
-            color: theme.colors.ink,
-            fontSize: 30,
-            fontWeight: '700',
-            marginTop: theme.spacing.xs,
+            color:
+                theme.colors
+                    .ink,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize:
+                theme.typography
+                    .headingSize,
+            fontWeight:
+                '700',
+        },
+
+        subtitle: {
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize:
+                theme.typography
+                    .bodySize,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        loadingContainer: {
+            alignItems:
+                'center',
+            padding:
+                theme.spacing.xl,
+        },
+
+        loadingText: {
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize:
+                theme.typography
+                    .bodySize,
+        },
+
+        parkCard: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .canvas,
+            borderColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.md,
+            padding:
+                theme.spacing.md,
+        },
+
+        parkIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.sm,
+            height: 44,
+            justifyContent:
+                'center',
+            marginRight:
+                theme.spacing.sm,
+            width: 44,
+        },
+
+        parkEmoji: {
+            fontSize: 22,
+        },
+
+        parkContent: {
+            flex: 1,
+        },
+
+        parkLabel: {
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 10,
+            fontWeight:
+                '700',
+            letterSpacing: 1,
         },
 
         parkName: {
-            color: theme.colors.earth,
-            fontSize: 14,
-            marginTop: theme.spacing.xs,
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 17,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.xs,
         },
 
         searchContainer: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderColor: theme.colors.sage,
-            borderRadius: theme.radii.md,
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .white,
+            borderColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.md,
             borderWidth: 1,
-            flexDirection:  'row',
-            marginTop: theme.spacing.xl,
-            minHeight: 52,
-            paddingHorizontal: theme.spacing.md,
+            flexDirection:
+                'row',
+            minHeight: 50,
+            paddingHorizontal:
+                theme.spacing.sm,
         },
 
         searchIcon: {
-            color: theme.colors.earth,
-            fontSize: 24,
-            marginRight: theme.spacing.sm,
+            fontSize: 17,
+            marginRight:
+                theme.spacing.xs,
         },
 
         searchInput: {
-            color: theme.colors.ink,
+            color:
+                theme.colors
+                    .ink,
             flex: 1,
-            fontSize: 14,
-            minHeight: 50,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize:
+                theme.typography
+                    .bodySize,
+            paddingVertical:
+                theme.spacing.sm,
         },
 
         clearButton: {
-            alignItems: 'center',
+            alignItems:
+                'center',
             height: 30,
-            justifyContent: 'center',
+            justifyContent:
+                'center',
             width: 30,
         },
 
         clearText: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
             fontSize: 22,
         },
 
         resultLabel: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
             fontSize: 11,
-            marginTop: theme.spacing.md,
+            marginTop:
+                theme.spacing.md,
         },
 
         trailList: {
+            height: 300,
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        trailListContent: {
             gap: theme.spacing.sm,
-            marginTop:  theme.spacing.sm,
+            paddingBottom:
+                theme.spacing.xs,
         },
 
         trailCard: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderColor: theme.colors.sage,
-            borderRadius: theme.radii.md,
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .canvas,
+            borderColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.md,
             borderWidth: 1,
-            flexDirection: 'row',
-            padding: theme.spacing.sm,
+            flexDirection:
+                'row',
+            padding:
+                theme.spacing.sm,
         },
 
         selectedTrailCard: {
-            backgroundColor: theme.colors.sage,
-            borderColor: theme.colors.forest,
+            borderColor:
+                theme.colors
+                    .forest,
+            borderWidth: 2,
         },
 
         disabledTrailCard: {
-            opacity: 0.6,
+            opacity: 0.55,
         },
 
         trailIcon: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent: 'center',
-            width: 48,
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.sm,
+            height: 44,
+            justifyContent:
+                'center',
+            marginRight:
+                theme.spacing.sm,
+            width: 44,
         },
 
         trailEmoji: {
-            fontSize: 23,
+            fontSize: 21,
         },
 
         trailContent: {
             flex: 1,
-            marginLeft: theme.spacing.sm,
         },
 
         trailName: {
-            color: theme.colors.ink,
-            fontSize: 14,
-            fontWeight: '700',
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 15,
+            fontWeight:
+                '700',
         },
 
         trailDescription: {
-            color: theme.colors.earth,
-            fontSize: 11,
-            lineHeight: 16,
-            marginTop: 3,
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 12,
+            lineHeight: 17,
+            marginTop:
+                theme.spacing.xs,
         },
 
         trailFacts: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            marginTop: theme.spacing.sm,
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            flexWrap:
+                'wrap',
+            marginTop:
+                theme.spacing.xs,
         },
 
         trailFact: {
-            color: theme.colors.forest,
+            color:
+                theme.colors
+                    .ink,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
             fontSize: 11,
-            fontWeight: '600',
+            fontWeight:
+                '600',
         },
 
         trailFactDivider: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
             fontSize: 11,
-            marginHorizontal: 5,
+            marginHorizontal:
+                4,
         },
 
         dogRow: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            marginTop: 4,
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginTop:
+                theme.spacing.xs,
         },
 
         dogIcon: {
-            fontSize: 11,
+            fontSize: 12,
+            marginRight: 4,
         },
 
         dogText: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
             fontSize: 10,
-            marginLeft: 4,
         },
 
         selectionIndicator: {
-            alignItems: 'center',
-            borderColor: theme.colors.earth,
-            borderRadius: 10,
-            borderWidth: 1.5,
-            height: 20,
-            justifyContent: 'center',
-            marginLeft: theme.spacing.sm,
-            width: 20,
+            alignItems:
+                'center',
+            borderColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                12,
+            borderWidth: 1,
+            height: 22,
+            justifyContent:
+                'center',
+            marginLeft:
+                theme.spacing.sm,
+            width: 22,
         },
 
         selectedIndicator: {
-            borderColor: theme.colors.forest,
+            borderColor:
+                theme.colors
+                    .forest,
+        },
+
+        alreadyAddedIndicator: {
+            backgroundColor:
+                theme.colors
+                    .sage,
+            borderColor:
+                theme.colors
+                    .sage,
         },
 
         selectionDot: {
-            backgroundColor: theme.colors.forest,
-            borderRadius: 5,
+            backgroundColor:
+                theme.colors
+                    .forest,
+            borderRadius:
+                6,
             height: 10,
             width: 10,
         },
 
-        alreadyAddedIndicator: {
-            backgroundColor: theme.colors.forest,
-            borderColor: theme.colors.forest,
-        },
-
         alreadyAddedText: {
-            color: theme.colors.parchment,
-            fontSize: 13,
-            fontWeight: '700',
+            color:
+                theme.colors
+                    .white,
+            fontSize: 14,
+            fontWeight:
+                '700',
         },
 
         emptyState: {
-            alignItems: 'center',
-            paddingHorizontal: theme.spacing.xl,
-            paddingVertical: theme.spacing.xxl,
+            alignItems:
+                'center',
+            padding:
+                theme.spacing.xl,
         },
 
         emptyIcon: {
-            fontSize: 42,
+            fontSize: 32,
+            marginBottom:
+                theme.spacing.sm,
         },
 
         emptyTitle: {
-            color: theme.colors.ink,
-            fontSize: 19,
-            fontWeight: '700',
-            marginTop: theme.spacing.md,
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 17,
+            fontWeight:
+                '700',
         },
 
         emptyDescription: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
             fontSize: 13,
-            marginTop: theme.spacing.xs,
+            marginTop:
+                theme.spacing.xs,
+            textAlign:
+                'center',
         },
 
-        previewCard: {
-            backgroundColor: theme.colors.sage,
-            borderRadius: theme.radii.lg,
-            marginTop:  theme.spacing.lg,
-            padding: theme.spacing.md,
+        errorContainer: {
+            alignItems:
+                'center',
+            padding:
+                theme.spacing.xl,
         },
 
-        previewHeader: {
-            alignItems:  'flex-start',
-            flexDirection: 'row',
-            justifyContent:  'space-between',
+        errorIcon: {
+            fontSize: 30,
+            marginBottom:
+                theme.spacing.sm,
         },
 
-        previewHeaderContent: {
-            flex: 1,
+        errorTitle: {
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 17,
+            fontWeight:
+                '700',
         },
 
-        previewEyebrow: {
-            color: theme.colors.forest,
-            fontSize: 9,
-            fontWeight: '700',
-            letterSpacing: 1.3,
-        },
-
-        previewTitle: {
-            color: theme.colors.ink,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop: 3,
-        },
-
-        previewClose: {
-            color: theme.colors.earth,
-            fontSize: 25,
-        },
-
-        previewFacts: {
-            flexDirection: 'row',
-            marginTop: theme.spacing.md,
-        },
-
-        fact: {
-            flex: 1,
-        },
-
-        factLabel: {
-            color: theme.colors.earth,
-            fontSize: 9,
-            fontWeight: '600',
-            textTransform: 'uppercase',
-        },
-
-        factValue: {
-            color: theme.colors.ink,
+        errorDescription: {
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
             fontSize: 13,
-            fontWeight: '700',
-            marginTop: 2,
-        },
-
-        previewDescription: {
-            color: theme.colors.bark,
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop: theme.spacing.md,
-        },
-
-        scheduleTitle: {
-            color: theme.colors.ink,
-            fontSize: 14,
-            fontWeight: '700',
-            marginTop: theme.spacing.lg,
-        },
-
-        scheduleRow: {
-            flexDirection: 'row',
-            gap: theme.spacing.sm,
-            marginTop: theme.spacing.sm,
-        },
-
-        scheduleField: {
-            flex: 1,
-        },
-
-        scheduleLabel: {
-            color: theme.colors.earth,
-            fontSize: 10,
-            fontWeight:  '700',
-            marginBottom: 4,
-        },
-
-        scheduleInput: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.parchment,
-            borderColor: theme.colors.sage,
-            borderRadius: theme.radii.md,
-            borderWidth: 1,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            minHeight: 46,
-            paddingHorizontal: theme.spacing.sm,
-        },
-
-        scheduleText: {
-            color: theme.colors.ink,
-            flex: 1,
-            fontSize: 11,
-        },
-
-        scheduleIcon: {
-            color: theme.colors.forest,
-            fontSize: 16,
-            marginLeft: 4,
-        },
-
-        bottomAction: {
-            backgroundColor: theme.colors.parchment,
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.sm,
-        },
-
-        addTrailButton: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.forest,
-            borderRadius: theme.radii.md,
-            minHeight: 54,
-            justifyContent: 'center',
-        },
-
-        disabledAddButton: {
-            backgroundColor: theme.colors.sage,
-        },
-
-        addTrailButtonText: {
-            color: theme.colors.parchment,
-            fontSize: 15,
-            fontWeight: '700',
-        },
-
-        disabledAddButtonText: {
-            color: theme.colors.earth,
-        },
-
-        modalOverlay: {
-            alignItems: 'center',
-            backgroundColor:  'rgba(30, 40, 25, 0.45)',
-            flex: 1,
-            justifyContent: 'center',
-            paddingHorizontal: theme.spacing.lg,
-        },
-
-        dateModal: {
-            backgroundColor:  theme.colors.parchment,
-            borderRadius: theme.radii.lg,
-            maxWidth: 420,
-            overflow: 'hidden',
-            paddingHorizontal:  theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
-            width: '100%',
-            ...theme.shadows.card,
-        },
-
-        modalHeader: {
-            alignItems: 'center',
-            flexDirection:  'row',
-            justifyContent: 'space-between',
-        },
-
-        modalEyebrow: {
-            color: theme.colors.forest,
-            fontSize: 10,
-            fontWeight:  '700',
-            letterSpacing: 1.5,
-        },
-
-        modalTitle: {
-            color: theme.colors.ink,
-            fontSize: 22,
-            fontWeight: '700',
-            marginTop: 2,
-        },
-
-        modalClose: {
-            alignItems: 'center',
-            height: 36,
-            justifyContent: 'center',
-            width: 36,
-        },
-
-        modalCloseText: {
-            color: theme.colors.earth,
-            fontSize: 28,
-            fontWeight: '300',
-        },
-
-        pickerContainer: {
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 260,
-            overflow: 'hidden',
-        },
-
-        doneButton: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.forest,
-            borderRadius: theme.radii.md,
-            minHeight: 50,
-            justifyContent: 'center',
-        },
-
-        doneButtonText: {
-            color: theme.colors.parchment,
-            fontSize: 15,
-            fontWeight: '700',
+            marginTop:
+                theme.spacing.xs,
         },
 
         errorText: {
-            color: theme.colors.earth,
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 16,
+        },
+
+        selectedSection: {
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        sectionTitle: {
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 16,
+            fontWeight:
+                '700',
+            marginBottom:
+                theme.spacing.sm,
+        },
+
+        selectedCard: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .canvas,
+            borderColor:
+                theme.colors
+                    .forest,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.lg,
+            padding:
+                theme.spacing.sm,
+        },
+
+        selectedIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.sm,
+            height: 44,
+            justifyContent:
+                'center',
+            marginRight:
+                theme.spacing.sm,
+            width: 44,
+        },
+
+        selectedEmoji: {
+            fontSize: 21,
+        },
+
+        selectedContent: {
+            flex: 1,
+        },
+
+        selectedName: {
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
             fontSize: 15,
-            margin: theme.spacing.xl,
-            textAlign: 'center',
+            fontWeight:
+                '700',
+        },
+
+        selectedDescription: {
+            color:
+                theme.colors
+                    .earth,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 12,
+            lineHeight: 17,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        dateTimeRow: {
+            flexDirection:
+                'row',
+            gap:
+                theme.spacing.sm,
+        },
+
+        dateTimeButton: {
+            backgroundColor:
+                theme.colors
+                    .canvas,
+            borderColor:
+                theme.colors
+                    .sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flex: 1,
+            padding:
+                theme.spacing.sm,
+        },
+
+        dateTimeLabel: {
+            color:
+                theme.colors
+                    .earth,
+            fontSize: 9,
+            fontWeight:
+                '700',
+            letterSpacing: 0.8,
+        },
+
+        dateTimeValue: {
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 14,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        pickerOverlay: {
+            alignItems:
+                'center',
+            backgroundColor:
+                'rgba(0, 0, 0, 0.35)',
+            flex: 1,
+            justifyContent:
+                'center',
+            padding:
+                theme.spacing.lg,
+        },
+
+        pickerCard: {
+            backgroundColor:
+                theme.colors
+                    .parchment,
+            borderRadius:
+                theme.radii.lg,
+            padding:
+                theme.spacing.lg,
+            width: '100%',
+        },
+
+        pickerTitle: {
+            color:
+                theme.colors
+                    .forest,
+            fontFamily:
+                theme.typography
+                    .headingFont,
+            fontSize: 18,
+            fontWeight:
+                '700',
+            marginBottom:
+                theme.spacing.sm,
+            textAlign:
+                'center',
+        },
+
+        pickerDoneButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .forest,
+            borderRadius:
+                theme.radii.md,
+            marginTop:
+                theme.spacing.sm,
+            padding:
+                theme.spacing.sm,
+        },
+
+        pickerDoneText: {
+            color:
+                theme.colors
+                    .white,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 14,
+            fontWeight:
+                '700',
+        },
+
+        bottomBar: {
+            backgroundColor:
+                theme.colors
+                    .parchment,
+            paddingHorizontal:
+                theme.spacing.md,
+            paddingTop:
+                theme.spacing.sm,
+        },
+
+        addButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors
+                    .forest,
+            borderRadius:
+                theme.radii.md,
+            padding:
+                theme.spacing.md,
+        },
+
+        disabledAddButton: {
+            opacity: 0.45,
+        },
+
+        addButtonText: {
+            color:
+                theme.colors
+                    .white,
+            fontFamily:
+                theme.typography
+                    .bodyFont,
+            fontSize: 15,
+            fontWeight:
+                '700',
         },
     })

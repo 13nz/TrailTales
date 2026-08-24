@@ -9,74 +9,241 @@ import {
     Modal,
     Platform,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import {
+    useSafeAreaInsets,
+} from 'react-native-safe-area-context'
+
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { useState, useEffect } from 'react'
+
+import {
+    useState,
+    useEffect,
+} from 'react'
 
 import theme from '../constants/theme'
-import mockCampsites from '../data/mockCampsites'
-import mockParks from '../data/mockParks'
-import { useTrips } from '../context/TripContext'
+
+import {
+    useTrips,
+} from '../context/TripContext'
+
+import {
+    getParkByCode,
+    getCampgroundsByPark,
+} from '../api/npsApi'
 
 // provides campground search, reservation details, and trip assignment functionality
 export default function AddCampsiteScreen({
     route,
     navigation,
 }) {
-    const insets = useSafeAreaInsets()
-    const { trips, updateTrip } = useTrips()
+    const insets =
+        useSafeAreaInsets()
 
-    const { tripId } = route.params
+    const {
+        trips,
+        updateTrip,
+    } = useTrips()
 
-    const trip = trips.find((item) => item.id === tripId)
+    const {
+        tripId,
+    } = route.params
 
-    const [searchQuery, setSearchQuery] = useState('')
-    const [selectedCampsite, setSelectedCampsite] = useState(null)
+    const trip =
+        trips.find(
+            (item) =>
+                item.id === tripId
+        )
 
-    const [checkIn, setCheckIn] = useState(
+    const [
+        searchQuery,
+        setSearchQuery,
+    ] = useState('')
+
+    const [
+        selectedCampsite,
+        setSelectedCampsite,
+    ] = useState(null)
+
+    const [
+        checkIn,
+        setCheckIn,
+    ] = useState(
         trip
-            ? new Date(`${trip.startDate}T12:00:00`)
+            ? new Date(
+                  `${trip.startDate}T12:00:00`
+              )
             : null
     )
 
-    const [checkOut, setCheckOut] = useState(
+    const [
+        checkOut,
+        setCheckOut,
+    ] = useState(
         trip
-            ? new Date(`${trip.endDate}T12:00:00`)
+            ? new Date(
+                  `${trip.endDate}T12:00:00`
+              )
             : null
     )
 
-    const [campsiteNumber, setCampsiteNumber] = useState('')
+    const [
+        campsiteNumber,
+        setCampsiteNumber,
+    ] = useState('')
 
-    const [reservationNotes, setReservationNotes] = useState('')
+    const [
+        reservationNotes,
+        setReservationNotes,
+    ] = useState('')
 
-    const [activeDateField, setActiveDateField] = useState(null)
+    const [
+        activeDateField,
+        setActiveDateField,
+    ] = useState(null)
 
-    const [pickerValue, setPickerValue] = useState(new Date())
-
-    const park = mockParks.find(
-        (item) => item.id === trip?.parkId
+    const [
+        pickerValue,
+        setPickerValue,
+    ] = useState(
+        new Date()
     )
 
-    // only displays campgrounds belonging to the park associated with this trip
-    const parkCampsites = mockCampsites.filter(
-        (campsite) => campsite.parkId === trip?.parkId
-    )
+    const [
+        park,
+        setPark,
+    ] = useState(null)
 
-    // filters campgrounds as the user searches
-    const filteredCampsites = parkCampsites.filter(
-        (campsite) =>
-            campsite.name
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase())
-    )
+    const [
+        parkCampsites,
+        setParkCampsites,
+    ] = useState([])
 
-    const openDatePicker = (field) => {
+    const [
+        loadingCampsites,
+        setLoadingCampsites,
+    ] = useState(true)
+
+    const [
+        campsiteError,
+        setCampsiteError,
+    ] = useState(null)
+
+    /*
+     * loads the selected trip's national park and
+     * its campground records directly from the nps api.
+     *
+     * trip.parkId is the real nps park code.
+     *
+     * for example:
+     *
+     * yellowstone -> yell
+     */
+    useEffect(() => {
+        let active = true
+
+        async function loadParkCampsites() {
+            if (!trip?.parkId) {
+                if (active) {
+                    setPark(null)
+                    setParkCampsites([])
+                    setLoadingCampsites(false)
+                }
+
+                return
+            }
+
+            try {
+                setLoadingCampsites(
+                    true
+                )
+
+                setCampsiteError(
+                    null
+                )
+
+                const [
+                    apiPark,
+                    apiCampsites,
+                ] = await Promise.all([
+                    getParkByCode(
+                        trip.parkId
+                    ),
+                    getCampgroundsByPark(
+                        trip.parkId
+                    ),
+                ])
+
+                if (!active) {
+                    return
+                }
+
+                setPark(
+                    apiPark
+                )
+
+                setParkCampsites(
+                    apiCampsites ||
+                        []
+                )
+            } catch (error) {
+                console.error(
+                    'nps add campsite error:',
+                    error
+                )
+
+                if (active) {
+                    setPark(null)
+
+                    setParkCampsites(
+                        []
+                    )
+
+                    setCampsiteError(
+                        'Unable to load campgrounds'
+                    )
+                }
+            } finally {
+                if (active) {
+                    setLoadingCampsites(
+                        false
+                    )
+                }
+            }
+        }
+
+        loadParkCampsites()
+
+        return () => {
+            active = false
+        }
+    }, [
+        trip?.parkId,
+    ])
+
+    // filters the nps campground list as the user searches
+    const filteredCampsites =
+        parkCampsites.filter(
+            (campsite) =>
+                campsite.name
+                    ?.toLowerCase()
+                    .includes(
+                        searchQuery
+                            .toLowerCase()
+                    )
+        )
+
+    const openDatePicker = (
+        field
+    ) => {
+        // dismisses the keyboard before opening the date picker
         Keyboard.dismiss()
 
         const value =
             field === 'checkIn'
                 ? checkIn
-                : checkOut || checkIn
+                : checkOut ||
+                  checkIn
 
         setPickerValue(
             value
@@ -84,18 +251,26 @@ export default function AddCampsiteScreen({
                 : new Date()
         )
 
-        setActiveDateField(field)
+        setActiveDateField(
+            field
+        )
     }
 
     const closeDatePicker = () => {
-        setActiveDateField(null)
+        // clears the active date field so the modal closes
+        setActiveDateField(
+            null
+        )
     }
 
     const handleDateChange = (
         event,
         selectedDate
     ) => {
-        if (event?.type === 'dismissed') {
+        if (
+            event?.type ===
+            'dismissed'
+        ) {
             closeDatePicker()
             return
         }
@@ -104,304 +279,426 @@ export default function AddCampsiteScreen({
             return
         }
 
-        setPickerValue(selectedDate)
+        setPickerValue(
+            selectedDate
+        )
 
-        if (activeDateField === 'checkIn') {
-            setCheckIn(selectedDate)
+        if (
+            activeDateField ===
+            'checkIn'
+        ) {
+            setCheckIn(
+                selectedDate
+            )
 
+            // keeps checkout from being earlier than check-in
             if (
                 checkOut &&
-                selectedDate > checkOut
+                selectedDate >
+                    checkOut
             ) {
-                setCheckOut(selectedDate)
+                setCheckOut(
+                    selectedDate
+                )
             }
         }
 
-        if (activeDateField === 'checkOut') {
-            setCheckOut(selectedDate)
+        if (
+            activeDateField ===
+            'checkOut'
+        ) {
+            setCheckOut(
+                selectedDate
+            )
         }
     }
 
-    const handleSelectCampsite = (campsite) => {
-        // dismisses the keyboard before selecting a campground
+    const handleSelectCampsite = (
+        campsite
+    ) => {
+        // dismisses the keyboard before displaying the campground preview
         Keyboard.dismiss()
 
-        setSelectedCampsite(campsite)
-    }
+        // prevents an already saved campground from being selected again
+        const alreadyAdded =
+            trip?.campsites?.some(
+                (item) => {
+                    const savedId =
+                        typeof item ===
+                        'string'
+                            ? item
+                            : item?.id
 
-    const handleAddCampsite = () => {
-        if (!selectedCampsite || !trip) {
+                    return (
+                        String(
+                            savedId
+                        ) ===
+                        String(
+                            campsite.id
+                        )
+                    )
+                }
+            )
+
+        if (alreadyAdded) {
             return
         }
 
-        const campsiteReservation = {
-            id: selectedCampsite.id,
-            checkIn: formatDatabaseDate(
-                checkIn
-            ),
-            checkOut: formatDatabaseDate(
-                checkOut
-            ),
+        setSelectedCampsite(
+            campsite
+        )
+
+        // resets the optional reservation fields when choosing a new campground
+        setCampsiteNumber('')
+        setReservationNotes('')
+
+        // starts campground dates from the trip dates
+        if (trip?.startDate) {
+            setCheckIn(
+                new Date(
+                    `${trip.startDate}T12:00:00`
+                )
+            )
         }
 
-        updateTrip(trip.id, {
-            campsites: [
-                ...trip.campsites,
-                campsiteReservation,
-            ],
-        })
-
-        navigation.goBack()
+        if (trip?.endDate) {
+            setCheckOut(
+                new Date(
+                    `${trip.endDate}T12:00:00`
+                )
+            )
+        }
     }
 
-    const getPickerValue = () => {
-        if (activeDateField === 'checkOut') {
-            return checkOut || checkIn || new Date()
+    const handleAddCampsite =
+        async () => {
+            if (
+                !selectedCampsite ||
+                !trip
+            ) {
+                return
+            }
+
+            // prevents the same campground from being added twice
+            const alreadyAdded =
+                trip.campsites?.some(
+                    (item) => {
+                        const savedId =
+                            typeof item ===
+                            'string'
+                                ? item
+                                : item?.id
+
+                        return (
+                            String(
+                                savedId
+                            ) ===
+                            String(
+                                selectedCampsite.id
+                            )
+                        )
+                    }
+                )
+
+            if (alreadyAdded) {
+                navigation.goBack()
+                return
+            }
+
+            // stores the campground together with its reservation details
+            const campsiteReservation = {
+                id:
+                    selectedCampsite.id,
+
+                checkIn:
+                    formatDatabaseDate(
+                        checkIn
+                    ),
+
+                checkOut:
+                    formatDatabaseDate(
+                        checkOut
+                    ),
+
+                campsiteNumber:
+                    campsiteNumber.trim(),
+
+                notes:
+                    reservationNotes.trim(),
+            }
+
+            try {
+                /*
+                 * updateTrip is the same persistence path
+                 * used by the nps trail workflow.
+                 *
+                 * it updates the trip's campsite records
+                 * while preserving all existing campsites.
+                 */
+                await updateTrip(
+                    trip.id,
+                    {
+                        campsites: [
+                            ...(trip.campsites ||
+                                []),
+                            campsiteReservation,
+                        ],
+                    }
+                )
+
+                Keyboard.dismiss()
+
+                navigation.goBack()
+            } catch (error) {
+                console.error(
+                    'supabase add campsite error:',
+                    error
+                )
+            }
         }
 
-        return checkIn || new Date()
-    }
+    const getPickerValue =
+        () => {
+            if (
+                activeDateField ===
+                'checkOut'
+            ) {
+                return (
+                    checkOut ||
+                    checkIn ||
+                    new Date()
+                )
+            }
 
-    const getPickerMinimumDate = () => {
-        if (activeDateField === 'checkOut') {
-            return checkIn || new Date()
+            return (
+                checkIn ||
+                new Date()
+            )
         }
 
-        return new Date()
-    }
+    const getPickerMinimumDate =
+        () => {
+            if (
+                activeDateField ===
+                'checkOut'
+            ) {
+                return (
+                    checkIn ||
+                    new Date()
+                )
+            }
+
+            return new Date()
+        }
 
     if (!trip) {
         return (
-            <View style={styles.screen}>
-                <Text style={styles.errorText}>
-                    Trip could not be found.
+            <View
+                style={
+                    styles.screen
+                }
+            >
+                <Text
+                    style={
+                        styles.errorText
+                    }
+                >
+                    Trip could not be
+                    found.
                 </Text>
             </View>
         )
     }
 
     return (
-        <View style={styles.screen}>
+        <View
+            style={
+                styles.screen
+            }
+        >
             <ScrollView
                 contentContainerStyle={[
                     styles.content,
                     {
                         // keeps the screen content below the device safe area
                         paddingTop:
-                            insets.top + theme.spacing.sm,
+                            insets.top +
+                            theme.spacing.sm,
                     },
                 ]}
                 keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={
+                    false
+                }
             >
-                <View style={styles.header}>
+                <View
+                    style={
+                        styles.header
+                    }
+                >
                     <Pressable
-                        style={styles.backButton}
+                        style={
+                            styles.backButton
+                        }
                         onPress={() => {
                             // dismisses the keyboard before returning to the trip
                             Keyboard.dismiss()
+
                             navigation.goBack()
                         }}
                         accessibilityRole="button"
                         accessibilityLabel="go back"
                     >
-                        <Text style={styles.backButtonText}>
+                        <Text
+                            style={
+                                styles.backButtonText
+                            }
+                        >
                             ‹
                         </Text>
                     </Pressable>
 
-                    <Text style={styles.headerTitle}>
+                    <Text
+                        style={
+                            styles.headerTitle
+                        }
+                    >
                         Add Campsite
                     </Text>
 
-                    <View style={styles.headerSpacer} />
+                    <View
+                        style={
+                            styles.headerSpacer
+                        }
+                    />
                 </View>
 
-                <View style={styles.intro}>
-                    <Text style={styles.eyebrow}>
+                <View
+                    style={
+                        styles.intro
+                    }
+                >
+                    <Text
+                        style={
+                            styles.eyebrow
+                        }
+                    >
                         ADD TO YOUR ADVENTURE
                     </Text>
 
-                    <Text style={styles.title}>
+                    <Text
+                        style={
+                            styles.title
+                        }
+                    >
                         Choose a campsite
                     </Text>
 
-                    <Text style={styles.parkName}>
-                        {park?.name || 'National Park'}
+                    <Text
+                        style={
+                            styles.parkName
+                        }
+                    >
+                        {park?.name ||
+                            'National Park'}
                     </Text>
                 </View>
 
-                <View style={styles.searchContainer}>
-                    <Text style={styles.searchIcon}>
+                <View
+                    style={
+                        styles.searchContainer
+                    }
+                >
+                    <Text
+                        style={
+                            styles.searchIcon
+                        }
+                    >
                         ⌕
                     </Text>
 
                     <TextInput
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
+                        value={
+                            searchQuery
+                        }
+                        onChangeText={
+                            setSearchQuery
+                        }
                         placeholder="Search campgrounds..."
                         placeholderTextColor={
-                            theme.colors.earth
+                            theme.colors
+                                .earth
                         }
-                        style={styles.searchInput}
+                        style={
+                            styles.searchInput
+                        }
                         returnKeyType="search"
                         accessibilityLabel="search campgrounds"
                     />
 
-                    {searchQuery.length > 0 ? (
+                    {searchQuery.length >
+                    0 ? (
                         <Pressable
                             onPress={() => {
                                 // clears the current campground search
-                                setSearchQuery('')
+                                setSearchQuery(
+                                    ''
+                                )
                             }}
-                            style={styles.clearButton}
+                            style={
+                                styles.clearButton
+                            }
                             accessibilityRole="button"
                             accessibilityLabel="clear campground search"
                         >
-                            <Text style={styles.clearText}>
+                            <Text
+                                style={
+                                    styles.clearText
+                                }
+                            >
                                 ×
                             </Text>
                         </Pressable>
                     ) : null}
                 </View>
 
-                <Text style={styles.resultLabel}>
-                    {filteredCampsites.length}{' '}
-                    {filteredCampsites.length === 1
-                        ? 'campground'
-                        : 'campgrounds'}
+                <Text
+                    style={
+                        styles.resultLabel
+                    }
+                >
+                    {loadingCampsites
+                        ? 'loading campgrounds...'
+                        : campsiteError
+                            ? 'unable to load campgrounds'
+                            : `${filteredCampsites.length} ${
+                                  filteredCampsites.length ===
+                                  1
+                                      ? 'campground'
+                                      : 'campgrounds'
+                              }`}
                 </Text>
 
-                <View style={styles.campsiteList}>
-                    {filteredCampsites.map((campsite) => {
-                        const selected =
-                            selectedCampsite?.id ===
-                            campsite.id
-
-                        return (
-                            <Pressable
-                                key={campsite.id}
-                                style={[
-                                    styles.campsiteCard,
-                                    selected &&
-                                        styles.selectedCampsiteCard,
-                                ]}
-                                onPress={() =>
-                                    handleSelectCampsite(
-                                        campsite
-                                    )
-                                }
-                                accessibilityRole="button"
-                                accessibilityLabel={`select ${campsite.name}`}
-                            >
-                                <View style={styles.campsiteIcon}>
-                                    <Text
-                                        style={
-                                            styles.campsiteEmoji
-                                        }
-                                    >
-                                        🏕️
-                                    </Text>
-                                </View>
-
-                                <View style={styles.campsiteContent}>
-                                    <Text
-                                        style={
-                                            styles.campsiteName
-                                        }
-                                    >
-                                        {campsite.name}
-                                    </Text>
-
-                                    <Text
-                                        style={
-                                            styles.campsiteDescription
-                                        }
-                                        numberOfLines={2}
-                                    >
-                                        {campsite.description}
-                                    </Text>
-
-                                    <View
-                                        style={
-                                            styles.campsiteFacts
-                                        }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.campsiteFact
-                                            }
-                                        >
-                                            {campsite.price}
-                                        </Text>
-
-                                        <Text
-                                            style={
-                                                styles.factDivider
-                                            }
-                                        >
-                                            ·
-                                        </Text>
-
-                                        <Text
-                                            style={
-                                                styles.campsiteFact
-                                            }
-                                        >
-                                            {campsite.sites}{' '}
-                                            sites
-                                        </Text>
-                                    </View>
-
-                                    <View
-                                        style={styles.petRow}
-                                    >
-                                        <Text
-                                            style={
-                                                styles.petIcon
-                                            }
-                                        >
-                                            🐕
-                                        </Text>
-
-                                        <Text
-                                            style={styles.petText}
-                                        >
-                                            {campsite.petsAllowed
-                                                ? 'pets allowed'
-                                                : 'pets not allowed'}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                <View
-                                    style={[
-                                        styles.selectionIndicator,
-                                        selected &&
-                                            styles.selectedIndicator,
-                                    ]}
-                                >
-                                    {selected ? (
-                                        <View
-                                            style={
-                                                styles.selectionDot
-                                            }
-                                        />
-                                    ) : null}
-                                </View>
-                            </Pressable>
-                        )
-                    })}
-                </View>
-
-                {filteredCampsites.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>
+                {loadingCampsites ? (
+                    <View
+                        style={
+                            styles.emptyState
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.emptyIcon
+                            }
+                        >
                             🏕️
                         </Text>
 
-                        <Text style={styles.emptyTitle}>
-                            No campgrounds found
+                        <Text
+                            style={
+                                styles.emptyTitle
+                            }
+                        >
+                            Loading campgrounds...
                         </Text>
 
                         <Text
@@ -409,16 +706,304 @@ export default function AddCampsiteScreen({
                                 styles.emptyDescription
                             }
                         >
-                            Try a different search term.
+                            Getting campgrounds
+                            from the National
+                            Park Service.
                         </Text>
                     </View>
-                ) : null}
+                ) : campsiteError ? (
+                    <View
+                        style={
+                            styles.emptyState
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.emptyIcon
+                            }
+                        >
+                            ⚠️
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.emptyTitle
+                            }
+                        >
+                            Unable to load campgrounds
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.emptyDescription
+                            }
+                        >
+                            Please try again.
+                        </Text>
+                    </View>
+                ) : (
+                    <>
+                        {/* keeps the large nps result set inside a compact independently scrollable area */}
+                        <ScrollView
+                            style={
+                                styles.campsiteList
+                            }
+                            contentContainerStyle={
+                                styles.campsiteListContent
+                            }
+                            nestedScrollEnabled
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={
+                                true
+                            }
+                        >
+                            {filteredCampsites.map(
+                                (
+                                    campsite
+                                ) => {
+                                    const selected =
+                                        selectedCampsite?.id ===
+                                        campsite.id
+
+                                    const alreadyAdded =
+                                        trip.campsites?.some(
+                                            (
+                                                item
+                                            ) => {
+                                                const savedId =
+                                                    typeof item ===
+                                                    'string'
+                                                        ? item
+                                                        : item?.id
+
+                                                return (
+                                                    String(
+                                                        savedId
+                                                    ) ===
+                                                    String(
+                                                        campsite.id
+                                                    )
+                                                )
+                                            }
+                                        )
+
+                                    return (
+                                        <Pressable
+                                            key={
+                                                campsite.id
+                                            }
+                                            style={[
+                                                styles.campsiteCard,
+                                                selected &&
+                                                    styles.selectedCampsiteCard,
+                                                alreadyAdded &&
+                                                    styles.disabledCampsiteCard,
+                                            ]}
+                                            onPress={() =>
+                                                handleSelectCampsite(
+                                                    campsite
+                                                )
+                                            }
+                                            disabled={
+                                                alreadyAdded
+                                            }
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`select ${campsite.name}`}
+                                        >
+                                            <View
+                                                style={
+                                                    styles.campsiteIcon
+                                                }
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.campsiteEmoji
+                                                    }
+                                                >
+                                                    🏕️
+                                                </Text>
+                                            </View>
+
+                                            <View
+                                                style={
+                                                    styles.campsiteContent
+                                                }
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.campsiteName
+                                                    }
+                                                >
+                                                    {
+                                                        campsite.name
+                                                    }
+                                                </Text>
+
+                                                <Text
+                                                    style={
+                                                        styles.campsiteDescription
+                                                    }
+                                                    numberOfLines={
+                                                        2
+                                                    }
+                                                >
+                                                    {
+                                                        campsite.description
+                                                    }
+                                                </Text>
+
+                                                <View
+                                                    style={
+                                                        styles.campsiteFacts
+                                                    }
+                                                >
+                                                    <Text
+                                                        style={
+                                                            styles.campsiteFact
+                                                        }
+                                                    >
+                                                        {formatCampgroundPrice(
+                                                            campsite
+                                                        )}
+                                                    </Text>
+
+                                                    <Text
+                                                        style={
+                                                            styles.factDivider
+                                                        }
+                                                    >
+                                                        ·
+                                                    </Text>
+
+                                                    <Text
+                                                        style={
+                                                            styles.campsiteFact
+                                                        }
+                                                    >
+                                                        {formatSiteCount(
+                                                            campsite
+                                                        )}{' '}
+                                                        sites
+                                                    </Text>
+                                                </View>
+
+                                                <View
+                                                    style={
+                                                        styles.petRow
+                                                    }
+                                                >
+                                                    <Text
+                                                        style={
+                                                            styles.petIcon
+                                                        }
+                                                    >
+                                                        ℹ
+                                                    </Text>
+
+                                                    <Text
+                                                        style={
+                                                            styles.petText
+                                                        }
+                                                        numberOfLines={
+                                                            1
+                                                        }
+                                                    >
+                                                        {formatCampgroundAvailability(
+                                                            campsite
+                                                        )}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            <View
+                                                style={[
+                                                    styles.selectionIndicator,
+                                                    selected &&
+                                                        styles.selectedIndicator,
+                                                    alreadyAdded &&
+                                                        styles.alreadyAddedIndicator,
+                                                ]}
+                                            >
+                                                {alreadyAdded ? (
+                                                    <Text
+                                                        style={
+                                                            styles.alreadyAddedText
+                                                        }
+                                                    >
+                                                        ✓
+                                                    </Text>
+                                                ) : selected ? (
+                                                    <View
+                                                        style={
+                                                            styles.selectionDot
+                                                        }
+                                                    />
+                                                ) : null}
+                                            </View>
+                                        </Pressable>
+                                    )
+                                }
+                            )}
+                        </ScrollView>
+
+                        {!loadingCampsites &&
+                        filteredCampsites.length ===
+                            0 ? (
+                            <View
+                                style={
+                                    styles.emptyState
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.emptyIcon
+                                    }
+                                >
+                                    🏕️
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.emptyTitle
+                                    }
+                                >
+                                    No campgrounds found
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.emptyDescription
+                                    }
+                                >
+                                    Try a different
+                                    search term.
+                                </Text>
+                            </View>
+                        ) : null}
+                    </>
+                )}
 
                 {selectedCampsite ? (
-                    <View style={styles.previewCard}>
-                        <View style={styles.previewHeader}>
-                            <View style={styles.previewHeaderContent}>
-                                <Text style={styles.previewEyebrow}>
+                    <View
+                        style={
+                            styles.previewCard
+                        }
+                    >
+                        <View
+                            style={
+                                styles.previewHeader
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.previewHeaderContent
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.previewEyebrow
+                                    }
+                                >
                                     SELECTED CAMPGROUND
                                 </Text>
 
@@ -427,14 +1012,18 @@ export default function AddCampsiteScreen({
                                         styles.previewTitle
                                     }
                                 >
-                                    {selectedCampsite.name}
+                                    {
+                                        selectedCampsite.name
+                                    }
                                 </Text>
                             </View>
 
                             <Pressable
                                 onPress={() => {
-                                    // clears the current campground selection and its temporary reservation details
-                                    setSelectedCampsite(null)
+                                    // clears the current campground selection
+                                    setSelectedCampsite(
+                                        null
+                                    )
                                 }}
                                 accessibilityRole="button"
                                 accessibilityLabel="clear selected campground"
@@ -449,67 +1038,102 @@ export default function AddCampsiteScreen({
                             </Pressable>
                         </View>
 
-                        <View style={styles.previewFacts}>
+                        <View
+                            style={
+                                styles.previewFacts
+                            }
+                        >
                             <Fact
                                 label="Price"
-                                value={
-                                    selectedCampsite.price
-                                }
+                                value={formatCampgroundPrice(
+                                    selectedCampsite
+                                )}
                             />
 
                             <Fact
                                 label="Sites"
-                                value={selectedCampsite.sites.toString()}
+                                value={String(
+                                    formatSiteCount(
+                                        selectedCampsite
+                                    )
+                                )}
                             />
 
                             <Fact
-                                label="Pets"
-                                value={
-                                    selectedCampsite.petsAllowed
-                                        ? 'Allowed'
-                                        : 'Not allowed'
-                                }
+                                label="Reservations"
+                                value={formatReservationStatus(
+                                    selectedCampsite
+                                )}
                             />
                         </View>
 
-                        <Text
-                            style={
-                                styles.reservationText
-                            }
-                        >
-                            {selectedCampsite.reservations}
-                        </Text>
+                        {selectedCampsite.reservationDescription ? (
+                            <Text
+                                style={
+                                    styles.reservationText
+                                }
+                            >
+                                {
+                                    selectedCampsite.reservationDescription
+                                }
+                            </Text>
+                        ) : null}
 
-                        <Text
-                            style={
-                                styles.amenitiesText
-                            }
-                        >
-                            {selectedCampsite.amenities.join(
-                                ' · '
-                            )}
-                        </Text>
+                        {selectedCampsite.amenities ? (
+                            <Text
+                                style={
+                                    styles.amenitiesText
+                                }
+                                numberOfLines={
+                                    3
+                                }
+                            >
+                                {formatAmenities(
+                                    selectedCampsite.amenities
+                                )}
+                            </Text>
+                        ) : null}
 
                         <Text
                             style={
                                 styles.previewDescription
                             }
                         >
-                            {selectedCampsite.description}
+                            {
+                                selectedCampsite.description
+                            }
                         </Text>
 
-                        <Text style={styles.dateSectionTitle}>
+                        <Text
+                            style={
+                                styles.dateSectionTitle
+                            }
+                        >
                             Camping dates
                         </Text>
 
-                        <View style={styles.dateRow}>
-                            <View style={styles.dateField}>
-                                <Text style={styles.dateLabel}>
+                        <View
+                            style={
+                                styles.dateRow
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.dateField
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.dateLabel
+                                    }
+                                >
                                     Check-in
                                 </Text>
 
                                 <Pressable
-                                    style={styles.dateInput}
+                                    style={
+                                        styles.dateInput
+                                    }
                                     onPress={() =>
                                         openDatePicker(
                                             'checkIn'
@@ -540,13 +1164,23 @@ export default function AddCampsiteScreen({
                                 </Pressable>
                             </View>
 
-                            <View style={styles.dateField}>
-                                <Text style={styles.dateLabel}>
+                            <View
+                                style={
+                                    styles.dateField
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.dateLabel
+                                    }
+                                >
                                     Check-out
                                 </Text>
 
                                 <Pressable
-                                    style={styles.dateInput}
+                                    style={
+                                        styles.dateInput
+                                    }
                                     onPress={() =>
                                         openDatePicker(
                                             'checkOut'
@@ -578,41 +1212,69 @@ export default function AddCampsiteScreen({
                             </View>
                         </View>
 
-                        <Text style={styles.inputSectionTitle}>
+                        <Text
+                            style={
+                                styles.inputSectionTitle
+                            }
+                        >
                             Campsite number
-                            <Text style={styles.optionalText}>
+                            <Text
+                                style={
+                                    styles.optionalText
+                                }
+                            >
                                 {' '}
                                 optional
                             </Text>
                         </Text>
 
                         <TextInput
-                            value={campsiteNumber}
-                            onChangeText={setCampsiteNumber}
+                            value={
+                                campsiteNumber
+                            }
+                            onChangeText={
+                                setCampsiteNumber
+                            }
                             placeholder="e.g. 42"
                             placeholderTextColor={
-                                theme.colors.earth
+                                theme.colors
+                                    .earth
                             }
-                            style={styles.textInput}
+                            style={
+                                styles.textInput
+                            }
                             keyboardType="default"
                             returnKeyType="done"
                             accessibilityLabel="campsite number"
                         />
 
-                        <Text style={styles.inputSectionTitle}>
+                        <Text
+                            style={
+                                styles.inputSectionTitle
+                            }
+                        >
                             Reservation notes
-                            <Text style={styles.optionalText}>
+                            <Text
+                                style={
+                                    styles.optionalText
+                                }
+                            >
                                 {' '}
                                 optional
                             </Text>
                         </Text>
 
                         <TextInput
-                            value={reservationNotes}
-                            onChangeText={setReservationNotes}
+                            value={
+                                reservationNotes
+                            }
+                            onChangeText={
+                                setReservationNotes
+                            }
                             placeholder="e.g. loop B, near the lake..."
                             placeholderTextColor={
-                                theme.colors.earth
+                                theme.colors
+                                    .earth
                             }
                             style={[
                                 styles.textInput,
@@ -633,7 +1295,8 @@ export default function AddCampsiteScreen({
                     {
                         // keeps the primary action above the device safe area
                         paddingBottom:
-                            insets.bottom + theme.spacing.sm,
+                            insets.bottom +
+                            theme.spacing.sm,
                     },
                 ]}
             >
@@ -643,8 +1306,12 @@ export default function AddCampsiteScreen({
                         !selectedCampsite &&
                             styles.disabledAddButton,
                     ]}
-                    onPress={handleAddCampsite}
-                    disabled={!selectedCampsite}
+                    onPress={
+                        handleAddCampsite
+                    }
+                    disabled={
+                        !selectedCampsite
+                    }
                     accessibilityRole="button"
                     accessibilityLabel="add selected campsite to trip"
                 >
@@ -662,12 +1329,21 @@ export default function AddCampsiteScreen({
 
             {/* presents the date picker as a controlled popup instead of placing it inside the page layout */}
             <Modal
-                visible={activeDateField !== null}
+                visible={
+                    activeDateField !==
+                    null
+                }
                 transparent
                 animationType="fade"
-                onRequestClose={closeDatePicker}
+                onRequestClose={
+                    closeDatePicker
+                }
             >
-                <View style={styles.modalOverlay}>
+                <View
+                    style={
+                        styles.modalOverlay
+                    }
+                >
                     <View
                         style={[
                             styles.dateModal,
@@ -678,7 +1354,11 @@ export default function AddCampsiteScreen({
                             },
                         ]}
                     >
-                        <View style={styles.modalHeader}>
+                        <View
+                            style={
+                                styles.modalHeader
+                            }
+                        >
                             <View>
                                 <Text
                                     style={
@@ -689,7 +1369,9 @@ export default function AddCampsiteScreen({
                                 </Text>
 
                                 <Text
-                                    style={styles.modalTitle}
+                                    style={
+                                        styles.modalTitle
+                                    }
                                 >
                                     {activeDateField ===
                                     'checkIn'
@@ -699,8 +1381,12 @@ export default function AddCampsiteScreen({
                             </View>
 
                             <Pressable
-                                onPress={closeDatePicker}
-                                style={styles.modalClose}
+                                onPress={
+                                    closeDatePicker
+                                }
+                                style={
+                                    styles.modalClose
+                                }
                                 accessibilityRole="button"
                                 accessibilityLabel="close date picker"
                             >
@@ -714,32 +1400,50 @@ export default function AddCampsiteScreen({
                             </Pressable>
                         </View>
 
-                        <View style={styles.pickerContainer}>
-                            {activeDateField !== null ? (
+                        <View
+                            style={
+                                styles.pickerContainer
+                            }
+                        >
+                            {activeDateField !==
+                            null ? (
                                 <DateTimePicker
-                                    key={activeDateField}
-                                    value={pickerValue}
+                                    key={
+                                        activeDateField
+                                    }
+                                    value={
+                                        pickerValue
+                                    }
                                     mode="date"
                                     display={
-                                        Platform.OS === 'ios'
+                                        Platform.OS ===
+                                        'ios'
                                             ? 'inline'
                                             : 'calendar'
                                     }
                                     minimumDate={getPickerMinimumDate()}
-                                    onChange={handleDateChange}
+                                    onChange={
+                                        handleDateChange
+                                    }
                                     themeVariant="light"
                                 />
                             ) : null}
                         </View>
 
                         <Pressable
-                            style={styles.doneButton}
-                            onPress={closeDatePicker}
+                            style={
+                                styles.doneButton
+                            }
+                            onPress={
+                                closeDatePicker
+                            }
                             accessibilityRole="button"
                             accessibilityLabel="done selecting date"
                         >
                             <Text
-                                style={styles.doneButtonText}
+                                style={
+                                    styles.doneButtonText
+                                }
                             >
                                 Done
                             </Text>
@@ -751,539 +1455,931 @@ export default function AddCampsiteScreen({
     )
 }
 
-function Fact({ label, value }) {
+function Fact({
+    label,
+    value,
+}) {
     return (
-        <View style={styles.fact}>
-            <Text style={styles.factLabel}>
+        <View
+            style={
+                styles.fact
+            }
+        >
+            <Text
+                style={
+                    styles.factLabel
+                }
+            >
                 {label}
             </Text>
 
-            <Text style={styles.factValue}>
+            <Text
+                style={
+                    styles.factValue
+                }
+                numberOfLines={
+                    1
+                }
+            >
                 {value}
             </Text>
         </View>
     )
 }
 
-function formatDate(date) {
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    })
+// formats the first available campground fee for the selection card
+function formatCampgroundPrice(
+    campsite
+) {
+    const fee =
+        campsite?.fees?.[0]
+
+    if (
+        fee?.cost !==
+        undefined &&
+        fee?.cost !==
+        null &&
+        fee?.cost !== ''
+    ) {
+        return `$${fee.cost}`
+    }
+
+    if (
+        campsite?.price
+    ) {
+        return campsite.price
+    }
+
+    return 'Price varies'
 }
 
-function formatDatabaseDate(date) {
-    // converts a javascript date into a format that can be stored consistently in supabase
+// creates a short campground availability summary from the nps campground data
+function formatCampgroundAvailability(
+    campsite
+) {
+    if (
+        campsite?.numberOfSitesReservable
+    ) {
+        return `${campsite.numberOfSitesReservable} reservable sites`
+    }
+
+    if (
+        campsite?.numberOfSitesFirstComeFirstServe
+    ) {
+        return `${campsite.numberOfSitesFirstComeFirstServe} first-come sites`
+    }
+
+    if (
+        campsite?.reservationInfo
+    ) {
+        return 'see reservation information'
+    }
+
+    return 'availability varies'
+}
+
+// formats the official total campground site count
+function formatSiteCount(
+    campsite
+) {
+    if (
+        campsite?.totalSites !==
+            undefined &&
+        campsite?.totalSites !==
+            null
+    ) {
+        return campsite.totalSites
+    }
+
+    if (
+        campsite?.sites !==
+            undefined &&
+        campsite?.sites !==
+            null
+    ) {
+        return campsite.sites
+    }
+
+    return '—'
+}
+
+// summarizes the official campground reservation information
+function formatReservationStatus(
+    campsite
+) {
+    if (
+        campsite?.reservableSites
+    ) {
+        return 'Reservable'
+    }
+
+    if (
+        campsite?.firstComeFirstServe
+    ) {
+        return 'First come'
+    }
+
+    if (
+        campsite?.reservationDescription
+    ) {
+        return 'See details'
+    }
+
+    return 'See details'
+}
+
+// creates a short amenity summary from the nps campground data
+function formatAmenities(
+    amenities
+) {
+    if (!amenities) {
+        return ''
+    }
+
+    const values = []
+
+    if (
+        Array.isArray(
+            amenities.toilets
+        ) &&
+        amenities.toilets.length >
+            0
+    ) {
+        values.push(
+            amenities.toilets[0]
+        )
+    }
+
+    if (
+        Array.isArray(
+            amenities.showers
+        ) &&
+        amenities.showers.length >
+            0
+    ) {
+        values.push(
+            amenities.showers[0]
+        )
+    }
+
+    if (
+        Array.isArray(
+            amenities.potableWater
+        ) &&
+        amenities.potableWater.length >
+            0
+    ) {
+        values.push(
+            amenities.potableWater[0]
+        )
+    }
+
+    if (
+        values.length === 0
+    ) {
+        return 'Amenities information available'
+    }
+
+    return values.join(
+        ' · '
+    )
+}
+
+function formatDate(
+    date
+) {
+    return date.toLocaleDateString(
+        'en-US',
+        {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        }
+    )
+}
+
+// converts a javascript date into a format that can be stored consistently in supabase
+function formatDatabaseDate(
+    date
+) {
     if (!date) {
         return null
     }
 
-    return date.toISOString().split('T')[0]
+    return date
+        .toISOString()
+        .split('T')[0]
 }
 
-const styles = StyleSheet.create({
-    screen: {
-        backgroundColor: theme.colors.parchment,
-        flex: 1,
-    },
-
-    content: {
-        paddingBottom: 150,
-        paddingHorizontal: theme.spacing.lg,
-    },
-
-    header: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-
-    backButton: {
-        alignItems: 'center',
-        height: 42,
-        justifyContent: 'center',
-        width: 42,
-    },
-
-    backButtonText: {
-        color: theme.colors.forest,
-        fontSize: 36,
-        fontWeight: '300',
-        lineHeight: 38,
-    },
-
-    headerTitle: {
-        color: theme.colors.ink,
-        fontSize: 17,
-        fontWeight: '700',
-    },
-
-    headerSpacer: {
-        width: 42,
-    },
-
-    intro: {
-        marginTop: theme.spacing.xl,
-    },
-
-    eyebrow: {
-        color: theme.colors.forest,
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
-
-    title: {
-        color: theme.colors.ink,
-        fontSize: 30,
-        fontWeight: '700',
-        marginTop: theme.spacing.xs,
-    },
-
-    parkName: {
-        color: theme.colors.earth,
-        fontSize: 14,
-        marginTop: theme.spacing.xs,
-    },
-
-    searchContainer: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        flexDirection: 'row',
-        marginTop: theme.spacing.xl,
-        minHeight: 52,
-        paddingHorizontal: theme.spacing.md,
-    },
-
-    searchIcon: {
-        color: theme.colors.earth,
-        fontSize: 24,
-        marginRight: theme.spacing.sm,
-    },
-
-    searchInput: {
-        color: theme.colors.ink,
-        flex: 1,
-        fontSize: 14,
-        minHeight: 50,
-    },
-
-    clearButton: {
-        alignItems: 'center',
-        height: 30,
-        justifyContent: 'center',
-        width: 30,
-    },
-
-    clearText: {
-        color: theme.colors.earth,
-        fontSize: 22,
-    },
-
-    resultLabel: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginTop: theme.spacing.md,
-    },
-
-    campsiteList: {
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.sm,
-    },
-
-    campsiteCard: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        flexDirection: 'row',
-        padding: theme.spacing.sm,
-    },
-
-    selectedCampsiteCard: {
-        backgroundColor: theme.colors.sage,
-        borderColor: theme.colors.forest,
-    },
-
-    campsiteIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 24,
-        height: 48,
-        justifyContent: 'center',
-        width: 48,
-    },
-
-    campsiteEmoji: {
-        fontSize: 23,
-    },
-
-    campsiteContent: {
-        flex: 1,
-        marginLeft: theme.spacing.sm,
-    },
-
-    campsiteName: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-
-    campsiteDescription: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        lineHeight: 16,
-        marginTop: 3,
-    },
-
-    campsiteFacts: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        marginTop: theme.spacing.sm,
-    },
-
-    campsiteFact: {
-        color: theme.colors.forest,
-        fontSize: 11,
-        fontWeight: '600',
-    },
-
-    factDivider: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginHorizontal: 5,
-    },
-
-    petRow: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        marginTop: 4,
-    },
-
-    petIcon: {
-        fontSize: 11,
-    },
-
-    petText: {
-        color: theme.colors.earth,
-        fontSize: 10,
-        marginLeft: 4,
-    },
-
-    selectionIndicator: {
-        alignItems: 'center',
-        borderColor: theme.colors.earth,
-        borderRadius: 10,
-        borderWidth: 1.5,
-        height: 20,
-        justifyContent: 'center',
-        marginLeft: theme.spacing.sm,
-        width: 20,
-    },
-
-    selectedIndicator: {
-        borderColor: theme.colors.forest,
-    },
-
-    selectionDot: {
-        backgroundColor: theme.colors.forest,
-        borderRadius: 5,
-        height: 10,
-        width: 10,
-    },
-
-    emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: theme.spacing.xl,
-        paddingVertical: theme.spacing.xxl,
-    },
-
-    emptyIcon: {
-        fontSize: 42,
-    },
-
-    emptyTitle: {
-        color: theme.colors.ink,
-        fontSize: 19,
-        fontWeight: '700',
-        marginTop: theme.spacing.md,
-    },
-
-    emptyDescription: {
-        color: theme.colors.earth,
-        fontSize: 13,
-        marginTop: theme.spacing.xs,
-    },
-
-    previewCard: {
-        backgroundColor: theme.colors.sage,
-        borderRadius: theme.radii.lg,
-        marginTop: theme.spacing.lg,
-        padding: theme.spacing.md,
-    },
-
-    previewHeader: {
-        alignItems: 'flex-start',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-
-    previewHeaderContent: {
-        flex: 1,
-    },
-
-    previewEyebrow: {
-        color: theme.colors.forest,
-        fontSize: 9,
-        fontWeight: '700',
-        letterSpacing: 1.3,
-    },
-
-    previewTitle: {
-        color: theme.colors.ink,
-        fontSize: 18,
-        fontWeight: '700',
-        marginTop: 3,
-    },
-
-    previewClose: {
-        color: theme.colors.earth,
-        fontSize: 25,
-    },
-
-    previewFacts: {
-        flexDirection: 'row',
-        marginTop: theme.spacing.md,
-    },
-
-    fact: {
-        flex: 1,
-    },
-
-    factLabel: {
-        color: theme.colors.earth,
-        fontSize: 9,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
-
-    factValue: {
-        color: theme.colors.ink,
-        fontSize: 13,
-        fontWeight: '700',
-        marginTop: 2,
-    },
-
-    reservationText: {
-        color: theme.colors.forest,
-        fontSize: 11,
-        fontWeight: '700',
-        marginTop: theme.spacing.md,
-        textTransform: 'capitalize',
-    },
-
-    amenitiesText: {
-        color: theme.colors.earth,
-        fontSize: 10,
-        marginTop: 4,
-        textTransform: 'capitalize',
-    },
-
-    previewDescription: {
-        color: theme.colors.bark,
-        fontSize: 12,
-        lineHeight: 18,
-        marginTop: theme.spacing.md,
-    },
-
-    dateSectionTitle: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        fontWeight: '700',
-        marginTop: theme.spacing.lg,
-    },
-
-    dateRow: {
-        flexDirection: 'row',
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.sm,
-    },
-
-    dateField: {
-        flex: 1,
-    },
-
-    dateLabel: {
-        color: theme.colors.earth,
-        fontSize: 10,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-
-    dateInput: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.parchment,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        minHeight: 46,
-        paddingHorizontal: theme.spacing.sm,
-    },
-
-    dateText: {
-        color: theme.colors.ink,
-        flex: 1,
-        fontSize: 11,
-    },
-
-    calendarIcon: {
-        color: theme.colors.forest,
-        fontSize: 16,
-        marginLeft: 4,
-    },
-
-    inputSectionTitle: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        fontWeight: '700',
-        marginTop: theme.spacing.lg,
-    },
-
-    optionalText: {
-        color: theme.colors.earth,
-        fontSize: 10,
-        fontWeight: '400',
-    },
-
-    textInput: {
-        backgroundColor: theme.colors.parchment,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        color: theme.colors.ink,
-        fontSize: 13,
-        marginTop: theme.spacing.sm,
-        minHeight: 46,
-        paddingHorizontal: theme.spacing.sm,
-    },
-
-    notesInput: {
-        minHeight: 80,
-        paddingTop: theme.spacing.sm,
-    },
-
-    bottomAction: {
-        backgroundColor: theme.colors.parchment,
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.sm,
-    },
-
-    addCampsiteButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.md,
-        minHeight: 54,
-        justifyContent: 'center',
-    },
-
-    disabledAddButton: {
-        backgroundColor: theme.colors.sage,
-    },
-
-    addCampsiteButtonText: {
-        color: theme.colors.parchment,
-        fontSize: 15,
-        fontWeight: '700',
-    },
-
-    disabledAddButtonText: {
-        color: theme.colors.earth,
-    },
-
-    modalOverlay: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(30, 40, 25, 0.45)',
-        flex: 1,
-        justifyContent: 'center',
-        paddingHorizontal: theme.spacing.lg,
-    },
-
-    dateModal: {
-        backgroundColor: theme.colors.parchment,
-        borderRadius: theme.radii.lg,
-        maxWidth: 420,
-        overflow: 'hidden',
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.lg,
-        width: '100%',
-        ...theme.shadows.card,
-    },
-
-    modalHeader: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-
-    modalEyebrow: {
-        color: theme.colors.forest,
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
-
-    modalTitle: {
-        color: theme.colors.ink,
-        fontSize: 22,
-        fontWeight: '700',
-        marginTop: 2,
-    },
-
-    modalClose: {
-        alignItems: 'center',
-        height: 36,
-        justifyContent: 'center',
-        width: 36,
-    },
-
-    modalCloseText: {
-        color: theme.colors.earth,
-        fontSize: 28,
-        fontWeight: '300',
-    },
-
-    pickerContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 320,
-        overflow: 'hidden',
-    },
-
-    doneButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.md,
-        minHeight: 50,
-        justifyContent: 'center',
-    },
-
-    doneButtonText: {
-        color: theme.colors.parchment,
-        fontSize: 15,
-        fontWeight: '700',
-    },
-
-    errorText: {
-        color: theme.colors.earth,
-        fontSize: 15,
-        margin: theme.spacing.xl,
-        textAlign: 'center',
-    },
-})
+const styles =
+    StyleSheet.create({
+        screen: {
+            backgroundColor:
+                theme.colors.parchment,
+            flex: 1,
+        },
+
+        content: {
+            paddingBottom: 150,
+            paddingHorizontal:
+                theme.spacing.lg,
+        },
+
+        header: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+        },
+
+        backButton: {
+            alignItems:
+                'center',
+            height: 42,
+            justifyContent:
+                'center',
+            width: 42,
+        },
+
+        backButtonText: {
+            color:
+                theme.colors.forest,
+            fontSize: 36,
+            fontWeight: '300',
+            lineHeight: 38,
+        },
+
+        headerTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 17,
+            fontWeight: '700',
+        },
+
+        headerSpacer: {
+            width: 42,
+        },
+
+        intro: {
+            marginTop:
+                theme.spacing.xl,
+        },
+
+        eyebrow: {
+            color:
+                theme.colors.forest,
+            fontSize: 10,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+        },
+
+        title: {
+            color:
+                theme.colors.ink,
+            fontSize: 30,
+            fontWeight: '700',
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        parkName: {
+            color:
+                theme.colors.earth,
+            fontSize: 14,
+            marginTop:
+                theme.spacing.xs,
+        },
+
+        searchContainer: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flexDirection:
+                'row',
+            marginTop:
+                theme.spacing.xl,
+            minHeight: 52,
+            paddingHorizontal:
+                theme.spacing.md,
+        },
+
+        searchIcon: {
+            color:
+                theme.colors.earth,
+            fontSize: 24,
+            marginRight:
+                theme.spacing.sm,
+        },
+
+        searchInput: {
+            color:
+                theme.colors.ink,
+            flex: 1,
+            fontSize: 14,
+            minHeight: 50,
+        },
+
+        clearButton: {
+            alignItems:
+                'center',
+            height: 30,
+            justifyContent:
+                'center',
+            width: 30,
+        },
+
+        clearText: {
+            color:
+                theme.colors.earth,
+            fontSize: 22,
+        },
+
+        resultLabel: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            marginTop:
+                theme.spacing.md,
+        },
+
+        // keeps the large api result set inside a compact independently scrollable area
+        campsiteList: {
+            height: 300,
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        campsiteListContent: {
+            gap:
+                theme.spacing.sm,
+            paddingBottom:
+                theme.spacing.xs,
+        },
+
+        campsiteCard: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flexDirection:
+                'row',
+            padding:
+                theme.spacing.sm,
+        },
+
+        selectedCampsiteCard: {
+            backgroundColor:
+                theme.colors.sage,
+            borderColor:
+                theme.colors.forest,
+        },
+
+        disabledCampsiteCard: {
+            opacity:
+                0.6,
+        },
+
+        campsiteIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius:
+                24,
+            height: 48,
+            justifyContent:
+                'center',
+            width: 48,
+        },
+
+        campsiteEmoji: {
+            fontSize: 23,
+        },
+
+        campsiteContent: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.sm,
+        },
+
+        campsiteName: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            fontWeight:
+                '700',
+        },
+
+        campsiteDescription: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            lineHeight: 16,
+            marginTop: 3,
+        },
+
+        campsiteFacts: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        campsiteFact: {
+            color:
+                theme.colors.forest,
+            fontSize: 11,
+            fontWeight:
+                '600',
+        },
+
+        factDivider: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            marginHorizontal: 5,
+        },
+
+        petRow: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginTop: 4,
+        },
+
+        petIcon: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            fontWeight:
+                '700',
+        },
+
+        petText: {
+            color:
+                theme.colors.earth,
+            flex: 1,
+            fontSize: 10,
+            marginLeft: 4,
+        },
+
+        selectionIndicator: {
+            alignItems:
+                'center',
+            borderColor:
+                theme.colors.earth,
+            borderRadius:
+                10,
+            borderWidth:
+                1.5,
+            height: 20,
+            justifyContent:
+                'center',
+            marginLeft:
+                theme.spacing.sm,
+            width: 20,
+        },
+
+        selectedIndicator: {
+            borderColor:
+                theme.colors.forest,
+        },
+
+        alreadyAddedIndicator: {
+            backgroundColor:
+                theme.colors.forest,
+            borderColor:
+                theme.colors.forest,
+        },
+
+        alreadyAddedText: {
+            color:
+                theme.colors.parchment,
+            fontSize: 13,
+            fontWeight:
+                '700',
+        },
+
+        selectionDot: {
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                5,
+            height: 10,
+            width: 10,
+        },
+
+        emptyState: {
+            alignItems:
+                'center',
+            paddingHorizontal:
+                theme.spacing.xl,
+            paddingVertical:
+                theme.spacing.xxl,
+        },
+
+        emptyIcon: {
+            fontSize: 42,
+        },
+
+        emptyTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 19,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.md,
+        },
+
+        emptyDescription: {
+            color:
+                theme.colors.earth,
+            fontSize: 13,
+            marginTop:
+                theme.spacing.xs,
+            textAlign:
+                'center',
+        },
+
+        previewCard: {
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.lg,
+            marginTop:
+                theme.spacing.lg,
+            padding:
+                theme.spacing.md,
+        },
+
+        previewHeader: {
+            alignItems:
+                'flex-start',
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+        },
+
+        previewHeaderContent: {
+            flex: 1,
+        },
+
+        previewEyebrow: {
+            color:
+                theme.colors.forest,
+            fontSize: 9,
+            fontWeight:
+                '700',
+            letterSpacing:
+                1.3,
+        },
+
+        previewTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 18,
+            fontWeight:
+                '700',
+            marginTop: 3,
+        },
+
+        previewClose: {
+            color:
+                theme.colors.earth,
+            fontSize: 25,
+        },
+
+        previewFacts: {
+            flexDirection:
+                'row',
+            marginTop:
+                theme.spacing.md,
+        },
+
+        fact: {
+            flex: 1,
+        },
+
+        factLabel: {
+            color:
+                theme.colors.earth,
+            fontSize: 9,
+            fontWeight:
+                '600',
+            textTransform:
+                'uppercase',
+        },
+
+        factValue: {
+            color:
+                theme.colors.ink,
+            fontSize: 12,
+            fontWeight:
+                '700',
+            marginTop: 2,
+        },
+
+        reservationText: {
+            color:
+                theme.colors.forest,
+            fontSize: 11,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.md,
+        },
+
+        amenitiesText: {
+            color:
+                theme.colors.earth,
+            fontSize: 10,
+            marginTop: 4,
+        },
+
+        previewDescription: {
+            color:
+                theme.colors.bark,
+            fontSize: 12,
+            lineHeight: 18,
+            marginTop:
+                theme.spacing.md,
+        },
+
+        dateSectionTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        dateRow: {
+            flexDirection:
+                'row',
+            gap:
+                theme.spacing.sm,
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        dateField: {
+            flex: 1,
+        },
+
+        dateLabel: {
+            color:
+                theme.colors.earth,
+            fontSize: 10,
+            fontWeight:
+                '700',
+            marginBottom: 4,
+        },
+
+        dateInput: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.parchment,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            minHeight: 46,
+            paddingHorizontal:
+                theme.spacing.sm,
+        },
+
+        dateText: {
+            color:
+                theme.colors.ink,
+            flex: 1,
+            fontSize: 11,
+        },
+
+        calendarIcon: {
+            color:
+                theme.colors.forest,
+            fontSize: 16,
+            marginLeft: 4,
+        },
+
+        inputSectionTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            fontWeight:
+                '700',
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        optionalText: {
+            color:
+                theme.colors.earth,
+            fontSize: 10,
+            fontWeight:
+                '400',
+        },
+
+        textInput: {
+            backgroundColor:
+                theme.colors.parchment,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            color:
+                theme.colors.ink,
+            fontSize: 13,
+            marginTop:
+                theme.spacing.sm,
+            minHeight: 46,
+            paddingHorizontal:
+                theme.spacing.sm,
+        },
+
+        notesInput: {
+            minHeight: 80,
+            paddingTop:
+                theme.spacing.sm,
+        },
+
+        bottomAction: {
+            backgroundColor:
+                theme.colors.parchment,
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingTop:
+                theme.spacing.sm,
+        },
+
+        addCampsiteButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.md,
+            minHeight: 54,
+            justifyContent:
+                'center',
+        },
+
+        disabledAddButton: {
+            backgroundColor:
+                theme.colors.sage,
+        },
+
+        addCampsiteButtonText: {
+            color:
+                theme.colors.parchment,
+            fontSize: 15,
+            fontWeight:
+                '700',
+        },
+
+        disabledAddButtonText: {
+            color:
+                theme.colors.earth,
+        },
+
+        modalOverlay: {
+            alignItems:
+                'center',
+            backgroundColor:
+                'rgba(30, 40, 25, 0.45)',
+            flex: 1,
+            justifyContent:
+                'center',
+            paddingHorizontal:
+                theme.spacing.lg,
+        },
+
+        dateModal: {
+            backgroundColor:
+                theme.colors.parchment,
+            borderRadius:
+                theme.radii.lg,
+            maxWidth: 420,
+            overflow:
+                'hidden',
+            paddingHorizontal:
+                theme.spacing.lg,
+            paddingTop:
+                theme.spacing.lg,
+            width:
+                '100%',
+            ...theme.shadows.card,
+        },
+
+        modalHeader: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+        },
+
+        modalEyebrow: {
+            color:
+                theme.colors.forest,
+            fontSize: 10,
+            fontWeight:
+                '700',
+            letterSpacing:
+                1.5,
+        },
+
+        modalTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 22,
+            fontWeight:
+                '700',
+            marginTop: 2,
+        },
+
+        modalClose: {
+            alignItems:
+                'center',
+            height: 36,
+            justifyContent:
+                'center',
+            width: 36,
+        },
+
+        modalCloseText: {
+            color:
+                theme.colors.earth,
+            fontSize: 28,
+            fontWeight:
+                '300',
+        },
+
+        pickerContainer: {
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            minHeight: 320,
+            overflow:
+                'hidden',
+        },
+
+        doneButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.md,
+            minHeight: 50,
+            justifyContent:
+                'center',
+        },
+
+        doneButtonText: {
+            color:
+                theme.colors.parchment,
+            fontSize: 15,
+            fontWeight:
+                '700',
+        },
+
+        errorText: {
+            color:
+                theme.colors.earth,
+            fontSize: 15,
+            margin:
+                theme.spacing.xl,
+            textAlign:
+                'center',
+        },
+    })

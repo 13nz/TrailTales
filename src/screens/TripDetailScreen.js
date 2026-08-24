@@ -9,14 +9,13 @@ import {
     Modal,
 } from 'react-native'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import theme from '../constants/theme'
 import { useTrips } from '../context/TripContext'
-import mockParks from '../data/mockParks'
-import mockTrails from '../data/mockTrails'
-import mockCampsites from '../data/mockCampsites'
+import { getCampgroundsByPark } from '../api/npsApi'
+import { getParkByCode, getTrailsByPark } from '../api/npsApi'
 
 // displays the complete planning workspace for a single outdoor adventure
 export default function TripDetailScreen({
@@ -28,11 +27,105 @@ export default function TripDetailScreen({
     const { tripId } = route.params
     const { trips, updateTrip } = useTrips()
 
-    // finds the selected adventure from the shared trip store
-    const trip = trips.find((item) => item.id === tripId) ||ctrips[0]
+    const [campgrounds, setCampgrounds] = useState([])
 
-    // finds the national park associated with the selected trip
-    const park = mockParks.find((item) => item.id === trip?.parkId)
+    // finds the selected adventure from the shared trip store
+    const trip = trips.find((item) => item.id === tripId) || trips[0]
+
+    // loads the real nps campground records for this trip's park
+    useEffect(() => {
+        async function loadCampgrounds() {
+            if (!trip?.parkId) {
+                return
+            }
+
+            try {
+                const data =
+                    await getCampgroundsByPark(
+                        trip.parkId
+                    )
+
+                setCampgrounds(
+                    data || []
+                )
+            } catch (error) {
+                console.error(
+                    'nps trip campground error:',
+                    error
+                )
+
+                setCampgrounds([])
+            }
+        }
+
+        loadCampgrounds()
+    }, [trip?.parkId])
+
+    const [park, setPark] = useState(null)
+    const [trails, setTrails] = useState([])
+    const [loadingNpsData, setLoadingNpsData] = useState(true)
+
+    // loads the trip's national park and trails from the nps api
+    useEffect(() => {
+        let active = true
+
+        async function loadNpsData() {
+            if (!trip?.parkId) {
+                if (active) {
+                    setPark(null)
+                    setTrails([])
+                    setLoadingNpsData(false)
+                }
+
+                return
+            }
+
+            try {
+                setLoadingNpsData(true)
+
+                const [
+                    apiPark,
+                    apiTrails,
+                ] = await Promise.all([
+                    getParkByCode(
+                        trip.parkId
+                    ),
+                    getTrailsByPark(
+                        trip.parkId
+                    ),
+                ])
+
+                if (!active) {
+                    return
+                }
+
+                setPark(apiPark)
+                setTrails(
+                    apiTrails || []
+                )
+            } catch (error) {
+                console.error(
+                    'nps trip detail error:',
+                    error
+                )
+
+                if (active) {
+                    setPark(null)
+                    setTrails([])
+                }
+            } finally {
+                if (active) {
+                    setLoadingNpsData(false)
+                }
+            }
+        }
+
+        loadNpsData()
+
+        return () => {
+            active = false
+        }
+    }, [trip?.parkId])
 
     if (!trip) {
         return (
@@ -59,7 +152,9 @@ export default function TripDetailScreen({
             >
                 <View style={styles.header}>
                     <Pressable
-                        style={styles.backButton}
+                        style={
+                            styles.backButton
+                        }
                         onPress={() =>
                             navigation.goBack()
                         }
@@ -85,19 +180,26 @@ export default function TripDetailScreen({
                     </Text>
 
                     <Pressable
-                        style={styles.favoriteButton}
+                        style={
+                            styles.favoriteButton
+                        }
                         onPress={() => {
                             navigation.navigate(
                                 'EditTrip',
                                 {
-                                    tripId: trip.id,
+                                    tripId:
+                                        trip.id,
                                 }
                             )
                         }}
                         accessibilityRole="button"
                         accessibilityLabel="edit trip"
                     >
-                        <Text style={styles.favoriteIcon}>
+                        <Text
+                            style={
+                                styles.favoriteIcon
+                            }
+                        >
                             ✎
                         </Text>
                     </Pressable>
@@ -123,8 +225,10 @@ export default function TripDetailScreen({
                     </Text>
 
                     <Text style={styles.parkName}>
-                        {park?.name ||
-                            'National Park'}
+                        {loadingNpsData
+                            ? 'Loading park...'
+                            : park?.name ||
+                              'National Park'}
                     </Text>
 
                     <Text style={styles.dates}>
@@ -135,7 +239,9 @@ export default function TripDetailScreen({
                     </Text>
                 </View>
 
-                <TripStats trip={trip} />
+                <TripStats
+                    trip={trip}
+                />
 
                 {/* trails */}
 
@@ -144,9 +250,16 @@ export default function TripDetailScreen({
                     icon="🥾"
                 />
 
-                {trip.trails?.length > 0 ? (
+                {loadingNpsData ? (
+                    <EmptySection
+                        text="Loading trails..."
+                    />
+                ) : trip.trails?.length > 0 ? (
                     trip.trails.map(
-                        (trailReservation, index) => {
+                        (
+                            trailReservation,
+                            index
+                        ) => {
                             const trailId =
                                 typeof trailReservation ===
                                 'string'
@@ -154,7 +267,7 @@ export default function TripDetailScreen({
                                     : trailReservation.id
 
                             const trail =
-                                mockTrails.find(
+                                trails.find(
                                     (item) =>
                                         item.id ===
                                         trailId
@@ -178,7 +291,7 @@ export default function TripDetailScreen({
 
                             return (
                                 <SavedItem
-                                // identify reservation instead of just trail id to allow multiple entries
+                                    // identify reservation instead of just trail id to allow multiple entries
                                     key={`trail-${trail.id}-${index}`}
                                     title={
                                         trail.name
@@ -197,7 +310,9 @@ export default function TripDetailScreen({
                                               )
                                             : null,
                                     ]
-                                        .filter(Boolean)
+                                        .filter(
+                                            Boolean
+                                        )
                                         .join(
                                             ' · '
                                         )}
@@ -234,7 +349,9 @@ export default function TripDetailScreen({
                         }
                     )
                 ) : (
-                    <EmptySection text="No trails added yet" />
+                    <EmptySection
+                        text="No trails added yet"
+                    />
                 )}
 
                 <AddButton
@@ -243,7 +360,8 @@ export default function TripDetailScreen({
                         navigation.navigate(
                             'AddTrail',
                             {
-                                tripId: trip.id,
+                                tripId:
+                                    trip.id,
                             }
                         )
                     }}
@@ -268,12 +386,11 @@ export default function TripDetailScreen({
                                     ? campsiteReservation
                                     : campsiteReservation.id
 
-                            const campsite =
-                                mockCampsites.find(
-                                    (item) =>
-                                        item.id ===
-                                        campsiteId
-                                )
+                            const campsite = campgrounds.find(
+                                (item) =>
+                                    String(item.id) ===
+                                    String(campsiteId)
+                            )
 
                             if (!campsite) {
                                 return null
@@ -362,13 +479,13 @@ export default function TripDetailScreen({
                                                     styles.savedItemSubtitle
                                                 }
                                             >
-                                                {
-                                                    campsite.price
-                                                }{' '}
+                                                {formatCampgroundPrice(
+                                                    campsite
+                                                )}{' '}
                                                 ·{' '}
-                                                {
-                                                    campsite.sites
-                                                }{' '}
+                                                {formatCampgroundSites(
+                                                    campsite
+                                                )}{' '}
                                                 sites
                                             </Text>
                                         </View>
@@ -460,7 +577,9 @@ export default function TripDetailScreen({
                         }
                     )
                 ) : (
-                    <EmptySection text="No campsite added yet" />
+                    <EmptySection
+                        text="No campsite added yet"
+                    />
                 )}
 
                 <AddButton
@@ -469,7 +588,8 @@ export default function TripDetailScreen({
                         navigation.navigate(
                             'AddCampsite',
                             {
-                                tripId: trip.id,
+                                tripId:
+                                    trip.id,
                             }
                         )
                     }}
@@ -561,7 +681,9 @@ export default function TripDetailScreen({
                         }
                     )
                 ) : (
-                    <EmptySection text="No activities added yet" />
+                    <EmptySection
+                        text="No activities added yet"
+                    />
                 )}
 
                 <AddButton
@@ -570,7 +692,8 @@ export default function TripDetailScreen({
                         navigation.navigate(
                             'AddActivity',
                             {
-                                tripId: trip.id,
+                                tripId:
+                                    trip.id,
                             }
                         )
                     }}
@@ -584,10 +707,14 @@ export default function TripDetailScreen({
                 />
 
                 <View
-                    style={styles.notesCard}
+                    style={
+                        styles.notesCard
+                    }
                 >
                     <TextInput
-                        value={trip.notes || ''}
+                        value={
+                            trip.notes || ''
+                        }
                         multiline
                         placeholder="Add notes about your adventure..."
                         placeholderTextColor={
@@ -622,12 +749,15 @@ export default function TripDetailScreen({
                 />
 
                 {(
-                    trip.packingItems || []
+                    trip.packingItems ||
+                    []
                 ).length > 0 ? (
                     trip.packingItems.map(
                         (item) => (
                             <ChecklistItem
-                                key={item.id}
+                                key={
+                                    item.id
+                                }
                                 label={
                                     item.label
                                 }
@@ -674,7 +804,9 @@ export default function TripDetailScreen({
                         )
                     )
                 ) : (
-                    <EmptySection text="Nothing on your packing list yet" />
+                    <EmptySection
+                        text="Nothing on your packing list yet"
+                    />
                 )}
 
                 <AddPackingItemButton
@@ -699,7 +831,11 @@ export default function TripDetailScreen({
 
                 {/* itinerary */}
 
-                <View style={styles.divider} />
+                <View
+                    style={
+                        styles.divider
+                    }
+                />
 
                 <View
                     style={
@@ -746,7 +882,8 @@ export default function TripDetailScreen({
                             navigation.navigate(
                                 'AddActivity',
                                 {
-                                    tripId: trip.id,
+                                    tripId:
+                                        trip.id,
                                 }
                             )
                         }}
@@ -765,58 +902,89 @@ export default function TripDetailScreen({
 
                 <DynamicItinerary
                     trip={trip}
-                    trails={mockTrails}
-                    onRemoveTrail={(trailId) => {
+                    trails={trails}
+                    onRemoveTrail={(
+                        trailId
+                    ) => {
                         // removes the selected trail reservation from the trip
-                        updateTrip(trip.id, {
-                            trails: (
-                                trip.trails || []
-                            ).filter((trail) => {
-                                if (
-                                    typeof trail ===
-                                    'string'
-                                ) {
-                                    return trail !==
-                                        trailId
-                                }
+                        updateTrip(
+                            trip.id,
+                            {
+                                trails: (
+                                    trip.trails ||
+                                    []
+                                ).filter(
+                                    (
+                                        trail
+                                    ) => {
+                                        if (
+                                            typeof trail ===
+                                            'string'
+                                        ) {
+                                            return (
+                                                trail !==
+                                                trailId
+                                            )
+                                        }
 
-                                return trail.id !==
-                                    trailId
-                            }),
-                        })
+                                        return (
+                                            trail.id !==
+                                            trailId
+                                        )
+                                    }
+                                ),
+                            }
+                        )
                     }}
-                    onRemoveActivity={(activityId) => {
+                    onRemoveActivity={(
+                        activityId
+                    ) => {
                         // removes the selected activity from the trip
-                        updateTrip(trip.id, {
-                            activities: (
-                                trip.activities || []
-                            ).filter((activity) => {
-                                if (
-                                    typeof activity ===
-                                    'string'
-                                ) {
-                                    return true
-                                }
+                        updateTrip(
+                            trip.id,
+                            {
+                                activities: (
+                                    trip.activities ||
+                                    []
+                                ).filter(
+                                    (
+                                        activity
+                                    ) => {
+                                        if (
+                                            typeof activity ===
+                                            'string'
+                                        ) {
+                                            return true
+                                        }
 
-                                return activity.id !==
-                                    activityId
-                            }),
-                        })
+                                        return (
+                                            activity.id !==
+                                            activityId
+                                        )
+                                    }
+                                ),
+                            }
+                        )
                     }}
                     onEditEvent={(event) => {
+                        // opens the schedule editor using the saved itinerary item's id
                         navigation.navigate(
                             'EditItineraryItem',
                             {
                                 tripId: trip.id,
                                 itemType: event.type,
-                                itemId: event.sourceId,
+                                itemId: String(
+                                    event.sourceId
+                                ),
                             }
                         )
                     }}
                 />
 
                 <View
-                    style={styles.bottomSpacer}
+                    style={
+                        styles.bottomSpacer
+                    }
                 />
             </ScrollView>
         </View>
@@ -828,15 +996,23 @@ function SectionHeader({
     icon,
 }) {
     return (
-        <View style={styles.sectionHeader}>
+        <View
+            style={
+                styles.sectionHeader
+            }
+        >
             <Text
-                style={styles.sectionIcon}
+                style={
+                    styles.sectionIcon
+                }
             >
                 {icon}
             </Text>
 
             <Text
-                style={styles.sectionTitle}
+                style={
+                    styles.sectionTitle
+                }
             >
                 {title}
             </Text>
@@ -853,8 +1029,12 @@ function SavedItem({
 }) {
     return (
         <Pressable
-            style={styles.savedItem}
-            onPress={onPress}
+            style={
+                styles.savedItem
+            }
+            onPress={
+                onPress
+            }
             accessibilityRole="button"
             accessibilityLabel={`view ${title}`}
         >
@@ -881,6 +1061,7 @@ function SavedItem({
                     style={
                         styles.savedItemTitle
                     }
+                    numberOfLines={2}
                 >
                     {title}
                 </Text>
@@ -889,61 +1070,42 @@ function SavedItem({
                     style={
                         styles.savedItemSubtitle
                     }
+                    numberOfLines={2}
                 >
                     {subtitle}
                 </Text>
             </View>
 
-            <Pressable
-                onPress={(event) => {
-                    event?.stopPropagation?.()
-                    onRemove()
-                }}
-                style={
-                    styles.removeButton
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`remove ${title}`}
-                hitSlop={8}
-            >
-                <Text
+            {onRemove ? (
+                <Pressable
+                    onPress={(event) => {
+                        event?.stopPropagation?.()
+
+                        onRemove()
+                    }}
                     style={
-                        styles.removeText
+                        styles.removeButton
                     }
+                    accessibilityRole="button"
+                    accessibilityLabel={`remove ${title}`}
+                    hitSlop={8}
                 >
-                    ×
-                </Text>
-            </Pressable>
+                    <Text
+                        style={
+                            styles.removeText
+                        }
+                    >
+                        ×
+                    </Text>
+                </Pressable>
+            ) : null}
         </Pressable>
     )
 }
 
-function DetailRow({
-    label,
-    value,
+function EmptySection({
+    text,
 }) {
-    return (
-        <View style={styles.detailRow}>
-            <Text
-                style={
-                    styles.detailLabel
-                }
-            >
-                {label}
-            </Text>
-
-            <Text
-                style={
-                    styles.detailValue
-                }
-            >
-                {value}
-            </Text>
-        </View>
-    )
-}
-
-function EmptySection({ text }) {
     return (
         <View
             style={
@@ -967,7 +1129,9 @@ function AddButton({
 }) {
     return (
         <Pressable
-            style={styles.addButton}
+            style={
+                styles.addButton
+            }
             onPress={onPress}
             accessibilityRole="button"
             accessibilityLabel={label}
@@ -991,9 +1155,38 @@ function AddButton({
     )
 }
 
+function DetailRow({
+    label,
+    value,
+}) {
+    return (
+        <View
+            style={
+                styles.detailRow
+            }
+        >
+            <Text
+                style={
+                    styles.detailLabel
+                }
+            >
+                {label}
+            </Text>
+
+            <Text
+                style={
+                    styles.detailValue
+                }
+            >
+                {value}
+            </Text>
+        </View>
+    )
+}
+
 function ChecklistItem({
     label,
-    completed = false,
+    completed,
     onToggle,
     onRemove,
 }) {
@@ -1043,10 +1236,10 @@ function ChecklistItem({
             </Pressable>
 
             <Pressable
-                onPress={onRemove}
                 style={
                     styles.checklistRemove
                 }
+                onPress={onRemove}
                 accessibilityRole="button"
                 accessibilityLabel={`remove ${label}`}
                 hitSlop={8}
@@ -1066,51 +1259,80 @@ function ChecklistItem({
 function AddPackingItemButton({
     onAdd,
 }) {
-    const [visible, setVisible] =
-        useState(false)
+    const [
+        showModal,
+        setShowModal,
+    ] = useState(false)
 
-    const [value, setValue] =
-        useState('')
+    const [
+        value,
+        setValue,
+    ] = useState('')
 
-    const handleAdd = () => {
-        if (!value.trim()) {
+    const handleSave = () => {
+        const trimmed =
+            value.trim()
+
+        if (!trimmed) {
             return
         }
 
-        onAdd(value.trim())
+        onAdd(trimmed)
 
         setValue('')
-        setVisible(false)
-
-        Keyboard.dismiss()
+        setShowModal(false)
     }
 
     return (
         <>
-            <AddButton
-                label="Add packing item"
-                onPress={() => {
-                    setVisible(true)
-                }}
-            />
+            <Pressable
+                style={
+                    styles.addButton
+                }
+                onPress={() =>
+                    setShowModal(true)
+                }
+                accessibilityRole="button"
+                accessibilityLabel="add packing item"
+            >
+                <Text
+                    style={
+                        styles.addButtonText
+                    }
+                >
+                    +
+                </Text>
+
+                <Text
+                    style={
+                        styles.addButtonLabel
+                    }
+                >
+                    Add packing item
+                </Text>
+            </Pressable>
 
             <Modal
-                visible={visible}
+                visible={showModal}
                 transparent
                 animationType="fade"
-                onRequestClose={() => {
-                    setVisible(false)
-                }}
+                onRequestClose={() =>
+                    setShowModal(false)
+                }
             >
-                <View
+                <Pressable
                     style={
                         styles.modalOverlay
                     }
+                    onPress={() =>
+                        Keyboard.dismiss()
+                    }
                 >
-                    <View
+                    <Pressable
                         style={
                             styles.packingModal
                         }
+                        onPress={() => {}}
                     >
                         <Text
                             style={
@@ -1125,9 +1347,10 @@ function AddPackingItemButton({
                             onChangeText={
                                 setValue
                             }
-                            placeholder="e.g. sunscreen"
+                            placeholder="e.g. headlamp"
                             placeholderTextColor={
-                                theme.colors.earth
+                                theme.colors
+                                    .earth
                             }
                             style={
                                 styles.packingInput
@@ -1135,7 +1358,7 @@ function AddPackingItemButton({
                             autoFocus
                             returnKeyType="done"
                             onSubmitEditing={
-                                handleAdd
+                                handleSave
                             }
                         />
 
@@ -1152,10 +1375,9 @@ function AddPackingItemButton({
                                     setValue(
                                         ''
                                     )
-                                    setVisible(
+                                    setShowModal(
                                         false
                                     )
-                                    Keyboard.dismiss()
                                 }}
                             >
                                 <Text
@@ -1172,10 +1394,7 @@ function AddPackingItemButton({
                                     styles.savePackingButton
                                 }
                                 onPress={
-                                    handleAdd
-                                }
-                                disabled={
-                                    !value.trim()
+                                    handleSave
                                 }
                             >
                                 <Text
@@ -1187,8 +1406,8 @@ function AddPackingItemButton({
                                 </Text>
                             </Pressable>
                         </View>
-                    </View>
-                </View>
+                    </Pressable>
+                </Pressable>
             </Modal>
         </>
     )
@@ -1202,7 +1421,11 @@ function ItineraryDay({
     onEditEvent,
 }) {
     return (
-        <View style={styles.itineraryDay}>
+        <View
+            style={
+                styles.itineraryDay
+            }
+        >
             {date ? (
                 <Text
                     style={
@@ -1213,135 +1436,156 @@ function ItineraryDay({
                 </Text>
             ) : null}
 
-            <View style={styles.timeline}>
-                {events.map((event, index) => (
-                    <View
-                        key={event.id}
-                        style={
-                            styles.timelineEvent
-                        }
-                    >
+            <View
+                style={
+                    styles.timeline
+                }
+            >
+                {events.map(
+                    (
+                        event,
+                        index
+                    ) => (
                         <View
-                            style={
-                                styles.timelineTime
+                            key={
+                                event.id
                             }
-                        >
-                            <Text
-                                style={
-                                    styles.eventTime
-                                }
-                            >
-                                {event.time
-                                    ? formatTime(
-                                          event.time
-                                      )
-                                    : '—'}
-                            </Text>
-                        </View>
-
-                        <View
                             style={
-                                styles.timelineLineContainer
+                                styles.timelineEvent
                             }
                         >
                             <View
                                 style={
-                                    styles.timelineDot
+                                    styles.timelineTime
                                 }
                             >
                                 <Text
                                     style={
-                                        styles.timelineEmoji
+                                        styles.eventTime
                                     }
                                 >
-                                    {event.icon}
+                                    {event.time
+                                        ? formatTime(
+                                              event.time
+                                          )
+                                        : '—'}
                                 </Text>
                             </View>
 
-                            {index <
-                            events.length - 1 ? (
+                            <View
+                                style={
+                                    styles.timelineLineContainer
+                                }
+                            >
                                 <View
                                     style={
-                                        styles.timelineLine
-                                    }
-                                />
-                            ) : null}
-                        </View>
-
-                        <Pressable
-                            style={
-                                styles.eventContent
-                            }
-                            onPress={() => {
-                                onEditEvent(event)
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel={`edit ${event.title}`}
-                        >
-                            <Text
-                                style={
-                                    styles.eventTitle
-                                }
-                            >
-                                {event.title}
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.eventSubtitle
-                                }
-                            >
-                                {event.subtitle}
-                            </Text>
-
-                            {event.outsideTripDates ? (
-                                <Text
-                                    style={
-                                        styles.eventWarning
+                                        styles.timelineDot
                                     }
                                 >
-                                    ⚠ outside trip dates, tap to edit
-                                </Text>
-                            ) : null}
-                        </Pressable>
+                                    <Text
+                                        style={
+                                            styles.timelineEmoji
+                                        }
+                                    >
+                                        {
+                                            event.icon
+                                        }
+                                    </Text>
+                                </View>
 
-                        <Pressable
-                            style={
-                                styles.eventRemove
-                            }
-                            onPress={() => {
-                                if (
-                                    event.type ===
-                                    'trail'
-                                ) {
-                                    onRemoveTrail(
-                                        event.sourceId
-                                    )
-                                }
+                                {index <
+                                events.length -
+                                    1 ? (
+                                    <View
+                                        style={
+                                            styles.timelineLine
+                                        }
+                                    />
+                                ) : null}
+                            </View>
 
-                                if (
-                                    event.type ===
-                                    'activity'
-                                ) {
-                                    onRemoveActivity(
-                                        event.sourceId
-                                    )
-                                }
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel={`remove ${event.title}`}
-                            hitSlop={8}
-                        >
-                            <Text
+                            {/* allows tapping itinerary events to edit */}
+                            <Pressable
                                 style={
-                                    styles.removeText
+                                    styles.eventContent
                                 }
+                                onPress={() => {
+                                    onEditEvent(
+                                        event
+                                    )
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`edit ${event.title}`}
                             >
-                                ×
-                            </Text>
-                        </Pressable>
-                    </View>
-                ))}
+                                <Text
+                                    style={
+                                        styles.eventTitle
+                                    }
+                                >
+                                    {
+                                        event.title
+                                    }
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.eventSubtitle
+                                    }
+                                >
+                                    {
+                                        event.subtitle
+                                    }
+                                </Text>
+
+                                {event.outsideTripDates ? (
+                                    <Text
+                                        style={
+                                            styles.eventWarning
+                                        }
+                                    >
+                                        ⚠ outside trip dates
+                                    </Text>
+                                ) : null}
+                            </Pressable>
+
+                            <Pressable
+                                style={
+                                    styles.eventRemove
+                                }
+                                onPress={() => {
+                                    if (
+                                        event.type ===
+                                        'trail'
+                                    ) {
+                                        onRemoveTrail(
+                                            event.sourceId
+                                        )
+                                    }
+
+                                    if (
+                                        event.type ===
+                                        'activity'
+                                    ) {
+                                        onRemoveActivity(
+                                            event.sourceId
+                                        )
+                                    }
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`remove ${event.title}`}
+                                hitSlop={8}
+                            >
+                                <Text
+                                    style={
+                                        styles.removeText
+                                    }
+                                >
+                                    ×
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )
+                )}
             </View>
         </View>
     )
@@ -1354,58 +1598,83 @@ function DynamicItinerary({
     onRemoveActivity,
     onEditEvent,
 }) {
+    // converts the trail reservations loaded from the db into itinerary events
     const trailEvents = (
         trip.trails || []
     )
-        .map((trailReservation, index) => {
-            const trailId =
-                typeof trailReservation ===
-                'string'
-                    ? trailReservation
-                    : trailReservation.id
+        .map(
+            (
+                trailReservation,
+                index
+            ) => {
+                // supports the database reservation object as well as older string records
+                const trailId =
+                    typeof trailReservation ===
+                    'string'
+                        ? trailReservation
+                        : trailReservation.id
 
-            const trail = trails.find(
-                (item) =>
-                    item.id === trailId
-            )
+                // finds the current nps trail information using the id saved in the database
+                const trail =
+                    trails.find(
+                        (item) =>
+                            String(item.id) ===
+                            String(trailId)
+                    )
 
-            if (!trail) {
-                return null
-            }
+                // waits for the nps trail information instead of creating an incomplete event
+                if (!trail) {
+                    return null
+                }
 
-            return {
-                // reservation to allow multiple entries
-                id: `trail-${trail.id}-${index}`,
-                sourceId: trail.id,
-                date:
+                // the database reservation is the source of truth for scheduling
+                const reservation =
                     typeof trailReservation ===
                     'object'
-                        ? trailReservation.date
-                        : null,
-                time:
-                    typeof trailReservation ===
-                    'object'
-                        ? trailReservation.time
-                        : null,
-                icon: '🥾',
-                title: trail.name,
-                subtitle: `${trail.distance} · ${trail.difficulty}`,
-                type: 'trail',
-                outsideTripDates:
-                    Boolean(
-                        typeof trailReservation ===
-                            'object' &&
-                        trailReservation.date &&
-                        (
-                            trailReservation.date <
-                                trip.startDate ||
-                            trailReservation.date >
-                                trip.endDate
-                        )
-                    ),
+                        ? trailReservation
+                        : null
+
+                return {
+                    // includes the array position so duplicate trail reservations have unique react keys
+                    id: `trail-${trailId}-${index}`,
+
+                    // keeps the database trail id available to edit and remove the reservation
+                    sourceId: trailId,
+
+                    // reads the scheduled date directly from the saved reservation
+                    date:
+                        reservation?.date ||
+                        null,
+
+                    // reads the scheduled time directly from the saved reservation
+                    time:
+                        reservation?.time ||
+                        null,
+
+                    icon: '🥾',
+
+                    // these values come from the nps api, not the database
+                    title:
+                        trail.name,
+
+                    subtitle:
+                        `${trail.distance} · ${trail.difficulty}`,
+
+                    type: 'trail',
+
+                    outsideTripDates:
+                        Boolean(
+                            reservation?.date &&
+                            (
+                                reservation.date <
+                                    trip.startDate ||
+                                reservation.date >
+                                    trip.endDate
+                            )
+                        ),
+                }
             }
-        })
-        .filter(Boolean)
+        ).filter(Boolean)
 
     const activityEvents = (
         trip.activities || []
@@ -1417,11 +1686,15 @@ function DynamicItinerary({
         )
         .map((activity) => ({
             id: `activity-${activity.id}`,
-            sourceId: activity.id,
-            date: activity.date,
-            time: activity.time,
+            sourceId:
+                activity.id,
+            date:
+                activity.date,
+            time:
+                activity.time,
             icon: '⭐',
-            title: activity.title,
+            title:
+                activity.title,
             subtitle:
                 activity.location ||
                 'Activity',
@@ -1586,12 +1859,15 @@ function DynamicItinerary({
     )
 }
 
-// STATS component
-function TripStats({ trip }) {
-    const duration = calculateTripDuration(
-        trip.startDate,
-        trip.endDate
-    )
+// stats component
+function TripStats({
+    trip,
+}) {
+    const duration =
+        calculateTripDuration(
+            trip.startDate,
+            trip.endDate
+        )
 
     const trailCount =
         (trip.trails || []).length
@@ -1603,24 +1879,36 @@ function TripStats({ trip }) {
         (trip.activities || []).length
 
     return (
-        <View style={styles.statsContainer}>
+        <View
+            style={
+                styles.statsContainer
+            }
+        >
             <TripStat
-                value={duration}
+                value={
+                    duration
+                }
                 label="days"
             />
 
             <TripStat
-                value={trailCount}
+                value={
+                    trailCount
+                }
                 label="trails"
             />
 
             <TripStat
-                value={campsiteCount}
+                value={
+                    campsiteCount
+                }
                 label="campsites"
             />
 
             <TripStat
-                value={activityCount}
+                value={
+                    activityCount
+                }
                 label="activities"
             />
         </View>
@@ -1632,12 +1920,24 @@ function TripStat({
     label,
 }) {
     return (
-        <View style={styles.statCard}>
-            <Text style={styles.statValue}>
+        <View
+            style={
+                styles.statCard
+            }
+        >
+            <Text
+                style={
+                    styles.statValue
+                }
+            >
                 {value}
             </Text>
 
-            <Text style={styles.statLabel}>
+            <Text
+                style={
+                    styles.statLabel
+                }
+            >
                 {label}
             </Text>
         </View>
@@ -1648,13 +1948,15 @@ function formatDateRange(
     startDate,
     endDate
 ) {
-    const start = new Date(
-        `${startDate}T12:00:00`
-    )
+    const start =
+        new Date(
+            `${startDate}T12:00:00`
+        )
 
-    const end = new Date(
-        `${endDate}T12:00:00`
-    )
+    const end =
+        new Date(
+            `${endDate}T12:00:00`
+        )
 
     const options = {
         month: 'short',
@@ -1678,9 +1980,10 @@ function formatTripDate(
         return ''
     }
 
-    const date = new Date(
-        `${dateString}T12:00:00`
-    )
+    const date =
+        new Date(
+            `${dateString}T12:00:00`
+        )
 
     return date.toLocaleDateString(
         'en-US',
@@ -1695,9 +1998,10 @@ function formatTripDate(
 function formatItineraryDate(
     dateString
 ) {
-    const date = new Date(
-        `${dateString}T12:00:00`
-    )
+    const date =
+        new Date(
+            `${dateString}T12:00:00`
+        )
 
     return date.toLocaleDateString(
         'en-US',
@@ -1709,7 +2013,9 @@ function formatItineraryDate(
     )
 }
 
-function formatTime(timeString) {
+function formatTime(
+    timeString
+) {
     if (!timeString) {
         return ''
     }
@@ -1723,7 +2029,8 @@ function formatTime(timeString) {
     const minutes =
         Number(parts[1]) || 0
 
-    const date = new Date()
+    const date =
+        new Date()
 
     date.setHours(
         hours,
@@ -1740,8 +2047,47 @@ function formatTime(timeString) {
         }
     )
 }
+// gets the first campground fee from the nps record
+function formatCampgroundPrice(
+    campsite
+) {
+    const fee =
+        campsite?.fees?.[0]
 
-// Duration helper
+    if (
+        fee?.cost !==
+            undefined &&
+        fee?.cost !==
+            null &&
+        fee?.cost !== ''
+    ) {
+        return `$${fee.cost}`
+    }
+
+    return 'Price varies'
+}
+
+// gets the total number of campground sites from the nps record
+function formatCampgroundSites(
+    campsite
+) {
+    const totalSites =
+        campsite?.campsites?.totalSites
+
+    if (
+        totalSites !==
+            undefined &&
+        totalSites !==
+            null &&
+        totalSites !== ''
+    ) {
+        return totalSites
+    }
+
+    return '—'
+}
+
+// duration helper
 function calculateTripDuration(
     startDate,
     endDate
@@ -1750,13 +2096,15 @@ function calculateTripDuration(
         return 0
     }
 
-    const start = createTripDate(
-        startDate
-    )
+    const start =
+        createTripDate(
+            startDate
+        )
 
-    const end = createTripDate(
-        endDate
-    )
+    const end =
+        createTripDate(
+            endDate
+        )
 
     const millisecondsPerDay =
         1000 * 60 * 60 * 24
@@ -1770,12 +2118,18 @@ function calculateTripDuration(
     )
 }
 
-function createTripDate(dateString) {
+function createTripDate(
+    dateString
+) {
     if (!dateString) {
         return new Date()
     }
 
-    const [year, month, day] =
+    const [
+        year,
+        month,
+        day,
+    ] =
         dateString
             .split('-')
             .map(Number)
@@ -1791,7 +2145,9 @@ function createTripDate(dateString) {
     )
 }
 
-function capitalize(value) {
+function capitalize(
+    value
+) {
     if (!value) {
         return ''
     }
@@ -1802,609 +2158,795 @@ function capitalize(value) {
     )
 }
 
-const styles = StyleSheet.create({
-    screen: {
-        backgroundColor: theme.colors.parchment,
-        flex: 1,
-    },
-
-    content: {
-        paddingBottom: 40,
-        paddingHorizontal: theme.spacing.lg,
-    },
-
-    header: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-
-    backButton: {
-        alignItems: 'center',
-        height: 42,
-        justifyContent: 'center',
-        width: 42,
-    },
-
-    backButtonText: {
-        color: theme.colors.forest,
-        fontSize: 36,
-        fontWeight: '300',
-        lineHeight: 38,
-    },
-
-    headerTitle: {
-        color: theme.colors.ink,
-        flex: 1,
-        fontSize: 17,
-        fontWeight: '700',
-        marginHorizontal: theme.spacing.sm,
-        textAlign: 'center',
-    },
-
-    favoriteButton: {
-        alignItems: 'center',
-        height: 42,
-        justifyContent: 'center',
-        width: 42,
-    },
-
-    favoriteIcon: {
-        color: theme.colors.forest,
-        fontSize: 28,
-    },
-
-    hero: {
-        alignItems: 'center',
-        paddingBottom: theme.spacing.xl,
-        paddingTop: theme.spacing.xl,
-    },
-
-    heroIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 42,
-        height: 84,
-        justifyContent: 'center',
-        marginBottom: theme.spacing.md,
-        width: 84,
-    },
-
-    heroEmoji: {
-        fontSize: 40,
-    },
-
-    eyebrow: {
-        color: theme.colors.forest,
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
-
-    title: {
-        color: theme.colors.ink,
-        fontSize: 28,
-        fontWeight: '700',
-        marginTop: theme.spacing.xs,
-        textAlign: 'center',
-    },
-
-    parkName: {
-        color: theme.colors.earth,
-        fontSize: 14,
-        marginTop: theme.spacing.xs,
-        textAlign: 'center',
-    },
-
-    dates: {
-        color: theme.colors.bark,
-        fontSize: 13,
-        marginTop: theme.spacing.sm,
-    },
-
-    sectionHeader: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        marginBottom: theme.spacing.sm,
-        marginTop: theme.spacing.lg,
-    },
-
-    sectionIcon: {
-        fontSize: 20,
-        marginRight: theme.spacing.sm,
-    },
-
-    sectionTitle: {
-        color: theme.colors.ink,
-        fontSize: 20,
-        fontWeight: '700',
-    },
-
-    savedItem: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        flexDirection: 'row',
-        marginBottom: theme.spacing.sm,
-        minHeight: 68,
-        padding: theme.spacing.sm,
-        ...theme.shadows.card,
-    },
-
-    savedItemIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 20,
-        height: 40,
-        justifyContent: 'center',
-        width: 40,
-    },
-
-    savedItemEmoji: {
-        fontSize: 20,
-    },
-
-    savedItemContent: {
-        flex: 1,
-        marginLeft: theme.spacing.sm,
-    },
-
-    savedItemTitle: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-
-    savedItemSubtitle: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginTop: 2,
-    },
-
-    removeButton: {
-        alignItems: 'center',
-        height: 34,
-        justifyContent: 'center',
-        width: 34,
-    },
-
-    removeText: {
-        color: theme.colors.earth,
-        fontSize: 22,
-        fontWeight: '300',
-    },
-
-    campsiteCard: {
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        marginBottom: theme.spacing.sm,
-        padding: theme.spacing.sm,
-        ...theme.shadows.card,
-    },
-
-    campsiteHeader: {
-        alignItems: 'center',
-        flexDirection: 'row',
-    },
-
-    campsiteIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 20,
-        height: 40,
-        justifyContent: 'center',
-        width: 40,
-    },
-
-    campsiteEmoji: {
-        fontSize: 20,
-    },
-
-    campsiteTitleContainer: {
-        flex: 1,
-        marginLeft: theme.spacing.sm,
-    },
-
-    detailRow: {
-        alignItems: 'center',
-        borderTopColor: theme.colors.sage,
-        borderTopWidth: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: theme.spacing.sm,
-        paddingTop: theme.spacing.sm,
-    },
-
-    detailLabel: {
-        color: theme.colors.earth,
-        fontSize: 9,
-        fontWeight: '700',
-        letterSpacing: 1,
-    },
-
-    detailValue: {
-        color: theme.colors.forest,
-        fontSize: 12,
-        fontWeight: '700',
-    },
-
-    notesContainer: {
-        borderTopColor: theme.colors.sage,
-        borderTopWidth: 1,
-        marginTop: theme.spacing.sm,
-        paddingTop: theme.spacing.sm,
-    },
-
-    notesText: {
-        color: theme.colors.bark,
-        fontSize: 11,
-        lineHeight: 17,
-        marginTop: 4,
-    },
-
-    emptySection: {
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        marginBottom: theme.spacing.sm,
-        padding: theme.spacing.md,
-    },
-
-    emptySectionText: {
-        color: theme.colors.earth,
-        fontSize: 13,
-        textAlign: 'center',
-    },
-
-    addButton: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        marginBottom: theme.spacing.sm,
-        paddingVertical: theme.spacing.xs,
-    },
-
-    addButtonText: {
-        color: theme.colors.forest,
-        fontSize: 20,
-        fontWeight: '400',
-        marginRight: theme.spacing.xs,
-    },
-
-    addButtonLabel: {
-        color: theme.colors.forest,
-        fontSize: 13,
-        fontWeight: '700',
-    },
-
-    notesCard: {
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        minHeight: 120,
-        padding: theme.spacing.md,
-    },
-
-    notesInput: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        lineHeight: 21,
-        minHeight: 90,
-    },
-
-    checklistItem: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        minHeight: 46,
-    },
-
-    checklistMain: {
-        alignItems: 'center',
-        flex: 1,
-        flexDirection: 'row',
-    },
-
-    checkbox: {
-        alignItems: 'center',
-        borderColor: theme.colors.earth,
-        borderRadius: 5,
-        borderWidth: 1.5,
-        height: 22,
-        justifyContent: 'center',
-        width: 22,
-    },
-
-    completedCheckbox: {
-        backgroundColor: theme.colors.forest,
-        borderColor: theme.colors.forest,
-    },
-
-    checkmark: {
-        color: theme.colors.parchment,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-
-    checklistLabel: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        marginLeft: theme.spacing.sm,
-    },
-
-    completedChecklistLabel: {
-        color: theme.colors.earth,
-        textDecorationLine: 'line-through',
-    },
-
-    checklistRemove: {
-        alignItems: 'center',
-        height: 34,
-        justifyContent: 'center',
-        width: 34,
-    },
-
-    divider: {
-        backgroundColor: theme.colors.sage,
-        height: 1,
-        marginTop: theme.spacing.xl,
-    },
-
-    itineraryHeader: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: theme.spacing.xl,
-    },
-
-    itineraryTitleRow: {
-        alignItems: 'center',
-        flexDirection: 'row',
-    },
-
-    itineraryIcon: {
-        fontSize: 24,
-        marginRight: theme.spacing.sm,
-    },
-
-    itinerarySubtitle: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginTop: 2,
-    },
-
-    addItineraryButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.forest,
-        borderRadius: 18,
-        height: 36,
-        justifyContent: 'center',
-        width: 36,
-    },
-
-    addItineraryText: {
-        color: theme.colors.parchment,
-        fontSize: 23,
-        fontWeight: '300',
-    },
-
-    itineraryDay: {
-        marginTop: theme.spacing.xl,
-    },
-
-    itineraryDate: {
-        color: theme.colors.forest,
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 1,
-        marginBottom: theme.spacing.md,
-        textTransform: 'uppercase',
-    },
-
-    timeline: {
-        paddingLeft: 2,
-    },
-
-    timelineEvent: {
-        flexDirection: 'row',
-        minHeight: 76,
-    },
-
-    timelineTime: {
-        paddingTop: 4,
-        width: 62,
-    },
-
-    eventTime: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        fontWeight: '600',
-    },
-
-    timelineLineContainer: {
-        alignItems: 'center',
-        marginRight: theme.spacing.md,
-        width: 28,
-    },
-
-    timelineDot: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
-        borderRadius: 18,
-        height: 36,
-        justifyContent: 'center',
-        width: 36,
-        zIndex: 1,
-    },
-
-    timelineEmoji: {
-        fontSize: 17,
-    },
-
-    timelineLine: {
-        backgroundColor: theme.colors.sage,
-        bottom: -2,
-        position: 'absolute',
-        top: 34,
-        width: 2,
-    },
-
-    eventContent: {
-        flex: 1,
-        paddingTop: 3,
-    },
-
-    eventTitle: {
-        color: theme.colors.ink,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-
-    eventSubtitle: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginTop: 3,
-    },
-
-    eventRemove: {
-        alignItems: 'center',
-        height: 32,
-        justifyContent: 'center',
-        width: 32,
-    },
-
-    unscheduledSection: {
-        marginTop: theme.spacing.xl,
-    },
-
-    unscheduledTitle: {
-        color: theme.colors.forest,
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 1,
-        marginBottom: theme.spacing.sm,
-        textTransform: 'uppercase',
-    },
-
-    bottomSpacer: {
-        height: 40,
-    },
-
-    errorText: {
-        color: theme.colors.earth,
-        fontSize: 15,
-        margin: theme.spacing.xl,
-        textAlign: 'center',
-    },
-
-    modalOverlay: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(30, 40, 25, 0.45)',
-        flex: 1,
-        justifyContent: 'center',
-        paddingHorizontal: theme.spacing.lg,
-    },
-
-    packingModal: {
-        backgroundColor: theme.colors.parchment,
-        borderRadius: theme.radii.lg,
-        maxWidth: 420,
-        padding: theme.spacing.lg,
-        width: '100%',
-        ...theme.shadows.card,
-    },
-
-    modalTitle: {
-        color: theme.colors.ink,
-        fontSize: 20,
-        fontWeight: '700',
-    },
-
-    packingInput: {
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        color: theme.colors.ink,
-        fontSize: 14,
-        marginTop: theme.spacing.md,
-        minHeight: 50,
-        paddingHorizontal: theme.spacing.md,
-    },
-
-    modalActions: {
-        flexDirection: 'row',
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.lg,
-    },
-
-    cancelButton: {
-        alignItems: 'center',
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        flex: 1,
-        minHeight: 48,
-        justifyContent: 'center',
-    },
-
-    cancelButtonText: {
-        color: theme.colors.earth,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-
-    savePackingButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.md,
-        flex: 1,
-        minHeight: 48,
-        justifyContent: 'center',
-    },
-
-    savePackingText: {
-        color: theme.colors.parchment,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-
-    eventWarning: {
-        color: '#a2382c',
-        fontSize: 10,
-        fontWeight: '700',
-        marginTop: 4,
-    },
-
-    statsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: theme.spacing.sm,
-        marginTop: theme.spacing.lg,
-    },
-
-    statCard: {
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
-        borderWidth: 1,
-        minHeight: 82,
-        padding: theme.spacing.md,
-        width: '48%',
-    },
-
-    statValue: {
-        color: theme.colors.forest,
-        fontSize: 24,
-        fontWeight: '700',
-    },
-
-    statLabel: {
-        color: theme.colors.earth,
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 1,
-        marginTop: 3,
-        textTransform: 'uppercase',
-    },
-})
+const styles =
+    StyleSheet.create({
+        screen: {
+            backgroundColor:
+                theme.colors.parchment,
+            flex: 1,
+        },
+
+        content: {
+            paddingBottom: 40,
+            paddingHorizontal:
+                theme.spacing.lg,
+        },
+
+        header: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+        },
+
+        backButton: {
+            alignItems:
+                'center',
+            height: 42,
+            justifyContent:
+                'center',
+            width: 42,
+        },
+
+        backButtonText: {
+            color:
+                theme.colors.forest,
+            fontSize: 36,
+            fontWeight: '300',
+            lineHeight: 38,
+        },
+
+        headerTitle: {
+            color:
+                theme.colors.ink,
+            flex: 1,
+            fontSize: 17,
+            fontWeight: '700',
+            marginHorizontal:
+                theme.spacing.sm,
+            textAlign:
+                'center',
+        },
+
+        favoriteButton: {
+            alignItems:
+                'center',
+            height: 42,
+            justifyContent:
+                'center',
+            width: 42,
+        },
+
+        favoriteIcon: {
+            color:
+                theme.colors.forest,
+            fontSize: 28,
+        },
+
+        hero: {
+            alignItems:
+                'center',
+            paddingBottom:
+                theme.spacing.xl,
+            paddingTop:
+                theme.spacing.xl,
+        },
+
+        heroIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 42,
+            height: 84,
+            justifyContent:
+                'center',
+            marginBottom:
+                theme.spacing.md,
+            width: 84,
+        },
+
+        heroEmoji: {
+            fontSize: 40,
+        },
+
+        eyebrow: {
+            color:
+                theme.colors.forest,
+            fontSize: 10,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+        },
+
+        title: {
+            color:
+                theme.colors.ink,
+            fontSize: 28,
+            fontWeight: '700',
+            marginTop:
+                theme.spacing.xs,
+            textAlign:
+                'center',
+        },
+
+        parkName: {
+            color:
+                theme.colors.earth,
+            fontSize: 14,
+            marginTop:
+                theme.spacing.xs,
+            textAlign:
+                'center',
+        },
+
+        dates: {
+            color:
+                theme.colors.bark,
+            fontSize: 13,
+            marginTop:
+                theme.spacing.sm,
+        },
+
+        sectionHeader: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.sm,
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        sectionIcon: {
+            fontSize: 20,
+            marginRight:
+                theme.spacing.sm,
+        },
+
+        sectionTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 20,
+            fontWeight: '700',
+        },
+
+        savedItem: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.sm,
+            minHeight: 68,
+            padding:
+                theme.spacing.sm,
+            ...theme.shadows.card,
+        },
+
+        savedItemIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 20,
+            height: 40,
+            justifyContent:
+                'center',
+            width: 40,
+        },
+
+        savedItemEmoji: {
+            fontSize: 20,
+        },
+
+        savedItemContent: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.sm,
+        },
+
+        savedItemTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+
+        savedItemSubtitle: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            marginTop: 2,
+        },
+
+        removeButton: {
+            alignItems:
+                'center',
+            height: 34,
+            justifyContent:
+                'center',
+            width: 34,
+        },
+
+        removeText: {
+            color:
+                theme.colors.earth,
+            fontSize: 22,
+            fontWeight: '300',
+        },
+
+        campsiteCard: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderRadius:
+                theme.radii.md,
+            marginBottom:
+                theme.spacing.sm,
+            padding:
+                theme.spacing.sm,
+            ...theme.shadows.card,
+        },
+
+        campsiteHeader: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+        },
+
+        campsiteIcon: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 20,
+            height: 40,
+            justifyContent:
+                'center',
+            width: 40,
+        },
+
+        campsiteEmoji: {
+            fontSize: 20,
+        },
+
+        campsiteTitleContainer: {
+            flex: 1,
+            marginLeft:
+                theme.spacing.sm,
+        },
+
+        detailRow: {
+            alignItems:
+                'center',
+            borderTopColor:
+                theme.colors.sage,
+            borderTopWidth: 1,
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            marginTop:
+                theme.spacing.sm,
+            paddingTop:
+                theme.spacing.sm,
+        },
+
+        detailLabel: {
+            color:
+                theme.colors.earth,
+            fontSize: 9,
+            fontWeight: '700',
+            letterSpacing: 1,
+        },
+
+        detailValue: {
+            color:
+                theme.colors.forest,
+            fontSize: 12,
+            fontWeight: '700',
+        },
+
+        notesContainer: {
+            borderTopColor:
+                theme.colors.sage,
+            borderTopWidth: 1,
+            marginTop:
+                theme.spacing.sm,
+            paddingTop:
+                theme.spacing.sm,
+        },
+
+        notesText: {
+            color:
+                theme.colors.bark,
+            fontSize: 11,
+            lineHeight: 17,
+            marginTop: 4,
+        },
+
+        emptySection: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            marginBottom:
+                theme.spacing.sm,
+            padding:
+                theme.spacing.md,
+        },
+
+        emptySectionText: {
+            color:
+                theme.colors.earth,
+            fontSize: 13,
+            textAlign:
+                'center',
+        },
+
+        addButton: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            marginBottom:
+                theme.spacing.sm,
+            paddingVertical:
+                theme.spacing.xs,
+        },
+
+        addButtonText: {
+            color:
+                theme.colors.forest,
+            fontSize: 20,
+            fontWeight: '400',
+            marginRight:
+                theme.spacing.xs,
+        },
+
+        addButtonLabel: {
+            color:
+                theme.colors.forest,
+            fontSize: 13,
+            fontWeight: '700',
+        },
+
+        notesCard: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            minHeight: 120,
+            padding:
+                theme.spacing.md,
+        },
+
+        notesInput: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            lineHeight: 21,
+            minHeight: 90,
+        },
+
+        checklistItem: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            minHeight: 46,
+        },
+
+        checklistMain: {
+            alignItems:
+                'center',
+            flex: 1,
+            flexDirection:
+                'row',
+        },
+
+        checkbox: {
+            alignItems:
+                'center',
+            borderColor:
+                theme.colors.earth,
+            borderRadius: 5,
+            borderWidth: 1.5,
+            height: 22,
+            justifyContent:
+                'center',
+            width: 22,
+        },
+
+        completedCheckbox: {
+            backgroundColor:
+                theme.colors.forest,
+            borderColor:
+                theme.colors.forest,
+        },
+
+        checkmark: {
+            color:
+                theme.colors.parchment,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+
+        checklistLabel: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            marginLeft:
+                theme.spacing.sm,
+        },
+
+        completedChecklistLabel: {
+            color:
+                theme.colors.earth,
+            textDecorationLine:
+                'line-through',
+        },
+
+        checklistRemove: {
+            alignItems:
+                'center',
+            height: 34,
+            justifyContent:
+                'center',
+            width: 34,
+        },
+
+        divider: {
+            backgroundColor:
+                theme.colors.sage,
+            height: 1,
+            marginTop:
+                theme.spacing.xl,
+        },
+
+        itineraryHeader: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            marginTop:
+                theme.spacing.xl,
+        },
+
+        itineraryTitleRow: {
+            alignItems:
+                'center',
+            flexDirection:
+                'row',
+        },
+
+        itineraryIcon: {
+            fontSize: 24,
+            marginRight:
+                theme.spacing.sm,
+        },
+
+        itinerarySubtitle: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            marginTop: 2,
+        },
+
+        addItineraryButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius: 18,
+            height: 36,
+            justifyContent:
+                'center',
+            width: 36,
+        },
+
+        addItineraryText: {
+            color:
+                theme.colors.parchment,
+            fontSize: 23,
+            fontWeight: '300',
+        },
+
+        itineraryDay: {
+            marginTop:
+                theme.spacing.xl,
+        },
+
+        itineraryDate: {
+            color:
+                theme.colors.forest,
+            fontSize: 12,
+            fontWeight: '700',
+            letterSpacing: 1,
+            marginBottom:
+                theme.spacing.md,
+            textTransform:
+                'uppercase',
+        },
+
+        timeline: {
+            paddingLeft: 2,
+        },
+
+        timelineEvent: {
+            flexDirection:
+                'row',
+            minHeight: 76,
+        },
+
+        timelineTime: {
+            paddingTop: 4,
+            width: 62,
+        },
+
+        eventTime: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            fontWeight: '600',
+        },
+
+        timelineLineContainer: {
+            alignItems:
+                'center',
+            marginRight:
+                theme.spacing.md,
+            width: 28,
+        },
+
+        timelineDot: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.sage,
+            borderRadius: 18,
+            height: 36,
+            justifyContent:
+                'center',
+            width: 36,
+            zIndex: 1,
+        },
+
+        timelineEmoji: {
+            fontSize: 17,
+        },
+
+        timelineLine: {
+            backgroundColor:
+                theme.colors.sage,
+            bottom: -2,
+            position:
+                'absolute',
+            top: 34,
+            width: 2,
+        },
+
+        eventContent: {
+            flex: 1,
+            paddingTop: 3,
+        },
+
+        eventTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+
+        eventSubtitle: {
+            color:
+                theme.colors.earth,
+            fontSize: 11,
+            marginTop: 3,
+        },
+
+        eventRemove: {
+            alignItems:
+                'center',
+            height: 32,
+            justifyContent:
+                'center',
+            width: 32,
+        },
+
+        unscheduledSection: {
+            marginTop:
+                theme.spacing.xl,
+        },
+
+        unscheduledTitle: {
+            color:
+                theme.colors.forest,
+            fontSize: 12,
+            fontWeight: '700',
+            letterSpacing: 1,
+            marginBottom:
+                theme.spacing.sm,
+            textTransform:
+                'uppercase',
+        },
+
+        bottomSpacer: {
+            height: 40,
+        },
+
+        errorText: {
+            color:
+                theme.colors.earth,
+            fontSize: 15,
+            margin:
+                theme.spacing.xl,
+            textAlign:
+                'center',
+        },
+
+        modalOverlay: {
+            alignItems:
+                'center',
+            backgroundColor:
+                'rgba(30, 40, 25, 0.45)',
+            flex: 1,
+            justifyContent:
+                'center',
+            paddingHorizontal:
+                theme.spacing.lg,
+        },
+
+        packingModal: {
+            backgroundColor:
+                theme.colors.parchment,
+            borderRadius:
+                theme.radii.lg,
+            maxWidth: 420,
+            padding:
+                theme.spacing.lg,
+            width: '100%',
+            ...theme.shadows.card,
+        },
+
+        modalTitle: {
+            color:
+                theme.colors.ink,
+            fontSize: 20,
+            fontWeight: '700',
+        },
+
+        packingInput: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            color:
+                theme.colors.ink,
+            fontSize: 14,
+            marginTop:
+                theme.spacing.md,
+            minHeight: 50,
+            paddingHorizontal:
+                theme.spacing.md,
+        },
+
+        modalActions: {
+            flexDirection:
+                'row',
+            gap:
+                theme.spacing.sm,
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        cancelButton: {
+            alignItems:
+                'center',
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            flex: 1,
+            minHeight: 48,
+            justifyContent:
+                'center',
+        },
+
+        cancelButtonText: {
+            color:
+                theme.colors.earth,
+            fontSize: 14,
+            fontWeight: '600',
+        },
+
+        savePackingButton: {
+            alignItems:
+                'center',
+            backgroundColor:
+                theme.colors.forest,
+            borderRadius:
+                theme.radii.md,
+            flex: 1,
+            minHeight: 48,
+            justifyContent:
+                'center',
+        },
+
+        savePackingText: {
+            color:
+                theme.colors.parchment,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+
+        eventWarning: {
+            color:
+                '#a2382c',
+            fontSize: 10,
+            fontWeight: '700',
+            marginTop: 4,
+        },
+
+        statsContainer: {
+            flexDirection:
+                'row',
+            flexWrap:
+                'wrap',
+            gap:
+                theme.spacing.sm,
+            marginTop:
+                theme.spacing.lg,
+        },
+
+        statCard: {
+            backgroundColor:
+                theme.colors.canvas,
+            borderColor:
+                theme.colors.sage,
+            borderRadius:
+                theme.radii.md,
+            borderWidth: 1,
+            minHeight: 82,
+            padding:
+                theme.spacing.md,
+            width: '48%',
+        },
+
+        statValue: {
+            color:
+                theme.colors.forest,
+            fontSize: 24,
+            fontWeight: '700',
+        },
+
+        statLabel: {
+            color:
+                theme.colors.earth,
+            fontSize: 10,
+            fontWeight: '700',
+            letterSpacing: 1,
+            marginTop: 3,
+            textTransform:
+                'uppercase',
+        },
+    })

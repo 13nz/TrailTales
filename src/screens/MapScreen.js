@@ -11,9 +11,12 @@ import {
     useEffect,
     useRef,
     useState,
+    useCallback
 } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Location from 'expo-location'
+import { useFocusEffect } from '@react-navigation/native'
+import { supabase } from '../services/supabase'
 
 import theme from '../constants/theme'
 
@@ -29,29 +32,71 @@ export default function MapScreen({ navigation }) {
 
     const mapRef = useRef(null)
 
-    const [selectedLocation, setSelectedLocation] =
-        useState(null)
+    const [selectedLocation, setSelectedLocation] = useState(null)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [mapType, setMapType] = useState('standard')
+    const [activeFilter, setActiveFilter] = useState('Parks')
+    const [parks, setParks] = useState([])
+    const [trails, setTrails] = useState([])
+    const [campgrounds, setCampgrounds] = useState([])
+    const [loadedFilters, setLoadedFilters] = useState({})
+    const [useLocation, setUseLocation] = useState(true)
 
-    const [searchQuery, setSearchQuery] =
-        useState('')
+    // loads the user's location preference whenever the map becomes active
+    useFocusEffect(
+        useCallback(() => {
+            let active = true
 
-    const [mapType, setMapType] =
-        useState('standard')
+            async function loadLocationPreference() {
+                try {
+                    const { data: userData, error: userError } =
+                        await supabase.auth.getUser()
 
-    const [activeFilter, setActiveFilter] =
-        useState('Parks')
+                    if (userError) {
+                        throw userError
+                    }
 
-    const [parks, setParks] =
-        useState([])
+                    const user = userData.user
 
-    const [trails, setTrails] =
-        useState([])
+                    if (!user || user.is_anonymous) {
+                        if (active) {
+                            setUseLocation(true)
+                        }
 
-    const [campgrounds, setCampgrounds] =
-        useState([])
+                        return
+                    }
 
-    const [loadedFilters, setLoadedFilters] =
-        useState({})
+                    const { data: preferences, error: preferencesError } =
+                        await supabase
+                            .from('user_preferences')
+                            .select('use_location')
+                            .eq('user_id', user.id)
+                            .maybeSingle()
+
+                    if (preferencesError) {
+                        throw preferencesError
+                    }
+
+                    if (active) {
+                        setUseLocation(
+                            preferences?.use_location ?? true
+                        )
+                    }
+                } catch (error) {
+                    console.error(
+                        'supabase map location preference error:',
+                        error
+                    )
+                }
+            }
+
+            loadLocationPreference()
+
+            return () => {
+                active = false
+            }
+        }, [])
+    )
 
     // loads the national parks when the map screen first opens
     useEffect(() => {
@@ -480,7 +525,7 @@ export default function MapScreen({ navigation }) {
                     latitudeDelta: 35,
                     longitudeDelta: 45,
                 }}
-                showsUserLocation={true}
+                showsUserLocation={useLocation}
                 showsMyLocationButton={false}
                 showsCompass
                 
@@ -848,26 +893,28 @@ export default function MapScreen({ navigation }) {
                 </View>
             ) : null}
 
-            {/* provides a quick way to center the map on the user's current location */}
-            <Pressable
-                style={
-                    styles.locationButton
-                }
-                onPress={async () => {
-                    Keyboard.dismiss()
-                    await handleShowUserLocation()
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="show my location"
-            >
-                <Text
+            {/* provides a quick way to center the map on the user's current location, if location allowed */}
+            {useLocation ? (
+                <Pressable
                     style={
-                        styles.locationIcon
+                        styles.locationButton
                     }
+                    onPress={async () => {
+                        Keyboard.dismiss()
+                        await handleShowUserLocation()
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="show my location"
                 >
-                    ◎
-                </Text>
-            </Pressable>
+                    <Text
+                        style={
+                            styles.locationIcon
+                        }
+                    >
+                        ◎
+                    </Text>
+                </Pressable>
+            ) : null}
         </View>
     )
 }

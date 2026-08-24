@@ -40,16 +40,16 @@ export default function AuthScreen({ navigation }) {
             return
         }
 
-        if (isSignUp && password !== confirmPassword) {
+        if (password.length < 6) {
             setErrorMessage(
-                'Your passwords do not match.'
+                'Your password must be at least 6 characters.'
             )
             return
         }
 
-        if (password.length < 6) {
+        if (isSignUp && password !== confirmPassword) {
             setErrorMessage(
-                'Your password must be at least 6 characters.'
+                'Your passwords do not match.'
             )
             return
         }
@@ -70,14 +70,28 @@ export default function AuthScreen({ navigation }) {
                     throw error
                 }
 
-                // handles projects where email confirmation is enabled
+                console.log(
+                    'supabase signup successful:',
+                    {
+                        userId:
+                            data.user?.id,
+                        hasSession:
+                            Boolean(
+                                data.session
+                            ),
+                    }
+                )
+
+                // supabase returns no session when email confirmation is required
                 if (!data.session) {
                     setSuccessMessage(
-                        'Account created. Check your email to confirm your account, then sign in.'
+                        'Account created! Check your email to confirm your account, then sign in.'
                     )
+
                     setMode('signin')
                     setPassword('')
                     setConfirmPassword('')
+
                     return
                 }
 
@@ -85,18 +99,36 @@ export default function AuthScreen({ navigation }) {
             }
 
             const {
+                data,
                 error,
-            } = await supabase.auth.signInWithPassword({
-                email: trimmedEmail,
-                password,
-            })
+            } =
+                await supabase.auth.signInWithPassword(
+                    {
+                        email: trimmedEmail,
+                        password,
+                    }
+                )
 
             if (error) {
                 throw error
             }
+
+            console.log(
+                'supabase signin successful:',
+                {
+                    userId:
+                        data.user?.id,
+                    hasSession:
+                        Boolean(
+                            data.session
+                        ),
+                }
+            )
         } catch (error) {
             console.error(
-                'supabase authentication error:',
+                isSignUp
+                    ? 'supabase signup error:'
+                    : 'supabase signin error:',
                 error
             )
 

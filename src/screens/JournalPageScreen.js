@@ -8,6 +8,7 @@ import {
     StyleSheet,
     PanResponder,
     Keyboard,
+    Modal,
 } from 'react-native'
 
 import {
@@ -20,17 +21,12 @@ import {
     useTrips,
 } from '../context/TripContext'
 
-import {
-    createJournalElement,
-} from '../utils/journalUtils'
-
 // displays and edits the freeform scrapbook canvas for one journal page
 export default function JournalPageScreen({
     route,
     navigation,
 }) {
-    const insets =
-        useSafeAreaInsets()
+    const insets = useSafeAreaInsets()
 
     const {
         tripId,
@@ -39,7 +35,11 @@ export default function JournalPageScreen({
 
     const {
         trips,
-        updateTrip,
+        addJournalElement,
+        updateJournalPage,
+        deleteJournalPage,
+        updateJournalElement,
+        deleteJournalElement,
     } = useTrips()
 
     const [
@@ -47,30 +47,49 @@ export default function JournalPageScreen({
         setEditingElementId,
     ] = React.useState(null)
 
-    const trip =
-        trips.find(
-            (item) =>
-                item.id === tripId
-        )
+    const [
+        editingTitle,
+        setEditingTitle,
+    ] = React.useState(false)
 
-    const page =
-        trip?.journal?.pages?.find(
-            (item) =>
-                item.id === pageId
-        )
+    const [
+        pageTitle,
+        setPageTitle,
+    ] = React.useState('Scrapbook Page')
+
+    const [
+        showOptions,
+        setShowOptions,
+    ] = React.useState(false)
+
+    const [
+        titleSaving,
+        setTitleSaving,
+    ] = React.useState(false)
+
+    const trip = trips.find(
+        (item) => item.id === tripId
+    )
+
+    const page = trip?.journal?.pages?.find(
+        (item) => item.id === pageId
+    )
+
+    React.useEffect(() => {
+        if (page) {
+            setPageTitle(
+                page.title || 'Scrapbook Page'
+            )
+        }
+    }, [
+        page?.id,
+        page?.title,
+    ])
 
     if (!trip || !page) {
         return (
-            <View
-                style={
-                    styles.screen
-                }
-            >
-                <Text
-                    style={
-                        styles.errorText
-                    }
-                >
+            <View style={styles.screen}>
+                <Text style={styles.errorText}>
                     Journal page could not
                     be found.
                 </Text>
@@ -78,154 +97,277 @@ export default function JournalPageScreen({
         )
     }
 
-    const elements =
-        page.elements || []
+    const elements = [...(page.elements || [])].sort(
+        (a, b) =>
+            (a.zIndex ?? 0) -
+            (b.zIndex ?? 0)
+    )
 
-    // updates the current journal page without changing unrelated trip data
-    const updatePage = (
-        updates
-    ) => {
-        const updatedPages =
-            trip.journal.pages.map(
-                (currentPage) =>
-                    currentPage.id ===
-                    page.id
-                        ? {
-                              ...currentPage,
-                              ...updates,
-                          }
-                        : currentPage
-            )
-
-        updateTrip(
-            trip.id,
-            {
-                journal: {
-                    ...trip.journal,
-                    pages:
-                        updatedPages,
-                },
-            }
-        )
-    }
-
-    // adds a new text element and immediately places it into editing mode
-    const handleAddText = () => {
+    // creates a new text element directly in supabase and selects it for editing
+    const handleAddText = async () => {
         Keyboard.dismiss()
 
-        const element =
-            createJournalElement(
+        try {
+            const highestZIndex = elements.reduce(
+                (highest, element) =>
+                    Math.max(
+                        highest,
+                        element.zIndex ?? 0
+                    ),
+                0
+            )
+
+            const element = await addJournalElement(
                 page.id,
-                'text',
                 {
+                    type: 'text',
                     content: '',
                     x: 40,
                     y: 120,
-                    width: 230,
-                    height: 90,
+                    width: null,
+                    height: null,
                     rotation: 0,
+                    zIndex:
+                        highestZIndex + 1,
                     fontSize: 18,
                 }
             )
 
-        updatePage({
-            elements: [
-                ...elements,
-                element,
-            ],
-        })
-
-        setEditingElementId(
-            element.id
-        )
+            setEditingElementId(element.id)
+        } catch (error) {
+            console.error(
+                'create journal text error:',
+                error
+            )
+        }
     }
 
-    // updates the text content while preserving the element position and styling
-    const handleTextChange = (
+    // saves text content when editing finishes instead of writing to supabase for every keystroke
+    const handleTextChange = async (
         elementId,
         content
     ) => {
-        updatePage({
-            elements:
-                elements.map(
-                    (element) =>
-                        element.id ===
-                        elementId
-                            ? {
-                                  ...element,
-                                  content,
-                              }
-                            : element
-                ),
-        })
+        try {
+            await updateJournalElement(
+                elementId,
+                { content }
+            )
+        } catch (error) {
+            console.error(
+                'update journal text error:',
+                error
+            )
+        }
     }
 
-    // updates the position of an element after a drag operation
-    const handleMoveElement = (
+    // saves the final position after the user finishes dragging an element
+    const handleMoveElement = async (
         elementId,
         x,
         y
     ) => {
-        updatePage({
-            elements:
-                elements.map(
-                    (element) =>
-                        element.id ===
-                        elementId
-                            ? {
-                                  ...element,
-                                  x,
-                                  y,
-                              }
-                            : element
-                ),
-        })
+        try {
+            await updateJournalElement(
+                elementId,
+                {
+                    x,
+                    y,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'move journal element error:',
+                error
+            )
+        }
     }
 
-    // changes the text size while keeping the element anchored to its current position
-    // saves the text dimensions and font size after a pinch gesture
-    const handleResizeText = (
+    // saves the final dimensions and font size after the user finishes resizing an element
+    const handleResizeText = async (
         elementId,
         dimensions
     ) => {
-        updatePage({
-            elements:
-                elements.map(
-                    (element) =>
-                        element.id ===
-                        elementId
-                            ? {
-                                ...element,
-                                width:
-                                    dimensions.width,
-                                height:
-                                    dimensions.height,
-                                fontSize:
-                                    dimensions.fontSize,
-                            }
-                            : element
-                ),
-        })
+        try {
+            await updateJournalElement(
+                elementId,
+                {
+                    width:
+                        dimensions.width,
+                    height:
+                        dimensions.height,
+                    fontSize:
+                        dimensions.fontSize,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'resize journal element error:',
+                error
+            )
+        }
     }
 
-    // removes the selected element from the scrapbook page
-    const handleDeleteElement = (
+    // saves the final rotation after the user finishes rotating an element
+    const handleRotateElement = async (
+        elementId,
+        rotation
+    ) => {
+        try {
+            await updateJournalElement(
+                elementId,
+                {
+                    rotation,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'rotate journal element error:',
+                error
+            )
+        }
+    }
+
+    // moves an element to the highest z-index so it appears above every other element
+    const handleBringToFront = async (
+        elementId
+    ) => {
+        const highestZIndex = elements.reduce(
+            (highest, element) =>
+                Math.max(
+                    highest,
+                    element.zIndex ?? 0
+                ),
+            0
+        )
+
+        const currentElement = elements.find(
+            (element) =>
+                element.id === elementId
+        )
+
+        if (!currentElement) {
+            return
+        }
+
+        if (
+            (currentElement.zIndex ?? 0) >=
+            highestZIndex
+        ) {
+            return
+        }
+
+        try {
+            await updateJournalElement(
+                elementId,
+                {
+                    zIndex:
+                        highestZIndex + 1,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'bring journal element to front error:',
+                error
+            )
+        }
+    }
+
+    // saves the renamed page title to supabase
+    const handleSaveTitle = async () => {
+        const trimmedTitle =
+            pageTitle.trim() ||
+            'Scrapbook Page'
+
+        setPageTitle(
+            trimmedTitle
+        )
+
+        setTitleSaving(true)
+
+        try {
+            await updateJournalPage(
+                page.id,
+                {
+                    title:
+                        trimmedTitle,
+                }
+            )
+
+            setEditingTitle(false)
+            Keyboard.dismiss()
+        } catch (error) {
+            console.error(
+                'update journal page title error:',
+                error
+            )
+        } finally {
+            setTitleSaving(false)
+        }
+    }
+
+    // removes the journal page from supabase and returns to the page list
+    const handleDeletePage = async () => {
+        setShowOptions(false)
+        Keyboard.dismiss()
+        setEditingElementId(null)
+
+        try {
+            await deleteJournalPage(
+                page.id
+            )
+
+            navigation.goBack()
+        } catch (error) {
+            console.error(
+                'delete journal page error:',
+                error
+            )
+        }
+    }
+
+    // removes every element from the current page while keeping the page itself
+    const handleResetPage = async () => {
+        setShowOptions(false)
+        Keyboard.dismiss()
+        setEditingElementId(null)
+
+        try {
+            const pageElements = [
+                ...(page.elements || []),
+            ]
+
+            for (
+                const element of pageElements
+            ) {
+                await deleteJournalElement(
+                    element.id
+                )
+            }
+        } catch (error) {
+            console.error(
+                'reset journal page error:',
+                error
+            )
+        }
+    }
+
+    // removes the selected journal element from supabase and local state
+    const handleDeleteElement = async (
         elementId
     ) => {
         Keyboard.dismiss()
+        setEditingElementId(null)
 
-        updatePage({
-            elements:
-                elements.filter(
-                    (element) =>
-                        element.id !==
-                        elementId
-                ),
-        })
-
-        setEditingElementId(
-            null
-        )
+        try {
+            await deleteJournalElement(
+                elementId
+            )
+        } catch (error) {
+            console.error(
+                'delete journal element error:',
+                error
+            )
+        }
     }
 
     // deselects the current element and dismisses the keyboard when the page itself is tapped
@@ -251,11 +393,7 @@ export default function JournalPageScreen({
                 },
             ]}
         >
-            <View
-                style={
-                    styles.header
-                }
-            >
+            <View style={styles.header}>
                 <Pressable
                     onPress={
                         handleGoBack
@@ -280,20 +418,97 @@ export default function JournalPageScreen({
                         styles.headerCenter
                     }
                 >
-                    <Text
-                        style={
-                            styles.headerTitle
-                        }
-                    >
-                        {page.title}
-                    </Text>
+                    {editingTitle ? (
+                        <View
+                            style={
+                                styles.titleEditRow
+                            }
+                        >
+                            <TextInput
+                                value={
+                                    pageTitle
+                                }
+                                onChangeText={
+                                    setPageTitle
+                                }
+                                onBlur={() => {
+                                    if (
+                                        !titleSaving
+                                    ) {
+                                        handleSaveTitle()
+                                    }
+                                }}
+                                autoFocus
+                                selectTextOnFocus
+                                maxLength={
+                                    40
+                                }
+                                style={
+                                    styles.titleInput
+                                }
+                                returnKeyType="done"
+                                onSubmitEditing={
+                                    handleSaveTitle
+                                }
+                                accessibilityLabel="edit scrapbook page title"
+                            />
+
+                            <Pressable
+                                onPress={
+                                    handleSaveTitle
+                                }
+                                style={
+                                    styles.titleSaveButton
+                                }
+                                accessibilityRole="button"
+                                accessibilityLabel="save scrapbook page title"
+                            >
+                                <Text
+                                    style={
+                                        styles.titleSaveText
+                                    }
+                                >
+                                    ✓
+                                </Text>
+                            </Pressable>
+                        </View>
+                    ) : (
+                        <Pressable
+                            onPress={() => {
+                                Keyboard.dismiss()
+                                setPageTitle(
+                                    page.title ||
+                                        'Scrapbook Page'
+                                )
+                                setEditingTitle(
+                                    true
+                                )
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel="rename scrapbook page"
+                        >
+                            <Text
+                                style={
+                                    styles.headerTitle
+                                }
+                                numberOfLines={
+                                    1
+                                }
+                            >
+                                {page.title ||
+                                    'Scrapbook Page'}
+                            </Text>
+                        </Pressable>
+                    )}
 
                     <Text
                         style={
                             styles.headerDate
                         }
                     >
-                        {page.date}
+                        {formatJournalDate(
+                            trip.startDate
+                        )}
                     </Text>
                 </View>
 
@@ -304,10 +519,12 @@ export default function JournalPageScreen({
                     accessibilityRole="button"
                     accessibilityLabel="journal page options"
                     onPress={() => {
-                        // keeps the options button reserved for future page actions
                         Keyboard.dismiss()
                         setEditingElementId(
                             null
+                        )
+                        setShowOptions(
+                            true
                         )
                     }}
                 >
@@ -405,6 +622,10 @@ export default function JournalPageScreen({
                                             setEditingElementId(
                                                 element.id
                                             )
+
+                                            handleBringToFront(
+                                                element.id
+                                            )
                                         }}
                                         onChangeText={
                                             handleTextChange
@@ -417,6 +638,17 @@ export default function JournalPageScreen({
                                         }
                                         onResize={
                                             handleResizeText
+                                        }
+                                        onRotate={
+                                            handleRotateElement
+                                        }
+                                        onBringToFront={
+                                            handleBringToFront
+                                        }
+                                        onFinishEditing={() =>
+                                            setEditingElementId(
+                                                null
+                                            )
                                         }
                                     />
                                 )
@@ -458,13 +690,144 @@ export default function JournalPageScreen({
                     accessibilityLabel="add sticker"
                     disabled
                 />
+
+                <ToolbarButton
+                    icon="✎"
+                    label="Paint"
+                    accessibilityLabel="paint"
+                    disabled
+                />
             </View>
+
+            <Modal
+                visible={
+                    showOptions
+                }
+                transparent
+                animationType="fade"
+                onRequestClose={() =>
+                    setShowOptions(
+                        false
+                    )
+                }
+            >
+                <Pressable
+                    style={
+                        styles.optionsOverlay
+                    }
+                    onPress={() =>
+                        setShowOptions(
+                            false
+                        )
+                    }
+                >
+                    <Pressable
+                        style={
+                            styles.optionsMenu
+                        }
+                        onPress={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.optionsTitle
+                            }
+                        >
+                            Page options
+                        </Text>
+
+                        <Pressable
+                            style={
+                                styles.optionButton
+                            }
+                            onPress={
+                                handleResetPage
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.optionText
+                                }
+                            >
+                                Reset page
+                            </Text>
+                        </Pressable>
+
+                        <Pressable
+                            style={
+                                styles.optionButton
+                            }
+                            onPress={
+                                handleDeletePage
+                            }
+                        >
+                            <Text
+                                style={[
+                                    styles.optionText,
+                                    styles.deleteOptionText,
+                                ]}
+                            >
+                                Delete page
+                            </Text>
+                        </Pressable>
+
+                        <Pressable
+                            style={
+                                styles.cancelOptionButton
+                            }
+                            onPress={() =>
+                                setShowOptions(
+                                    false
+                                )
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.cancelOptionText
+                                }
+                            >
+                                Cancel
+                            </Text>
+                        </Pressable>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     )
 }
 
-// renders a text element that can be selected, edited, moved, resized, and deleted
-// renders a text element that can be selected, moved, edited, and pinch-resized
+// formats a trip date for the scrapbook header
+function formatJournalDate(
+    date
+) {
+    if (!date) {
+        return ''
+    }
+
+    const parsedDate = new Date(
+        `${date}T12:00:00`
+    )
+
+    if (
+        Number.isNaN(
+            parsedDate.getTime()
+        )
+    ) {
+        return date
+    }
+
+    return parsedDate.toLocaleDateString(
+        'en-US',
+        {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        }
+    )
+}
+
+// renders a text element that can be selected, edited, moved, resized, rotated, and deleted
 function ScrapbookTextElement({
     element,
     isEditing,
@@ -473,43 +836,153 @@ function ScrapbookTextElement({
     onDelete,
     onMove,
     onResize,
+    onRotate,
+    onBringToFront,
+    onFinishEditing,
 }) {
-    const [position, setPosition] =
-        React.useState({
-            x: element.x,
-            y: element.y,
-        })
+    const [
+        position,
+        setPosition,
+    ] = React.useState({
+        x: element.x,
+        y: element.y,
+    })
 
-    const [size, setSize] =
-        React.useState({
-            width:
-                element.width || 230,
-            height:
-                element.height || 90,
-            fontSize:
-                element.fontSize || 18,
-        })
+    const [
+        rotation,
+        setRotation,
+    ] = React.useState(
+        element.rotation || 0
+    )
 
-    // keeps the current position available without causing gesture calculations to reset
+    const [
+        size,
+        setSize,
+    ] = React.useState({
+        width:
+            element.width ||
+            null,
+        height:
+            element.height ||
+            null,
+        fontSize:
+            element.fontSize || 18,
+    })
+
+    const [
+        editingContent,
+        setEditingContent,
+    ] = React.useState(
+        element.content || ''
+    )
+
+    // keeps the latest position available to gesture callbacks
     const positionRef =
         React.useRef({
             x: element.x,
             y: element.y,
         })
 
-    // stores the position that existed when the current drag started
-    const dragStartRef =
-        React.useRef(null)
+    // keeps the latest size available to gesture callbacks
+    const sizeRef =
+        React.useRef({
+            width:
+                element.width ||
+                null,
+            height:
+                element.height ||
+                null,
+            fontSize:
+                element.fontSize || 18,
+        })
 
-    // stores the dimensions that existed when the current pinch started
-    const pinchStartRef =
-        React.useRef(null)
+    // keeps the latest rotation available to gesture callbacks
+    const rotationRef =
+        React.useRef(
+            element.rotation || 0
+        )
 
+    // stores all values from the beginning of the current gesture
+    const gestureStartRef = React.useRef(null)
+
+    // tracks whether the current gesture is a one or two finger gesture
+    const gestureModeRef = React.useRef(null)
+
+    // prevents deletion from triggering a second text save
+    const isDeletingRef = React.useRef(false)
+
+    // to save after gesture is done
+    const isSavingGestureRef = React.useRef(false)
+
+    React.useEffect(() => {
+        if (isSavingGestureRef.current) {
+            return
+        }
+
+        const nextPosition = {
+            x: element.x,
+            y: element.y,
+        }
+
+        const nextSize = {
+            width:
+                element.width ||
+                null,
+            height:
+                element.height ||
+                null,
+            fontSize:
+                element.fontSize || 18,
+        }
+
+        const nextRotation =
+            element.rotation || 0
+
+        positionRef.current =
+            nextPosition
+
+        sizeRef.current =
+            nextSize
+
+        rotationRef.current =
+            nextRotation
+
+        setPosition(
+            nextPosition
+        )
+
+        setSize(
+            nextSize
+        )
+
+        setRotation(
+            nextRotation
+        )
+
+        if (!isEditing) {
+            setEditingContent(
+                element.content || ''
+            )
+        }
+    }, [
+        element.x,
+        element.y,
+        element.width,
+        element.height,
+        element.fontSize,
+        element.rotation,
+        element.content,
+        isEditing,
+    ])
+
+    // gets the distance between two fingers
     const getTouchDistance = (
         touches
     ) => {
-        if (touches.length < 2) {
-            return null
+        if (
+            touches.length < 2
+        ) {
+            return 0
         }
 
         const first =
@@ -519,50 +992,79 @@ function ScrapbookTextElement({
             touches[1]
 
         const dx =
-            first.pageX -
-            second.pageX
+            second.pageX -
+            first.pageX
 
         const dy =
-            first.pageY -
-            second.pageY
+            second.pageY -
+            first.pageY
 
         return Math.sqrt(
-            dx * dx + dy * dy
+            dx * dx +
+            dy * dy
         )
     }
 
-    React.useEffect(() => {
-        const nextPosition = {
-            x: element.x,
-            y: element.y,
+    // gets the angle between two fingers
+    const getTouchAngle = (
+        touches
+    ) => {
+        if (
+            touches.length < 2
+        ) {
+            return 0
         }
 
-        const nextSize = {
-            width:
-                element.width || 230,
-            height:
-                element.height || 90,
-            fontSize:
-                element.fontSize || 18,
-        }
+        const first =
+            touches[0]
 
-        positionRef.current =
-            nextPosition
+        const second =
+            touches[1]
 
-        setPosition(
-            nextPosition
+        return (
+            Math.atan2(
+                second.pageY -
+                    first.pageY,
+                second.pageX -
+                    first.pageX
+            ) *
+            180 /
+            Math.PI
         )
+    }
 
-        setSize(nextSize)
-    }, [
-        element.x,
-        element.y,
-        element.width,
-        element.height,
-        element.fontSize,
-    ])
+    // normalizes rotation so it stays between -180 and 180 degrees
+    const normalizeRotation = (
+        value
+    ) => {
+        return (
+            ((value + 180) %
+                360) -
+            180
+        )
+    }
 
-    // handles one-finger movement and two-finger resizing as separate gestures
+    // saves the text after the user finishes editing
+    const finishTextEditing =
+        async () => {
+            Keyboard.dismiss()
+
+            if (
+                isDeletingRef.current
+            ) {
+                onFinishEditing()
+                return
+            }
+
+            await onChangeText(
+                element.id,
+                editingContent
+            )
+
+            onFinishEditing()
+        }
+
+    // handles one finger movement and two finger resize/rotation
     const panResponder =
         React.useMemo(
             () =>
@@ -571,14 +1073,27 @@ function ScrapbookTextElement({
                         () => true,
 
                     onMoveShouldSetPanResponder:
-                        () => true,
+                        (
+                            event
+                        ) =>
+                            event
+                                .nativeEvent
+                                .touches
+                                .length >
+                            0,
 
                     onPanResponderGrant:
-                        (event) => {
+                        (
+                            event
+                        ) => {
                             const touches =
                                 event
                                     .nativeEvent
                                     .touches
+
+                            onBringToFront(
+                                element.id
+                            )
 
                             if (
                                 touches.length >=
@@ -589,40 +1104,62 @@ function ScrapbookTextElement({
                                         touches
                                     )
 
-                                if (
-                                    distance
-                                ) {
-                                    pinchStartRef.current =
-                                        {
-                                            distance,
-                                            width:
-                                                size.width,
-                                            height:
-                                                size.height,
-                                            fontSize:
-                                                size.fontSize,
-                                        }
-                                }
+                                const angle =
+                                    getTouchAngle(
+                                        touches
+                                    )
 
-                                dragStartRef.current =
-                                    null
+                                gestureModeRef.current =
+                                    'transform'
 
-                                return
+                                gestureStartRef.current =
+                                    {
+                                        distance:
+                                            distance ||
+                                            1,
+                                        angle,
+                                        x:
+                                            positionRef
+                                                .current
+                                                .x,
+                                        y:
+                                            positionRef
+                                                .current
+                                                .y,
+                                        width:
+                                            sizeRef
+                                                .current
+                                                .width ||
+                                            180,
+                                        height:
+                                            sizeRef
+                                                .current
+                                                .height ||
+                                            50,
+                                        fontSize:
+                                            sizeRef
+                                                .current
+                                                .fontSize,
+                                        rotation:
+                                            rotationRef
+                                                .current,
+                                    }
+                            } else {
+                                gestureModeRef.current =
+                                    'move'
+
+                                gestureStartRef.current =
+                                    {
+                                        x:
+                                            positionRef
+                                                .current
+                                                .x,
+                                        y:
+                                            positionRef
+                                                .current
+                                                .y,
+                                    }
                             }
-
-                            // captures the exact position before the finger starts moving
-                            dragStartRef.current =
-                                {
-                                    x: positionRef
-                                        .current
-                                        .x,
-                                    y: positionRef
-                                        .current
-                                        .y,
-                                }
-
-                            pinchStartRef.current =
-                                null
                         },
 
                     onPanResponderMove:
@@ -640,13 +1177,71 @@ function ScrapbookTextElement({
                                 2
                             ) {
                                 if (
-                                    !pinchStartRef.current
+                                    gestureModeRef.current !==
+                                    'transform'
                                 ) {
+                                    const distance =
+                                        getTouchDistance(
+                                            touches
+                                        )
+
+                                    const angle =
+                                        getTouchAngle(
+                                            touches
+                                        )
+
+                                    gestureModeRef.current =
+                                        'transform'
+
+                                    gestureStartRef.current =
+                                        {
+                                            distance:
+                                                distance ||
+                                                1,
+                                            angle,
+                                            x:
+                                                positionRef
+                                                    .current
+                                                    .x,
+                                            y:
+                                                positionRef
+                                                    .current
+                                                    .y,
+                                            width:
+                                                sizeRef
+                                                    .current
+                                                    .width ||
+                                                180,
+                                            height:
+                                                sizeRef
+                                                    .current
+                                                    .height ||
+                                                50,
+                                            fontSize:
+                                                sizeRef
+                                                    .current
+                                                    .fontSize,
+                                            rotation:
+                                                rotationRef
+                                                    .current,
+                                        }
+                                }
+
+                                const start =
+                                    gestureStartRef
+                                        .current
+
+                                if (!start) {
                                     return
                                 }
 
                                 const distance =
                                     getTouchDistance(
+                                        touches
+                                    )
+
+                                const angle =
+                                    getTouchAngle(
                                         touches
                                     )
 
@@ -656,32 +1251,27 @@ function ScrapbookTextElement({
                                     return
                                 }
 
+                                // calculates how much the fingers have spread or pinched
                                 const scale =
                                     distance /
-                                    pinchStartRef
-                                        .current
-                                        .distance
+                                    start.distance
 
                                 const nextWidth =
                                     Math.max(
-                                        100,
+                                        80,
                                         Math.min(
                                             500,
-                                            pinchStartRef
-                                                .current
-                                                .width *
+                                            start.width *
                                                 scale
                                         )
                                     )
 
                                 const nextHeight =
                                     Math.max(
-                                        50,
+                                        35,
                                         Math.min(
                                             500,
-                                            pinchStartRef
-                                                .current
-                                                .height *
+                                            start.height *
                                                 scale
                                         )
                                     )
@@ -691,49 +1281,76 @@ function ScrapbookTextElement({
                                         10,
                                         Math.min(
                                             60,
-                                            pinchStartRef
-                                                .current
-                                                .fontSize *
+                                            start.fontSize *
                                                 scale
                                         )
                                     )
 
-                                setSize({
-                                    width:
-                                        nextWidth,
-                                    height:
-                                        nextHeight,
-                                    fontSize:
-                                        nextFontSize,
-                                })
+                                // calculates how much the fingers have twisted
+                                const nextRotation =
+                                    normalizeRotation(
+                                        start.rotation +
+                                            (
+                                                angle -
+                                                start.angle
+                                            )
+                                    )
+
+                                const nextSize =
+                                    {
+                                        width:
+                                            nextWidth,
+                                        height:
+                                            nextHeight,
+                                        fontSize:
+                                            nextFontSize,
+                                    }
+
+                                sizeRef.current =
+                                    nextSize
+
+                                rotationRef.current =
+                                    nextRotation
+
+                                setSize(
+                                    nextSize
+                                )
+
+                                setRotation(
+                                    nextRotation
+                                )
 
                                 return
                             }
 
                             if (
-                                !dragStartRef.current
+                                gestureModeRef.current ===
+                                'transform'
                             ) {
                                 return
                             }
 
-                            // calculates movement from the original touch position instead of the current rendered position
-                            const nextX =
-                                dragStartRef.current
-                                    .x +
-                                gestureState.dx
+                            if (
+                                !gestureStartRef
+                                    .current
+                            ) {
+                                return
+                            }
 
-                            const nextY =
-                                dragStartRef.current
-                                    .y +
-                                gestureState.dy
+                            const start =
+                                gestureStartRef
+                                    .current
 
                             const nextPosition =
                                 {
-                                    x: nextX,
-                                    y: nextY,
+                                    x:
+                                        start.x +
+                                        gestureState.dx,
+                                    y:
+                                        start.y +
+                                        gestureState.dy,
                                 }
 
-                            // keeps the live position separate from the persisted trip state
                             positionRef.current =
                                 nextPosition
 
@@ -743,79 +1360,131 @@ function ScrapbookTextElement({
                         },
 
                     onPanResponderRelease:
-                        () => {
-                            const finalPosition =
-                                positionRef.current
+                        async (
+                            event
+                        ) => {
+                            const mode =
+                                gestureModeRef.current
 
-                            const finalSize =
-                                size
+                            if (
+                                mode ===
+                                'move'
+                            ) {
+                                const finalPosition =
+                                    positionRef
+                                        .current
 
-                            // persists the final position only after the gesture finishes
-                            onMove(
-                                element.id,
-                                finalPosition.x,
-                                finalPosition.y
-                            )
+                                await onMove(
+                                    element.id,
+                                    finalPosition.x,
+                                    finalPosition.y
+                                )
+                            }
 
-                            // persists the final size after a pinch gesture finishes
-                            onResize(
-                                element.id,
-                                {
-                                    width:
-                                        finalSize.width,
-                                    height:
-                                        finalSize.height,
-                                    fontSize:
-                                        finalSize.fontSize,
+                            if (mode === 'transform') 
+                            {
+                                const finalSize =
+                                    sizeRef.current
+
+                                const finalRotation =
+                                    rotationRef.current
+
+                                isSavingGestureRef.current =
+                                    true
+
+                                try {
+                                    await onResize(
+                                        element.id,
+                                        {
+                                            width:
+                                                finalSize.width,
+                                            height:
+                                                finalSize.height,
+                                            fontSize:
+                                                finalSize.fontSize,
+                                        }
+                                    )
+
+                                    await onRotate(
+                                        element.id,
+                                        finalRotation
+                                    )
+                                } finally {
+                                    isSavingGestureRef.current =
+                                        false
                                 }
-                            )
+                            }
 
-                            dragStartRef.current =
+                            gestureStartRef.current =
                                 null
 
-                            pinchStartRef.current =
+                            gestureModeRef.current =
                                 null
                         },
 
                     onPanResponderTerminate:
-                        () => {
-                            const finalPosition =
-                                positionRef.current
+                        async () => {
+                            const mode =
+                                gestureModeRef.current
 
-                            const finalSize =
-                                size
+                            if (
+                                mode ===
+                                'move'
+                            ) {
+                                const finalPosition =
+                                    positionRef
+                                        .current
 
-                            // saves the latest position if another native gesture interrupts the drag
-                            onMove(
-                                element.id,
-                                finalPosition.x,
-                                finalPosition.y
-                            )
+                                await onMove(
+                                    element.id,
+                                    finalPosition.x,
+                                    finalPosition.y
+                                )
+                            }
 
-                            onResize(
-                                element.id,
-                                {
-                                    width:
-                                        finalSize.width,
-                                    height:
-                                        finalSize.height,
-                                    fontSize:
-                                        finalSize.fontSize,
-                                }
-                            )
+                            if (
+                                mode ===
+                                'transform'
+                            ) {
+                                const finalSize =
+                                    sizeRef
+                                        .current
 
-                            dragStartRef.current =
+                                const finalRotation =
+                                    rotationRef
+                                        .current
+
+                                await onResize(
+                                    element.id,
+                                    {
+                                        width:
+                                            finalSize.width,
+                                        height:
+                                            finalSize.height,
+                                        fontSize:
+                                            finalSize.fontSize,
+                                    }
+                                )
+
+                                await onRotate(
+                                    element.id,
+                                    finalRotation
+                                )
+                            }
+
+                            gestureStartRef.current =
                                 null
 
-                            pinchStartRef.current =
+                            gestureModeRef.current =
                                 null
                         },
                 }),
             [
                 element.id,
-                size,
                 onMove,
                 onResize,
+                onRotate,
+                onBringToFront,
             ]
         )
 
@@ -825,17 +1494,14 @@ function ScrapbookTextElement({
             style={[
                 styles.textElement,
                 {
-                    left:
-                        position.x,
-                    top:
-                        position.y,
-                    width:
-                        size.width,
-                    minHeight:
-                        size.height,
+                    left: position.x,
+                    top: position.y,
+                    zIndex:
+                        element.zIndex ??
+                        0,
                     transform: [
                         {
-                            rotate: `${element.rotation}deg`,
+                            rotate: `${rotation}deg`,
                         },
                     ],
                 },
@@ -846,15 +1512,13 @@ function ScrapbookTextElement({
             {isEditing ? (
                 <TextInput
                     value={
-                        element.content
+                        editingContent
                     }
-                    onChangeText={(
-                        content
-                    ) =>
-                        onChangeText(
-                            element.id,
-                            content
-                        )
+                    onChangeText={
+                        setEditingContent
+                    }
+                    onBlur={
+                        finishTextEditing
                     }
                     multiline
                     autoFocus
@@ -863,6 +1527,12 @@ function ScrapbookTextElement({
                         {
                             fontSize:
                                 size.fontSize,
+                            width:
+                                size.width ||
+                                180,
+                            minHeight:
+                                size.height ||
+                                35,
                         },
                     ]}
                     placeholder="write something..."
@@ -874,11 +1544,14 @@ function ScrapbookTextElement({
                 />
             ) : (
                 <Pressable
+                    onPress={() => {
+                        onBringToFront(
+                            element.id
+                        )
+                        onSelect()
+                    }}
                     style={
                         styles.savedTextContainer
-                    }
-                    onPress={
-                        onSelect
                     }
                     accessibilityRole="button"
                     accessibilityLabel={`select journal text ${element.id}`}
@@ -889,6 +1562,9 @@ function ScrapbookTextElement({
                             {
                                 fontSize:
                                     size.fontSize,
+                                maxWidth:
+                                    size.width ||
+                                    250,
                             },
                         ]}
                     >
@@ -900,11 +1576,37 @@ function ScrapbookTextElement({
 
             {isEditing ? (
                 <Pressable
-                    onPress={() =>
-                        onDelete(
+                    onPress={
+                        finishTextEditing
+                    }
+                    style={
+                        styles.finishButton
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="finish editing journal text"
+                >
+                    <Text
+                        style={
+                            styles.finishButtonText
+                        }
+                    >
+                        ✓
+                    </Text>
+                </Pressable>
+            ) : null}
+
+            {isEditing ? (
+                <Pressable
+                    onPress={async () => {
+                        isDeletingRef.current =
+                            true
+
+                        Keyboard.dismiss()
+
+                        await onDelete(
                             element.id
                         )
-                    }
+                    }}
                     style={
                         styles.deleteButton
                     }
@@ -973,7 +1675,8 @@ function ToolbarButton({
 
 const styles = StyleSheet.create({
     screen: {
-        backgroundColor: theme.colors.parchment,
+        backgroundColor:
+            theme.colors.parchment,
         flex: 1,
     },
 
@@ -982,7 +1685,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         minHeight: 58,
-        paddingHorizontal: theme.spacing.sm,
+        paddingHorizontal:
+            theme.spacing.sm,
     },
 
     headerButton: {
@@ -1015,6 +1719,43 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 
+    titleEditRow: {
+        alignItems: 'center',
+        flexDirection: 'row',
+        maxWidth: 230,
+    },
+
+    titleInput: {
+        borderBottomColor:
+            theme.colors.forest,
+        borderBottomWidth: 1,
+        color: theme.colors.ink,
+        fontSize: 17,
+        fontWeight: '700',
+        maxWidth: 190,
+        minWidth: 100,
+        paddingHorizontal: 2,
+        paddingVertical: 2,
+        textAlign: 'center',
+    },
+
+    titleSaveButton: {
+        alignItems: 'center',
+        backgroundColor:
+            theme.colors.forest,
+        borderRadius: 12,
+        height: 24,
+        justifyContent: 'center',
+        marginLeft: 5,
+        width: 24,
+    },
+
+    titleSaveText: {
+        color: theme.colors.parchment,
+        fontSize: 15,
+        fontWeight: '700',
+    },
+
     moreText: {
         color: theme.colors.forest,
         fontSize: 18,
@@ -1028,7 +1769,8 @@ const styles = StyleSheet.create({
     },
 
     paper: {
-        backgroundColor: theme.colors.canvas,
+        backgroundColor:
+            theme.colors.canvas,
         borderColor: theme.colors.sage,
         borderWidth: 1,
         flex: 1,
@@ -1046,7 +1788,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: theme.spacing.xl,
+        paddingHorizontal:
+            theme.spacing.xl,
     },
 
     emptyCanvasIcon: {
@@ -1058,7 +1801,8 @@ const styles = StyleSheet.create({
         color: theme.colors.ink,
         fontSize: 17,
         fontWeight: '700',
-        marginTop: theme.spacing.md,
+        marginTop:
+            theme.spacing.md,
         textAlign: 'center',
     },
 
@@ -1066,41 +1810,48 @@ const styles = StyleSheet.create({
         color: theme.colors.earth,
         fontSize: 12,
         lineHeight: 18,
-        marginTop: theme.spacing.xs,
+        marginTop:
+            theme.spacing.xs,
         textAlign: 'center',
     },
 
-    textElement: {
-        position: 'absolute',
-    },
-
     textElementEditing: {
-        backgroundColor: 'rgba(255,255,255,0.45)',
-        borderColor: theme.colors.forest,
-        borderRadius: theme.radii.sm,
+        backgroundColor:
+            'rgba(255,255,255,0.45)',
+        borderColor:
+            theme.colors.forest,
+        borderRadius:
+            theme.radii.sm,
         borderWidth: 1,
         borderStyle: 'dashed',
     },
 
-    textInput: {
-        color: theme.colors.ink,
-        flex: 1,
-        padding: 4,
-        textAlignVertical: 'top',
+    textElement: {
+        alignSelf: 'flex-start',
+        position: 'absolute',
     },
 
     savedTextContainer: {
-        minHeight: 40,
+        alignSelf: 'flex-start',
         padding: 4,
     },
 
     savedText: {
         color: theme.colors.ink,
+        flexShrink: 1,
+    },
+
+    textInput: {
+        color: theme.colors.ink,
+        minHeight: 30,
+        padding: 4,
+        textAlignVertical: 'top',
     },
 
     deleteButton: {
         alignItems: 'center',
-        backgroundColor: theme.colors.forest,
+        backgroundColor:
+            theme.colors.forest,
         borderRadius: 12,
         height: 24,
         justifyContent: 'center',
@@ -1117,9 +1868,30 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 
+    finishButton: {
+        alignItems: 'center',
+        backgroundColor:
+            theme.colors.forest,
+        borderRadius: 12,
+        height: 24,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: 18,
+        top: -10,
+        width: 24,
+    },
+
+    finishButtonText: {
+        color: theme.colors.parchment,
+        fontSize: 15,
+        fontWeight: '700',
+        lineHeight: 18,
+    },
+
     resizeHandle: {
         alignItems: 'center',
-        backgroundColor: theme.colors.forest,
+        backgroundColor:
+            theme.colors.forest,
         borderRadius: 10,
         bottom: -9,
         height: 20,
@@ -1135,15 +1907,38 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
+    rotationHandle: {
+        alignItems: 'center',
+        backgroundColor:
+            theme.colors.forest,
+        borderRadius: 10,
+        height: 20,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: -9,
+        top: 18,
+        width: 20,
+    },
+
+    rotationHandleText: {
+        color: theme.colors.parchment,
+        fontSize: 13,
+        fontWeight: '700',
+    },
+
     toolbar: {
         alignItems: 'flex-start',
-        backgroundColor: theme.colors.parchment,
-        borderTopColor: theme.colors.sage,
+        backgroundColor:
+            theme.colors.parchment,
+        borderTopColor:
+            theme.colors.sage,
         borderTopWidth: 1,
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingHorizontal: theme.spacing.md,
-        paddingTop: theme.spacing.sm,
+        paddingHorizontal:
+            theme.spacing.md,
+        paddingTop:
+            theme.spacing.sm,
     },
 
     toolbarButton: {
@@ -1157,7 +1952,8 @@ const styles = StyleSheet.create({
 
     toolbarIcon: {
         alignItems: 'center',
-        backgroundColor: theme.colors.sage,
+        backgroundColor:
+            theme.colors.sage,
         borderRadius: 22,
         height: 44,
         justifyContent: 'center',
@@ -1175,6 +1971,79 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
         marginTop: 4,
+    },
+
+    optionsOverlay: {
+        alignItems: 'flex-end',
+        backgroundColor:
+            'rgba(0,0,0,0.2)',
+        flex: 1,
+        justifyContent: 'flex-start',
+        paddingRight:
+            theme.spacing.md,
+        paddingTop:
+            theme.spacing.xl +
+            theme.spacing.lg,
+    },
+
+    optionsMenu: {
+        backgroundColor:
+            theme.colors.parchment,
+        borderColor:
+            theme.colors.sage,
+        borderRadius:
+            theme.radii.md,
+        borderWidth: 1,
+        minWidth: 190,
+        padding:
+            theme.spacing.sm,
+        ...theme.shadows.card,
+    },
+
+    optionsTitle: {
+        color: theme.colors.ink,
+        fontSize: 14,
+        fontWeight: '700',
+        paddingHorizontal:
+            theme.spacing.sm,
+        paddingVertical:
+            theme.spacing.xs,
+    },
+
+    optionButton: {
+        borderRadius:
+            theme.radii.sm,
+        paddingHorizontal:
+            theme.spacing.sm,
+        paddingVertical:
+            theme.spacing.md,
+    },
+
+    optionText: {
+        color: theme.colors.ink,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
+    deleteOptionText: {
+        color: theme.colors.forest,
+    },
+
+    cancelOptionButton: {
+        borderTopColor:
+            theme.colors.sage,
+        borderTopWidth: 1,
+        marginTop: theme.spacing.xs,
+        paddingHorizontal:
+            theme.spacing.sm,
+        paddingTop: theme.spacing.md,
+    },
+
+    cancelOptionText: {
+        color: theme.colors.earth,
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 
     errorText: {

@@ -28,6 +28,8 @@ export default function TripDetailScreen({
     const { trips, updateTrip } = useTrips()
 
     const [campgrounds, setCampgrounds] = useState([])
+    // keeps the notes locally while the user is typing
+    const [notes, setNotes] = useState('')
 
     // finds the selected adventure from the shared trip store
     const trip = trips.find((item) => item.id === tripId) || trips[0]
@@ -126,6 +128,13 @@ export default function TripDetailScreen({
             active = false
         }
     }, [trip?.parkId])
+
+    // keeps the local notes field synchronized with the saved trip
+    useEffect(() => {
+        setNotes(
+            trip?.notes || ''
+        )
+    }, [trip?.id, trip?.notes])
 
     if (!trip) {
         return (
@@ -712,9 +721,7 @@ export default function TripDetailScreen({
                     }
                 >
                     <TextInput
-                        value={
-                            trip.notes || ''
-                        }
+                        value={notes}
                         multiline
                         placeholder="Add notes about your adventure..."
                         placeholderTextColor={
@@ -724,20 +731,23 @@ export default function TripDetailScreen({
                             styles.notesInput
                         }
                         textAlignVertical="top"
-                        onChangeText={(
-                            text
-                        ) => {
-                            updateTrip(
-                                trip.id,
-                                {
-                                    notes: text,
-                                }
-                            )
+                        onChangeText={setNotes}
+                        onBlur={async () => {
+                            // saves the completed note only after the user leaves the field
+                            try {
+                                await updateTrip(
+                                    trip.id,
+                                    {
+                                        notes: notes.trim(),
+                                    }
+                                )
+                            } catch (error) {
+                                console.error(
+                                    'supabase notes update error:',
+                                    error
+                                )
+                            }
                         }}
-                        onSubmitEditing={() => {
-                            Keyboard.dismiss()
-                        }}
-                        blurOnSubmit
                     />
                 </View>
 

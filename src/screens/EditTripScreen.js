@@ -7,78 +7,91 @@ import {
     StyleSheet,
     Keyboard,
     Modal,
+    Alert
 } from 'react-native'
 
 import { useState } from 'react'
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
+
 import { useTrips } from '../context/TripContext'
 
 // provides editing for the basic information of an existing adventure
+
 export default function EditTripScreen({
     route,
     navigation,
 }) {
     const insets = useSafeAreaInsets()
-    const { trips, updateTrip } = useTrips()
+
+    const { trips, updateTrip, removeTrip } = useTrips()
 
     const { tripId } = route.params
 
     const trip = trips.find(
-        (item) => item.id === tripId
+        (item) =>
+            item.id === tripId
     )
 
-    const park = mockParks.find(
-        (item) => item.id === trip?.parkId
-    )
+    // uses the park information already stored with the trip
+    // instead of relying on mock park data
+    const parkName =
+        trip?.parkName ||
+        trip?.park?.name ||
+        'National Park'
 
-    const [name, setName] = useState(
-        trip?.name || ''
-    )
+    const [name, setName] = useState( trip?.name || '' )
 
-    const [startDate, setStartDate] =
-        useState(() =>
-            createTripDate(
-                trip?.startDate
-            )
+    const [startDate, setStartDate] = useState(() =>
+        createTripDate(
+            trip?.startDate
         )
+    )
 
-    const [endDate, setEndDate] =
-        useState(() =>
-            createTripDate(
-                trip?.endDate
-            )
+    const [endDate, setEndDate] = useState(() =>
+        createTripDate(
+            trip?.endDate
         )
+    )
 
     const [notes, setNotes] = useState(
         trip?.notes || ''
     )
 
-    const [activePicker, setActivePicker] =
-        useState(null)
+    const [activePicker, setActivePicker] = useState(null)
 
-    const [error, setError] =
-        useState('')
+    const [error, setError] = useState('')
 
     const openPicker = (picker) => {
         Keyboard.dismiss()
+
         setError('')
-        setActivePicker(picker)
+
+        setActivePicker(
+            picker
+        )
     }
 
     const closePicker = () => {
-        setActivePicker(null)
+        setActivePicker(
+            null
+        )
     }
 
     const handleDateChange = (
         event,
         value
     ) => {
-        if (event?.type === 'dismissed') {
+        if (
+            event?.type ===
+            'dismissed'
+        ) {
             closePicker()
+
             return
         }
 
@@ -87,71 +100,174 @@ export default function EditTripScreen({
         }
 
         if (
-            activePicker === 'startDate'
+            activePicker ===
+            'startDate'
         ) {
-            setStartDate(value)
+            setStartDate(
+                value
+            )
 
             // if the new start date moves past the current end date,
             // automatically move the end date with it
-            if (value > endDate) {
-                setEndDate(value)
+            if (
+                value > endDate
+            ) {
+                setEndDate(
+                    value
+                )
             }
         }
 
         if (
-            activePicker === 'endDate'
+            activePicker ===
+            'endDate'
         ) {
-            setEndDate(value)
+            setEndDate(
+                value
+            )
         }
     }
 
-    const handleSave = () => {
-        const trimmedName =
-            name.trim()
+    const handleSave =
+        async () => {
+            const trimmedName =
+                name.trim()
 
-        if (!trimmedName) {
-            setError(
-                'Please enter a trip name.'
-            )
-            return
+            if (
+                !trimmedName
+            ) {
+                setError(
+                    'Please enter a trip name.'
+                )
+
+                return
+            }
+
+            if (
+                endDate <
+                startDate
+            ) {
+                setError(
+                    'The end date cannot be before the start date.'
+                )
+
+                return
+            }
+
+            if (!trip) {
+                setError(
+                    'Trip could not be found.'
+                )
+
+                return
+            }
+
+            try {
+                // saves the edited trip through the trip context
+                // so supabase and local application state stay synchronized
+                await updateTrip(
+                    trip.id,
+                    {
+                        name:
+                            trimmedName,
+
+                        startDate:
+                            formatDatabaseDate(
+                                startDate
+                            ),
+
+                        endDate:
+                            formatDatabaseDate(
+                                endDate
+                            ),
+
+                        notes:
+                            notes.trim(),
+                    }
+                )
+
+                Keyboard.dismiss()
+
+                navigation.goBack()
+            } catch (
+                saveError
+            ) {
+                console.error(
+                    'edit trip save error:',
+                    saveError
+                )
+
+                setError(
+                    'Unable to save your trip changes. Please try again.'
+                )
+            }
         }
 
-        if (endDate < startDate) {
-            setError(
-                'The end date cannot be before the start date.'
-            )
-            return
-        }
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete trip?',
+            `Are you sure you want to delete "${trip.name}"? This will permanently remove the trip, including its trails, campsites, activities, and packing checklist.`,
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            // dismisses the keyboard before deleting the trip
+                            Keyboard.dismiss()
 
-        updateTrip(trip.id, {
-            name: trimmedName,
-            startDate:
-                formatDatabaseDate(
-                    startDate
-                ),
-            endDate:
-                formatDatabaseDate(
-                    endDate
-                ),
-            notes: notes.trim(),
-        })
+                            // deletes the trip and all of its saved related data
+                            await removeTrip(
+                                trip.id
+                            )
 
-        Keyboard.dismiss()
-        navigation.goBack()
+                            // returns to the trips list after the database deletion succeeds
+                            navigation.popToTop()
+                        } catch (error) {
+                            console.error(
+                                'delete trip error:',
+                                error
+                            )
+
+                            setError(
+                                'Unable to delete this trip. Please try again.'
+                            )
+                        }
+                    },
+                },
+            ]
+        )
     }
 
     if (!trip) {
         return (
-            <View style={styles.screen}>
-                <Text style={styles.errorText}>
-                    Trip could not be found.
+            <View
+                style={
+                    styles.screen
+                }
+            >
+                <Text
+                    style={
+                        styles.errorText
+                    }
+                >
+                    Trip could not be
+                    found.
                 </Text>
             </View>
         )
     }
 
     return (
-        <View style={styles.screen}>
+        <View
+            style={
+                styles.screen
+            }
+        >
             <ScrollView
                 contentContainerStyle={[
                     styles.content,
@@ -162,13 +278,22 @@ export default function EditTripScreen({
                     },
                 ]}
                 keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={
+                    false
+                }
             >
-                <View style={styles.header}>
+                <View
+                    style={
+                        styles.header
+                    }
+                >
                     <Pressable
-                        style={styles.backButton}
+                        style={
+                            styles.backButton
+                        }
                         onPress={() => {
                             Keyboard.dismiss()
+
                             navigation.goBack()
                         }}
                         accessibilityRole="button"
@@ -198,7 +323,11 @@ export default function EditTripScreen({
                     />
                 </View>
 
-                <View style={styles.intro}>
+                <View
+                    style={
+                        styles.intro
+                    }
+                >
                     <Text
                         style={
                             styles.eyebrow
@@ -208,7 +337,9 @@ export default function EditTripScreen({
                     </Text>
 
                     <Text
-                        style={styles.title}
+                        style={
+                            styles.title
+                        }
                     >
                         Edit trip details
                     </Text>
@@ -218,8 +349,9 @@ export default function EditTripScreen({
                             styles.description
                         }
                     >
-                        Update the basic details
-                        of your adventure.
+                        Update the basic
+                        details of your
+                        adventure.
                     </Text>
                 </View>
 
@@ -239,22 +371,36 @@ export default function EditTripScreen({
                     </View>
                 ) : null}
 
-                <View style={styles.form}>
+                <View
+                    style={
+                        styles.form
+                    }
+                >
                     <Text
-                        style={styles.label}
+                        style={
+                            styles.label
+                        }
                     >
                         Trip name
                     </Text>
 
                     <TextInput
                         value={name}
-                        onChangeText={(value) => {
-                            setName(value)
-                            setError('')
+                        onChangeText={(
+                            value
+                        ) => {
+                            setName(
+                                value
+                            )
+
+                            setError(
+                                ''
+                            )
                         }}
                         placeholder="e.g. Yellowstone Adventure"
                         placeholderTextColor={
-                            theme.colors.earth
+                            theme.colors
+                                .earth
                         }
                         style={
                             styles.input
@@ -301,8 +447,9 @@ export default function EditTripScreen({
                                     styles.lockedParkName
                                 }
                             >
-                                {park?.name ||
-                                    'National Park'}
+                                {
+                                    parkName
+                                }
                             </Text>
 
                             <Text
@@ -310,9 +457,12 @@ export default function EditTripScreen({
                                     styles.lockedParkDescription
                                 }
                             >
-                                The park cannot be
-                                changed after a
-                                trip is created
+                                The park
+                                cannot be
+                                changed
+                                after a
+                                trip is
+                                created
                             </Text>
                         </View>
 
@@ -449,10 +599,13 @@ export default function EditTripScreen({
 
                     <TextInput
                         value={notes}
-                        onChangeText={setNotes}
+                        onChangeText={
+                            setNotes
+                        }
                         placeholder="Add notes about your adventure..."
                         placeholderTextColor={
-                            theme.colors.earth
+                            theme.colors
+                                .earth
                         }
                         style={[
                             styles.input,
@@ -491,11 +644,29 @@ export default function EditTripScreen({
                         Save changes
                     </Text>
                 </Pressable>
+
+                <Pressable
+                    style={
+                        styles.deleteButton
+                    }
+                    onPress={handleDelete}
+                    accessibilityRole="button"
+                    accessibilityLabel="delete trip"
+                >
+                    <Text
+                        style={
+                            styles.deleteButtonText
+                        }
+                    >
+                        Delete trip
+                    </Text>
+                </Pressable>
             </View>
 
             <Modal
                 visible={
-                    activePicker !== null
+                    activePicker !==
+                    null
                 }
                 transparent
                 animationType="fade"
@@ -621,12 +792,18 @@ export default function EditTripScreen({
     )
 }
 
-function createTripDate(dateString) {
+function createTripDate(
+    dateString
+) {
     if (!dateString) {
         return new Date()
     }
 
-    const [year, month, day] =
+    const [
+        year,
+        month,
+        day,
+    ] =
         dateString
             .split('-')
             .map(Number)
@@ -642,22 +819,29 @@ function createTripDate(dateString) {
     )
 }
 
-function formatDatabaseDate(date) {
+function formatDatabaseDate(
+    date
+) {
     const year =
         date.getFullYear()
 
-    const month = String(
-        date.getMonth() + 1
-    ).padStart(2, '0')
+    const month =
+        String(
+            date.getMonth() +
+                1
+        ).padStart(2, '0')
 
-    const day = String(
-        date.getDate()
-    ).padStart(2, '0')
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, '0')
 
     return `${year}-${month}-${day}`
 }
 
-function formatDisplayDate(date) {
+function formatDisplayDate(
+    date
+) {
     return date.toLocaleDateString(
         'en-US',
         {
@@ -910,7 +1094,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.lg,
         paddingTop: theme.spacing.lg,
         width: '100%',
-        ...theme.shadows.card,
+        ...theme.shadows
+            .card,
     },
 
     modalHeader: {
@@ -972,5 +1157,18 @@ const styles = StyleSheet.create({
         fontSize: 15,
         margin: theme.spacing.xl,
         textAlign: 'center',
+    },
+
+    deleteButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: theme.spacing.sm,
+        minHeight: 48,
+    },
+
+    deleteButtonText: {
+        color: theme.colors.ember,
+        fontSize: 13,
+        fontWeight: '700',
     },
 })

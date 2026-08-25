@@ -373,7 +373,6 @@ export default function JournalPageScreen({
     // deselects the current element and dismisses the keyboard when the page itself is tapped
     const handleCanvasPress = () => {
         Keyboard.dismiss()
-        setEditingElementId(null)
     }
 
     // dismisses the keyboard before leaving the scrapbook page
@@ -876,6 +875,13 @@ function ScrapbookTextElement({
         element.content || ''
     )
 
+    const [
+        displayedContent,
+        setDisplayedContent,
+    ] = React.useState(
+        element.content || ''
+    )
+
     // keeps the latest position available to gesture callbacks
     const positionRef =
         React.useRef({
@@ -914,6 +920,11 @@ function ScrapbookTextElement({
     // to save after gesture is done
     const isSavingGestureRef = React.useRef(false)
 
+    // save text without pressing chekcmark
+    const editingContentRef = React.useRef(
+        element.content || ''
+    )
+
     React.useEffect(() => {
         if (isSavingGestureRef.current) {
             return
@@ -935,35 +946,32 @@ function ScrapbookTextElement({
                 element.fontSize || 18,
         }
 
-        const nextRotation =
-            element.rotation || 0
+        const nextRotation = element.rotation || 0
 
-        positionRef.current =
-            nextPosition
+        positionRef.current = nextPosition
 
-        sizeRef.current =
-            nextSize
+        sizeRef.current = nextSize
 
-        rotationRef.current =
-            nextRotation
+        rotationRef.current = nextRotation
 
-        setPosition(
-            nextPosition
-        )
+        setPosition(nextPosition)
 
-        setSize(
-            nextSize
-        )
+        setSize(nextSize)
 
-        setRotation(
-            nextRotation
-        )
+        setRotation(nextRotation)
 
         if (!isEditing) {
             setEditingContent(
                 element.content || ''
             )
         }
+
+        if (!isEditing) {
+            setDisplayedContent(
+                element.content || ''
+            )
+        }
+
     }, [
         element.x,
         element.y,
@@ -1045,24 +1053,30 @@ function ScrapbookTextElement({
     }
 
     // saves the text after the user finishes editing
-    const finishTextEditing =
-        async () => {
-            Keyboard.dismiss()
+    const finishTextEditing = async () => {
+        if (
+            isDeletingRef.current
+        ) {
+            onFinishEditing()
+            return
+        }
 
-            if (
-                isDeletingRef.current
-            ) {
-                onFinishEditing()
-                return
-            }
+        const finalContent = editingContentRef.current
 
+        try {
             await onChangeText(
                 element.id,
-                editingContent
+                finalContent
             )
-
-            onFinishEditing()
+        } catch (error) {
+            console.error(
+                'finish journal text error:',
+                error
+            )
         }
+
+        onFinishEditing()
+    }
 
     // handles one finger movement and two finger resize/rotation
     const panResponder =
@@ -1514,12 +1528,32 @@ function ScrapbookTextElement({
                     value={
                         editingContent
                     }
-                    onChangeText={
-                        setEditingContent
-                    }
+                    onChangeText={(
+                        content
+                    ) => {
+                        editingContentRef.current =
+                            content
+
+                        setEditingContent(
+                            content
+                        )
+                    }}
                     onBlur={
                         finishTextEditing
                     }
+                    onEndEditing={(
+                        event
+                    ) => {
+                        const finalContent =
+                            event.nativeEvent.text
+
+                        editingContentRef.current =
+                            finalContent
+
+                        setEditingContent(
+                            finalContent
+                        )
+                    }}
                     multiline
                     autoFocus
                     style={[
@@ -1527,12 +1561,6 @@ function ScrapbookTextElement({
                         {
                             fontSize:
                                 size.fontSize,
-                            width:
-                                size.width ||
-                                180,
-                            minHeight:
-                                size.height ||
-                                35,
                         },
                     ]}
                     placeholder="write something..."
@@ -1568,7 +1596,7 @@ function ScrapbookTextElement({
                             },
                         ]}
                     >
-                        {element.content ||
+                        {displayedContent ||
                             'Double tap to write'}
                     </Text>
                 </Pressable>

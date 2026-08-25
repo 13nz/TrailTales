@@ -160,6 +160,26 @@ export default function JournalPageScreen({
         }
     }
 
+    // saves the selected text color to supabase
+    const handleTextColorChange = async (
+        elementId,
+        color
+    ) => {
+        try {
+            await updateJournalElement(
+                elementId,
+                {
+                    textColor: color,
+                }
+            )
+        } catch (error) {
+            console.error(
+                "update journal text color error:",
+                error
+            )
+        }
+    }
+
     // saves the final position after the user finishes dragging an element
     const handleMoveElement = async (
         elementId,
@@ -629,6 +649,9 @@ export default function JournalPageScreen({
                                         onChangeText={
                                             handleTextChange
                                         }
+                                        onChangeColor={
+                                            handleTextColorChange
+                                        }
                                         onDelete={
                                             handleDeleteElement
                                         }
@@ -838,6 +861,7 @@ function ScrapbookTextElement({
     onRotate,
     onBringToFront,
     onFinishEditing,
+    onChangeColor
 }) {
     const [
         position,
@@ -925,6 +949,20 @@ function ScrapbookTextElement({
         element.content || ''
     )
 
+    // color states
+    const [
+        textColor,
+        setTextColor,
+    ] = React.useState(
+        element.textColor ||
+            '#000000'
+    )
+
+    const [
+        showColorPicker,
+        setShowColorPicker,
+    ] = React.useState(false)
+
     React.useEffect(() => {
         if (isSavingGestureRef.current) {
             return
@@ -947,6 +985,7 @@ function ScrapbookTextElement({
         }
 
         const nextRotation = element.rotation || 0
+        const nextTextColor = element.textColor || '#000000'
 
         positionRef.current = nextPosition
 
@@ -959,6 +998,8 @@ function ScrapbookTextElement({
         setSize(nextSize)
 
         setRotation(nextRotation)
+
+        setTextColor(nextTextColor)
 
         if (!isEditing) {
             setEditingContent(
@@ -980,6 +1021,7 @@ function ScrapbookTextElement({
         element.fontSize,
         element.rotation,
         element.content,
+        element.textColor,
         isEditing,
     ])
 
@@ -1559,8 +1601,8 @@ function ScrapbookTextElement({
                     style={[
                         styles.textInput,
                         {
-                            fontSize:
-                                size.fontSize,
+                            color: textColor,
+                            fontSize: size.fontSize,
                         },
                     ]}
                     placeholder="write something..."
@@ -1588,11 +1630,9 @@ function ScrapbookTextElement({
                         style={[
                             styles.savedText,
                             {
-                                fontSize:
-                                    size.fontSize,
-                                maxWidth:
-                                    size.width ||
-                                    250,
+                                color: textColor,
+                                fontSize: size.fontSize,
+                                maxWidth: size.width || 250,
                             },
                         ]}
                     >
@@ -1601,6 +1641,33 @@ function ScrapbookTextElement({
                     </Text>
                 </Pressable>
             )}
+
+            {isEditing ? (
+                <Pressable
+                    onPress={() =>
+                        setShowColorPicker(
+                            !showColorPicker
+                        )
+                    }
+                    style={[
+                        styles.colorButton,
+                        {
+                            backgroundColor:
+                                textColor,
+                        },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="change text color"
+                >
+                    <Text
+                        style={
+                            styles.colorButtonText
+                        }
+                    >
+                        A
+                    </Text>
+                </Pressable>
+            ) : null}
 
             {isEditing ? (
                 <Pressable
@@ -1650,6 +1717,61 @@ function ScrapbookTextElement({
                     </Text>
                 </Pressable>
             ) : null}
+
+            {isEditing &&
+                showColorPicker ? (
+                    <View
+                        style={
+                            styles.colorPalette
+                        }
+                    >
+                        {[
+                            '#000000',
+                            '#5C4033',
+                            '#7A4E3A',
+                            '#8B3A62',
+                            '#B85C75',
+                            '#D88C9A',
+                            '#C77D2B',
+                            '#D4A72C',
+                            '#557A55',
+                            '#78966B',
+                            '#426B7A',
+                            '#53689A',
+                            '#FFFFFF',
+                        ].map((color) => (
+                            <Pressable
+                                key={color}
+                                onPress={async () => {
+                                    setTextColor(
+                                        color
+                                    )
+
+                                    setShowColorPicker(
+                                        false
+                                    )
+
+                                    await onChangeColor(
+                                        element.id,
+                                        color
+                                    )
+                                }}
+                                style={[
+                                    styles.colorSwatch,
+                                    {
+                                        backgroundColor:
+                                            color,
+                                    },
+                                    textColor ===
+                                        color &&
+                                        styles.selectedColorSwatch,
+                                ]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`set text color ${color}`}
+                            />
+                        ))}
+                    </View>
+                ) : null}
         </View>
     )
 }
@@ -2079,5 +2201,62 @@ const styles = StyleSheet.create({
         fontSize: 15,
         margin: theme.spacing.xl,
         textAlign: 'center',
+    },
+
+    colorButton: {
+        alignItems: 'center',
+        backgroundColor:
+            theme.colors.parchment,
+        borderColor:
+            theme.colors.forest,
+        borderRadius: 12,
+        borderWidth: 2,
+        height: 24,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: 46,
+        top: -10,
+        width: 24,
+    },
+
+    colorButtonText: {
+        color: theme.colors.ink,
+        fontSize: 15,
+        fontWeight: '800',
+    },
+
+    colorPalette: {
+        alignItems: 'center',
+        backgroundColor:
+            theme.colors.parchment,
+        borderColor:
+            theme.colors.sage,
+        borderRadius:
+            theme.radii.sm,
+        borderWidth: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        padding: 8,
+        position: 'absolute',
+        right: 0,
+        top: 22,
+        width: 190,
+        zIndex: 100,
+    },
+
+    colorSwatch: {
+        borderColor:
+            theme.colors.earth,
+        borderRadius: 12,
+        borderWidth: 1,
+        height: 24,
+        width: 24,
+    },
+
+    selectedColorSwatch: {
+        borderColor:
+            theme.colors.forest,
+        borderWidth: 3,
     },
 })

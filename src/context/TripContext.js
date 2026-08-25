@@ -704,202 +704,168 @@ export function TripProvider({ children }) {
 	};
 
 	// adds a text, image, or sticker element to a journal page
-	const addJournalElement = async (pageId, element) => {
-		const { data, error } = await supabase
-			.from("journal_elements")
-			.insert({
-				page_id: pageId,
+    const addJournalElement = async (pageId, element) => {
+        const { data, error } = await supabase
+            .from("journal_elements")
+            .insert({
+                page_id: pageId,
+                type: element.type,
+                x: element.x || 0,
+                y: element.y || 0,
+                width: element.width ?? null,
+                height: element.height ?? null,
+                rotation: element.rotation || 0,
+                z_index: element.zIndex ?? 0,
+                content: element.content || null,
+                font_size: element.fontSize ?? null,
+                text_color: element.textColor || "#000000",
+                image_url: element.imageUrl || null,
+                sticker_value: element.stickerValue || null,
+            })
+            .select()
+            .single();
 
-				type: element.type,
+        if (error) {
+            console.error("supabase journal element insert error:", error);
+            throw error;
+        }
 
-				x: element.x || 0,
+        const newElement = {
+            id: data.id,
+            type: data.type,
+            x: data.x,
+            y: data.y,
+            width: data.width,
+            height: data.height,
+            rotation: data.rotation || 0,
+            zIndex: data.z_index ?? 0,
+            content: data.content || "",
+            fontSize: data.font_size,
+            textColor: data.text_color || "#000000",
+            imageUrl: data.image_url,
+            stickerValue: data.sticker_value,
+        };
 
-				y: element.y || 0,
+        setTrips((currentTrips) =>
+            currentTrips.map((trip) =>
+                trip.journal?.pages?.some((page) => page.id === pageId)
+                    ? {
+                            ...trip,
+                            journal: {
+                                ...trip.journal,
+                                pages: trip.journal.pages.map((page) =>
+                                    page.id === pageId
+                                        ? {
+                                                ...page,
+                                                elements: [
+                                                    ...page.elements,
+                                                    newElement,
+                                                ],
+                                            }
+                                        : page,
+                                ),
+                            },
+                        }
+                    : trip,
+            ),
+        );
 
-				width: element.width ?? null,
+        return newElement;
+    };
 
-				height: element.height ?? null,
+    // updates the position, size, content, color, or other properties of a journal element
+    const updateJournalElement = async (elementId, updates) => {
+        const databaseUpdates = {};
 
-				rotation: element.rotation || 0,
+        if (Object.prototype.hasOwnProperty.call(updates, "x")) {
+            databaseUpdates.x = updates.x;
+        }
 
-				z_index: element.zIndex ?? 0,
+        if (Object.prototype.hasOwnProperty.call(updates, "y")) {
+            databaseUpdates.y = updates.y;
+        }
 
-				content: element.content || null,
+        if (Object.prototype.hasOwnProperty.call(updates, "width")) {
+            databaseUpdates.width = updates.width;
+        }
 
-				font_size: element.fontSize ?? null,
+        if (Object.prototype.hasOwnProperty.call(updates, "height")) {
+            databaseUpdates.height = updates.height;
+        }
 
-				image_url: element.imageUrl || null,
+        if (Object.prototype.hasOwnProperty.call(updates, "rotation")) {
+            databaseUpdates.rotation = updates.rotation;
+        }
 
-				sticker_value: element.stickerValue || null,
-			})
-			.select()
-			.single();
+        if (Object.prototype.hasOwnProperty.call(updates, "zIndex")) {
+            databaseUpdates.z_index = updates.zIndex;
+        }
 
-		if (error) {
-			console.error("supabase journal element insert error:", error);
+        if (Object.prototype.hasOwnProperty.call(updates, "content")) {
+            databaseUpdates.content = updates.content;
+        }
 
-			throw error;
-		}
+        if (Object.prototype.hasOwnProperty.call(updates, "fontSize")) {
+            databaseUpdates.font_size = updates.fontSize;
+        }
 
-		const newElement = {
-			id: data.id,
+        if (Object.prototype.hasOwnProperty.call(updates, "textColor")) {
+            databaseUpdates.text_color = updates.textColor;
+        }
 
-			type: data.type,
+        if (Object.prototype.hasOwnProperty.call(updates, "imageUrl")) {
+            databaseUpdates.image_url = updates.imageUrl;
+        }
 
-			x: data.x,
+        if (Object.prototype.hasOwnProperty.call(updates, "stickerValue")) {
+            databaseUpdates.sticker_value = updates.stickerValue;
+        }
 
-			y: data.y,
+        const { data, error } = await supabase
+            .from("journal_elements")
+            .update({
+                ...databaseUpdates,
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", elementId)
+            .select()
+            .single();
 
-			width: data.width,
+        if (error) {
+            console.error("supabase journal element update error:", error);
+            throw error;
+        }
 
-			height: data.height,
-
-			rotation: data.rotation || 0,
-
-			zIndex: data.z_index ?? 0,
-
-			content: data.content || "",
-
-			fontSize: data.font_size,
-
-			imageUrl: data.image_url,
-
-			stickerValue: data.sticker_value,
-		};
-
-		setTrips((currentTrips) =>
-			currentTrips.map((trip) =>
-				trip.journal?.pages?.some((page) => page.id === pageId)
-					? {
-							...trip,
-
-							journal: {
-								...trip.journal,
-
-								pages: trip.journal.pages.map((page) =>
-									page.id === pageId
-										? {
-												...page,
-
-												elements: [
-													...page.elements,
-													newElement,
-												],
-											}
-										: page,
-								),
-							},
-						}
-					: trip,
-			),
-		);
-
-		return newElement;
-	};
-
-	// updates the position, size, content, or other properties of a journal element
-	const updateJournalElement = async (elementId, updates) => {
-		const databaseUpdates = {};
-
-		if (Object.prototype.hasOwnProperty.call(updates, "x")) {
-			databaseUpdates.x = updates.x;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "y")) {
-			databaseUpdates.y = updates.y;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "width")) {
-			databaseUpdates.width = updates.width;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "height")) {
-			databaseUpdates.height = updates.height;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "rotation")) {
-			databaseUpdates.rotation = updates.rotation;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "zIndex")) {
-			databaseUpdates.z_index = updates.zIndex;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "content")) {
-			databaseUpdates.content = updates.content;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "fontSize")) {
-			databaseUpdates.font_size = updates.fontSize;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "imageUrl")) {
-			databaseUpdates.image_url = updates.imageUrl;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(updates, "stickerValue")) {
-			databaseUpdates.sticker_value = updates.stickerValue;
-		}
-
-		const { data, error } = await supabase
-			.from("journal_elements")
-			.update({
-				...databaseUpdates,
-
-				updated_at: new Date().toISOString(),
-			})
-			.eq("id", elementId)
-			.select()
-			.single();
-
-		if (error) {
-			console.error("supabase journal element update error:", error);
-
-			throw error;
-		}
-
-		setTrips((currentTrips) =>
-			currentTrips.map((trip) => ({
-				...trip,
-
-				journal: {
-					...(trip.journal || {}),
-
-					pages: (trip.journal?.pages || []).map((page) => ({
-						...page,
-
-						elements: (page.elements || []).map((element) =>
-							element.id === elementId
-								? {
-										...element,
-
-										x: data.x,
-
-										y: data.y,
-
-										width: data.width,
-
-										height: data.height,
-
-										rotation: data.rotation || 0,
-
-										zIndex: data.z_index ?? 0,
-
-										content: data.content || "",
-
-										fontSize: data.font_size,
-
-										imageUrl: data.image_url,
-
-										stickerValue: data.sticker_value,
-									}
-								: element,
-						),
-					})),
-				},
-			})),
-		);
-	};
+        setTrips((currentTrips) =>
+            currentTrips.map((trip) => ({
+                ...trip,
+                journal: {
+                    ...(trip.journal || {}),
+                    pages: (trip.journal?.pages || []).map((page) => ({
+                        ...page,
+                        elements: (page.elements || []).map((element) =>
+                            element.id === elementId
+                                ? {
+                                        ...element,
+                                        x: data.x,
+                                        y: data.y,
+                                        width: data.width,
+                                        height: data.height,
+                                        rotation: data.rotation || 0,
+                                        zIndex: data.z_index ?? 0,
+                                        content: data.content || "",
+                                        fontSize: data.font_size,
+                                        textColor: data.text_color || "#000000",
+                                        imageUrl: data.image_url,
+                                        stickerValue: data.sticker_value,
+                                    }
+                                : element,
+                        ),
+                    })),
+                },
+            })),
+        );
+    };
 
 	// removes a journal element from the database and local state
 	const deleteJournalElement = async (elementId) => {

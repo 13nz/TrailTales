@@ -9,17 +9,16 @@ import {
     PanResponder,
     Keyboard,
     Modal,
+    Image
 } from 'react-native'
 
-import {
-    useSafeAreaInsets,
-} from 'react-native-safe-area-context'
+import { useSafeAreaInsets, } from 'react-native-safe-area-context'
 
 import theme from '../constants/theme'
 
-import {
-    useTrips,
-} from '../context/TripContext'
+import { useTrips, } from '../context/TripContext'
+import * as ImagePicker from 'expo-image-picker'
+import { supabase } from '../services/supabase'
 
 // displays and edits the freeform scrapbook canvas for one journal page
 export default function JournalPageScreen({
@@ -180,6 +179,122 @@ export default function JournalPageScreen({
         }
     }
 
+    // selects a photo, uploads it to supabase storage, and creates the journal image element
+    const handleAddPhoto = async () => {
+        Keyboard.dismiss()
+
+        try {
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync()
+
+            if (!permission.granted) {
+                Alert.alert(
+                    'Photo access needed',
+                    'Please allow photo access to add pictures to your journal.'
+                )
+                return
+            }
+
+            const result =
+                await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: true,
+                    quality: 0.9,
+                })
+
+            if (
+                result.canceled ||
+                !result.assets?.length
+            ) {
+                return
+            }
+
+            const selectedPhoto =
+                result.assets[0]
+
+            const response =
+                await fetch(
+                    selectedPhoto.uri
+                )
+
+            const arrayBuffer =
+                await response.arrayBuffer()
+
+            const fileExtension =
+                selectedPhoto.fileName
+                    ?.split('.')
+                    .pop() ||
+                'jpg'
+
+            const fileName =
+                `${tripId}/${pageId}/${Date.now()}.${fileExtension}`
+
+            const { data: uploadData, error: uploadError } =
+                await supabase.storage
+                    .from('journal_images')
+                    .upload(
+                        fileName,
+                        arrayBuffer,
+                        {
+                            contentType:
+                                selectedPhoto.mimeType ||
+                                'image/jpeg',
+                            upsert: false,
+                        }
+                    )
+
+            if (uploadError) {
+                throw uploadError
+            }
+
+            const {
+                data: publicUrlData,
+            } =
+                supabase.storage
+                    .from('journal_images')
+                    .getPublicUrl(
+                        uploadData.path
+                    )
+
+            const highestZIndex =
+                elements.reduce(
+                    (highest, element) =>
+                        Math.max(
+                            highest,
+                            element.zIndex ??
+                                0
+                        ),
+                    0
+                )
+
+            await addJournalElement(
+                page.id,
+                {
+                    type: 'image',
+                    x: 40,
+                    y: 140,
+                    width: 240,
+                    height: 180,
+                    rotation: 0,
+                    zIndex:
+                        highestZIndex + 1,
+                    imageUrl:
+                        publicUrlData.publicUrl,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'add journal photo error:',
+                error
+            )
+
+            Alert.alert(
+                'Unable to add photo',
+                'Something went wrong while adding this photo.'
+            )
+        }
+    }
+
     // saves the final position after the user finishes dragging an element
     const handleMoveElement = async (
         elementId,
@@ -246,6 +361,8 @@ export default function JournalPageScreen({
             )
         }
     }
+
+    
 
     // moves an element to the highest z-index so it appears above every other element
     const handleBringToFront = async (
@@ -617,63 +734,97 @@ export default function JournalPageScreen({
                         elements.map(
                             (element) => {
                                 if (
-                                    element.type !==
+                                    element.type ===
                                     'text'
                                 ) {
-                                    return null
+                                   return (
+                                        <ScrapbookTextElement
+                                            key={
+                                                element.id
+                                            }
+                                            element={
+                                                element
+                                            }
+                                            isEditing={
+                                                editingElementId ===
+                                                element.id
+                                            }
+                                            onSelect={() => {
+                                                Keyboard.dismiss()
+
+                                                setEditingElementId(
+                                                    element.id
+                                                )
+
+                                                handleBringToFront(
+                                                    element.id
+                                                )
+                                            }}
+                                            onChangeText={
+                                                handleTextChange
+                                            }
+                                            onChangeColor={
+                                                handleTextColorChange
+                                            }
+                                            onDelete={
+                                                handleDeleteElement
+                                            }
+                                            onMove={
+                                                handleMoveElement
+                                            }
+                                            onResize={
+                                                handleResizeText
+                                            }
+                                            onRotate={
+                                                handleRotateElement
+                                            }
+                                            onBringToFront={
+                                                handleBringToFront
+                                            }
+                                            onFinishEditing={() =>
+                                                setEditingElementId(
+                                                    null
+                                                )
+                                            }
+                                        />
+                                    )
                                 }
 
-                                return (
-                                    <ScrapbookTextElement
-                                        key={
-                                            element.id
-                                        }
-                                        element={
-                                            element
-                                        }
-                                        isEditing={
-                                            editingElementId ===
-                                            element.id
-                                        }
-                                        onSelect={() => {
-                                            Keyboard.dismiss()
-
-                                            setEditingElementId(
+                                if (
+                                    element.type ===
+                                    'image'
+                                ) {
+                                    return (
+                                        <ScrapbookImageElement
+                                            key={
                                                 element.id
-                                            )
-
-                                            handleBringToFront(
+                                            }
+                                            element={
+                                                element
+                                            }
+                                            isSelected={
+                                                editingElementId ===
                                                 element.id
-                                            )
-                                        }}
-                                        onChangeText={
-                                            handleTextChange
-                                        }
-                                        onChangeColor={
-                                            handleTextColorChange
-                                        }
-                                        onDelete={
-                                            handleDeleteElement
-                                        }
-                                        onMove={
-                                            handleMoveElement
-                                        }
-                                        onResize={
-                                            handleResizeText
-                                        }
-                                        onRotate={
-                                            handleRotateElement
-                                        }
-                                        onBringToFront={
-                                            handleBringToFront
-                                        }
-                                        onFinishEditing={() =>
-                                            setEditingElementId(
-                                                null
-                                            )
-                                        }
-                                    />
-                                )
+                                            }
+                                            onSelect={() =>
+                                                setEditingElementId(
+                                                    element.id
+                                                )
+                                            }
+                                            onChange={
+                                                updateJournalElement
+                                            }
+                                            onDelete={
+                                                deleteJournalElement
+                                            }
+                                            onBringToFront={
+                                                handleBringToFront
+                                            }
+                                        />
+                                    )
+                                }
+
+                                
                             }
                         )
                     )}
@@ -703,6 +854,15 @@ export default function JournalPageScreen({
                     icon="▣"
                     label="Photo"
                     accessibilityLabel="add photo"
+                    onPress={
+                        handleAddPhoto
+                    }
+                />
+
+                <ToolbarButton
+                    icon="✎"
+                    label="Paint"
+                    accessibilityLabel="paint"
                     disabled
                 />
 
@@ -713,12 +873,6 @@ export default function JournalPageScreen({
                     disabled
                 />
 
-                <ToolbarButton
-                    icon="✎"
-                    label="Paint"
-                    accessibilityLabel="paint"
-                    disabled
-                />
             </View>
 
             <Modal
@@ -1601,7 +1755,10 @@ function ScrapbookTextElement({
                     style={[
                         styles.textInput,
                         {
-                            color: textColor,
+                            color:
+                                element.textColor ||
+                                textColor ||
+                                '#000000',
                             fontSize: size.fontSize,
                         },
                     ]}
@@ -1630,7 +1787,10 @@ function ScrapbookTextElement({
                         style={[
                             styles.savedText,
                             {
-                                color: textColor,
+                                color:
+                                    element.textColor ||
+                                    textColor ||
+                                    '#000000',
                                 fontSize: size.fontSize,
                                 maxWidth: size.width || 250,
                             },
@@ -1772,6 +1932,533 @@ function ScrapbookTextElement({
                         ))}
                     </View>
                 ) : null}
+        </View>
+    )
+}
+
+// displays and transforms a photo on the scrapbook canvas
+function ScrapbookImageElement({
+    element,
+    onSelect,
+    onChange,
+    onBringToFront,
+    onDelete,
+    isSelected
+}) {
+    const [
+        position,
+        setPosition,
+    ] = React.useState({
+        x: element.x || 0,
+        y: element.y || 0,
+    })
+
+    const [
+        size,
+        setSize,
+    ] = React.useState({
+        width:
+            element.width ||
+            240,
+        height:
+            element.height ||
+            180,
+    })
+
+    const [
+        rotation,
+        setRotation,
+    ] = React.useState(
+        element.rotation || 0
+    )
+
+    const positionRef =
+        React.useRef(
+            position
+        )
+
+    const sizeRef =
+        React.useRef(
+            size
+        )
+
+    const rotationRef =
+        React.useRef(
+            rotation
+        )
+
+    const gestureRef =
+        React.useRef({
+            mode: null,
+        })
+
+
+    React.useEffect(() => {
+        const nextPosition = {
+            x: element.x || 0,
+            y: element.y || 0,
+        }
+
+        const nextSize = {
+            width:
+                element.width ||
+                240,
+            height:
+                element.height ||
+                180,
+        }
+
+        const nextRotation =
+            element.rotation || 0
+
+        positionRef.current =
+            nextPosition
+
+        sizeRef.current =
+            nextSize
+
+        rotationRef.current =
+            nextRotation
+
+        setPosition(
+            nextPosition
+        )
+
+        setSize(
+            nextSize
+        )
+
+        setRotation(
+            nextRotation
+        )
+    }, [
+        element.x,
+        element.y,
+        element.width,
+        element.height,
+        element.rotation,
+    ])
+
+    const getDistance = (
+        touches
+    ) => {
+        const first =
+            touches[0]
+
+        const second =
+            touches[1]
+
+        const dx =
+            second.pageX -
+            first.pageX
+
+        const dy =
+            second.pageY -
+            first.pageY
+
+        return Math.sqrt(
+            dx * dx +
+                dy * dy
+        )
+    }
+
+    const getAngle = (
+        touches
+    ) => {
+        const first =
+            touches[0]
+
+        const second =
+            touches[1]
+
+        return Math.atan2(
+            second.pageY -
+                first.pageY,
+            second.pageX -
+                first.pageX
+        )
+    }
+
+    const saveTransform = async (
+        nextPosition,
+        nextSize,
+        nextRotation
+    ) => {
+        positionRef.current =
+            nextPosition
+
+        sizeRef.current =
+            nextSize
+
+        rotationRef.current =
+            nextRotation
+
+        setPosition(
+            nextPosition
+        )
+
+        setSize(
+            nextSize
+        )
+
+        setRotation(
+            nextRotation
+        )
+
+        try {
+            await onChange(
+                element.id,
+                {
+                    x:
+                        nextPosition.x,
+                    y:
+                        nextPosition.y,
+                    width:
+                        nextSize.width,
+                    height:
+                        nextSize.height,
+                    rotation:
+                        nextRotation,
+                }
+            )
+        } catch (error) {
+            console.error(
+                'update journal image transform error:',
+                error
+            )
+        }
+    }
+
+    const panResponder =
+        React.useMemo(
+            () =>
+                PanResponder.create({
+                    onStartShouldSetPanResponder:
+                        () =>
+                            true,
+
+                    onMoveShouldSetPanResponder:
+                        () =>
+                            true,
+
+                    onPanResponderGrant:
+                        (
+                            event
+                        ) => {
+                            const touches =
+                                event
+                                    .nativeEvent
+                                    .touches
+
+                            onSelect()
+
+                            onBringToFront(
+                                element.id
+                            )       
+
+                            if (
+                                touches.length >=
+                                2
+                            ) {
+                                gestureRef.current =
+                                    {
+                                        mode:
+                                            'transform',
+                                        startDistance:
+                                            getDistance(
+                                                touches
+                                            ),
+                                        startAngle:
+                                            getAngle(
+                                                touches
+                                            ),
+                                        startWidth:
+                                            sizeRef
+                                                .current
+                                                .width,
+                                        startHeight:
+                                            sizeRef
+                                                .current
+                                                .height,
+                                        startRotation:
+                                            rotationRef
+                                                .current,
+                                        startX:
+                                            positionRef
+                                                .current
+                                                .x,
+                                        startY:
+                                            positionRef
+                                                .current
+                                                .y,
+                                    }
+                            } else {
+                                gestureRef.current =
+                                    {
+                                        mode:
+                                            'move',
+                                        startX:
+                                            event
+                                                .nativeEvent
+                                                .pageX,
+                                        startY:
+                                            event
+                                                .nativeEvent
+                                                .pageY,
+                                        startElementX:
+                                            positionRef
+                                                .current
+                                                .x,
+                                        startElementY:
+                                            positionRef
+                                                .current
+                                                .y,
+                                    }
+                            }
+                        },
+
+                    onPanResponderMove:
+                        (
+                            event
+                        ) => {
+                            const touches =
+                                event
+                                    .nativeEvent
+                                    .touches
+
+                            const gesture =
+                                gestureRef.current
+
+                            if (
+                                touches.length >=
+                                    2 &&
+                                gesture.mode ===
+                                    'transform'
+                            ) {
+                                const distance =
+                                    getDistance(
+                                        touches
+                                    )
+
+                                const angle =
+                                    getAngle(
+                                        touches
+                                    )
+
+                                const scale =
+                                    distance /
+                                    Math.max(
+                                        gesture.startDistance,
+                                        1
+                                    )
+
+                                const nextWidth =
+                                    Math.max(
+                                        80,
+                                        Math.min(
+                                            600,
+                                            gesture.startWidth *
+                                                scale
+                                        )
+                                    )
+
+                                const aspectRatio =
+                                    gesture.startHeight /
+                                    Math.max(
+                                        gesture.startWidth,
+                                        1
+                                    )
+
+                                const nextHeight =
+                                    Math.max(
+                                        60,
+                                        Math.min(
+                                            600,
+                                            nextWidth *
+                                                aspectRatio
+                                        )
+                                    )
+
+                                const angleDelta =
+                                    angle -
+                                    gesture.startAngle
+
+                                const nextRotation =
+                                    gesture.startRotation +
+                                    angleDelta *
+                                        (180 /
+                                            Math.PI)
+
+                                const nextSize =
+                                    {
+                                        width:
+                                            nextWidth,
+                                        height:
+                                            nextHeight,
+                                    }
+
+                                sizeRef.current =
+                                    nextSize
+
+                                rotationRef.current =
+                                    nextRotation
+
+                                setSize(
+                                    nextSize
+                                )
+
+                                setRotation(
+                                    nextRotation
+                                )
+
+                                return
+                            }
+
+                            if (
+                                touches.length ===
+                                    1 &&
+                                gesture.mode ===
+                                    'move'
+                            ) {
+                                const touch =
+                                    touches[0]
+
+                                const deltaX =
+                                    touch.pageX -
+                                    gesture.startX
+
+                                const deltaY =
+                                    touch.pageY -
+                                    gesture.startY
+
+                                const nextPosition =
+                                    {
+                                        x:
+                                            gesture.startElementX +
+                                            deltaX,
+                                        y:
+                                            gesture.startElementY +
+                                            deltaY,
+                                    }
+
+                                positionRef.current =
+                                    nextPosition
+
+                                setPosition(
+                                    nextPosition
+                                )
+                            }
+                        },
+
+                    onPanResponderRelease:
+                        async () => {
+                            const gesture =
+                                gestureRef.current
+
+                            if (
+                                gesture.mode ===
+                                    'move' ||
+                                gesture.mode ===
+                                    'transform'
+                            ) {
+                                await saveTransform(
+                                    positionRef.current,
+                                    sizeRef.current,
+                                    rotationRef.current
+                                )
+                            }
+
+                            gestureRef.current =
+                                {
+                                    mode: null,
+                                }
+                        },
+
+                    onPanResponderTerminate:
+                        async () => {
+                            await saveTransform(
+                                positionRef.current,
+                                sizeRef.current,
+                                rotationRef.current
+                            )
+
+                            gestureRef.current =
+                                {
+                                    mode: null,
+                                }
+                        },
+                }),
+            [
+                element.id,
+                onSelect,
+                onChange,
+            ]
+        )
+
+    return (
+        <View
+            {...panResponder
+                .panHandlers}
+            style={[
+                styles.imageElement,
+                {
+                    left:
+                        position.x,
+                    top:
+                        position.y,
+                    width:
+                        size.width,
+                    height:
+                        size.height,
+                    transform: [
+                        {
+                            rotate:
+                                `${rotation}deg`,
+                        },
+                    ],
+                },
+            ]}
+        >
+            <Image
+                source={{
+                    uri:
+                        element.imageUrl,
+                }}
+                style={
+                    styles.journalImage
+                }
+                resizeMode="cover"
+            />
+
+            {isSelected ? (
+                <Pressable
+                    style={
+                        styles.imageDeleteButton
+                    }
+                    onPress={async () => {
+                        try {
+                            await onDelete(
+                                element.id
+                            )
+                        } catch (error) {
+                            console.error(
+                                'delete journal image error:',
+                                error
+                            )
+                        }
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="delete photo"
+                >
+                    <Text
+                        style={
+                            styles.imageDeleteButtonText
+                        }
+                    >
+                        ×
+                    </Text>
+                </Pressable>
+            ) : null}
         </View>
     )
 }
@@ -2258,5 +2945,42 @@ const styles = StyleSheet.create({
         borderColor:
             theme.colors.forest,
         borderWidth: 3,
+    },
+
+    imageElement: {
+        position: 'absolute',
+    },
+
+    journalImage: {
+        height: '100%',
+        width: '100%',
+    },
+
+    imageDeleteButton: {
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: 14,
+        height: 28,
+        justifyContent: 'center',
+        position: 'absolute',
+        right: -10,
+        top: -10,
+        width: 28,
+    },
+
+    imageDeleteButtonText: {
+        color: '#000000',
+        fontSize: 20,
+        fontWeight: '600',
+        lineHeight: 22,
+    },
+
+    imageElement: {
+        position: 'absolute',
+    },
+
+    journalImage: {
+        height: '100%',
+        width: '100%',
     },
 })

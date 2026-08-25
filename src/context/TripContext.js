@@ -53,6 +53,8 @@ function normalizeJournal(pages = [], elements = []) {
 
 						fontSize: element.font_size,
 
+                        textColor: element.text_color || "#000000",
+
 						imageUrl: element.image_url,
 
 						stickerValue: element.sticker_value,

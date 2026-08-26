@@ -10,7 +10,8 @@ import {
 	Keyboard,
 	Modal,
 	Image,
-	ScrollView
+	ScrollView,
+	Alert
 } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -246,7 +247,7 @@ export default function JournalPageScreen({ route, navigation }) {
 		)
 	}
 
-	// selects a photo, uploads it to supabase storage, and creates the journal image element
+	// selects a photo and opens the custom crop screen
 	const handleAddPhoto = async () => {
 		Keyboard.dismiss();
 
@@ -257,71 +258,169 @@ export default function JournalPageScreen({ route, navigation }) {
 			if (!permission.granted) {
 				Alert.alert(
 					"Photo access needed",
-					"Please allow photo access to add pictures to your journal.",
+					"Please allow photo access to add pictures to your journal."
 				);
 				return;
 			}
 
-			const result = await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: ["images"],
-				allowsEditing: true,
-				quality: 0.9,
-			});
+			const result =
+				await ImagePicker.launchImageLibraryAsync({
+					mediaTypes: ["images"],
+					allowsEditing: false,
+					quality: 1,
+				});
 
-			if (result.canceled || !result.assets?.length) {
+			if (
+				result.canceled ||
+				!result.assets?.length
+			) {
 				return;
 			}
 
-			const selectedPhoto = result.assets[0];
+			const selectedPhoto =
+				result.assets[0];
 
-			const response = await fetch(selectedPhoto.uri);
+			// stores the selected image until
+			// the user finishes cropping
+			setCropPhoto(selectedPhoto);
+			setCropModalVisible(true);
+		} catch (error) {
+			console.error(
+				"select journal photo error:",
+				error
+			);
 
-			const arrayBuffer = await response.arrayBuffer();
+			Alert.alert(
+				"Unable to select photo",
+				"Something went wrong while selecting this photo."
+			);
+		}
+	};
 
-			const fileExtension =
-				selectedPhoto.fileName?.split(".").pop() || "jpg";
+	// creates the cropped image, uploads it, and adds it to the journal
+	const handleCropDone = async (
+		cropRectangle
+	) => {
+		if (!cropPhoto) {
+			return;
+		}
 
-			const fileName = `${tripId}/${pageId}/${Date.now()}.${fileExtension}`;
+		try {
+			setCropModalVisible(false);
 
-			const { data: uploadData, error: uploadError } =
-				await supabase.storage
-					.from("journal_images")
-					.upload(fileName, arrayBuffer, {
-						contentType: selectedPhoto.mimeType || "image/jpeg",
+			const cropped =
+				await ImageManipulator.manipulateAsync(
+					cropPhoto.uri,
+					[
+						{
+							crop: cropRectangle,
+						},
+					],
+					{
+						compress: 0.9,
+						format:
+							ImageManipulator.SaveFormat
+								.JPEG,
+					}
+				);
+
+			const response =
+				await fetch(cropped.uri);
+
+			const arrayBuffer =
+				await response.arrayBuffer();
+
+			const fileName =
+				`${tripId}/${pageId}/${Date.now()}.jpg`;
+
+			const {
+				data: uploadData,
+				error: uploadError,
+			} = await supabase.storage
+				.from("journal_images")
+				.upload(
+					fileName,
+					arrayBuffer,
+					{
+						contentType:
+							"image/jpeg",
 						upsert: false,
-					});
+					}
+				);
 
 			if (uploadError) {
 				throw uploadError;
 			}
 
-			const { data: publicUrlData } = supabase.storage
+			const {
+				data: publicUrlData,
+			} = supabase.storage
 				.from("journal_images")
-				.getPublicUrl(uploadData.path);
+				.getPublicUrl(
+					uploadData.path
+				);
 
-			const highestZIndex = elements.reduce(
-				(highest, element) => Math.max(highest, element.zIndex ?? 0),
-				0,
+			const highestZIndex =
+				elements.reduce(
+					(highest, element) =>
+						Math.max(
+							highest,
+							element.zIndex ?? 0
+						),
+					0
+				);
+
+			// scales the cropped photo down to a reasonable
+			// scrapbook size while preserving its aspect ratio
+			const maxPhotoSize = 240;
+
+			const photoScale = Math.min(
+				maxPhotoSize / cropped.width,
+				maxPhotoSize / cropped.height
 			);
 
-			await addJournalElement(page.id, {
-				type: "image",
-				x: 40,
-				y: 140,
-				width: 240,
-				height: 240,
-				rotation: 0,
-				zIndex: highestZIndex + 1,
-				imageUrl: publicUrlData.publicUrl,
-			});
+			const displayWidth = Math.round(
+				cropped.width * photoScale
+			);
+
+			const displayHeight = Math.round(
+				cropped.height * photoScale
+			);
+
+			await addJournalElement(
+				page.id,
+				{
+					type: "image",
+					x: 40,
+					y: 140,
+					width: displayWidth,
+					height: displayHeight,
+					rotation: 0,
+					zIndex: highestZIndex + 1,
+					imageUrl: publicUrlData.publicUrl,
+				}
+			);
+
+			setCropPhoto(null);
 		} catch (error) {
-			console.error("add journal photo error:", error);
+			console.error(
+				"crop and upload journal photo error:",
+				error
+			);
+
+			setCropPhoto(null);
 
 			Alert.alert(
-				"Unable to add photo",
-				"Something went wrong while adding this photo.",
+				"Unable to crop photo",
+				"Something went wrong while cropping this photo."
 			);
 		}
+	};
+
+	// closes the custom crop screen without adding the photo
+	const handleCropCancel = () => {
+		setCropModalVisible(false);
+		setCropPhoto(null);
 	};
 
 	// saves the final position after the user finishes dragging an element
@@ -491,6 +590,12 @@ export default function JournalPageScreen({ route, navigation }) {
 				},
 			]}
 		>
+			<PhotoCropModal
+				visible={cropModalVisible}
+				photo={cropPhoto}
+				onCancel={handleCropCancel}
+				onDone={handleCropDone}
+			/>
 			<View style={styles.header}>
 				<Pressable
 					onPress={handleGoBack}
@@ -1094,65 +1199,101 @@ function PhotoCropModal({
 		setCrop(next);
 	};
 
-	const createEdgeResponder = (
-		edge
-	) =>
-		PanResponder.create({
-			onStartShouldSetPanResponder:
-				() => true,
+		const createEdgeResponder = (edge) =>
+			PanResponder.create({
+				onStartShouldSetPanResponder:
+					() => true,
 
-			onMoveShouldSetPanResponder:
-				() => true,
+				onMoveShouldSetPanResponder:
+					() => true,
 
-			onPanResponderGrant:
-				() => {
+				onPanResponderGrant: () => {
 					gestureRef.current = {
 						edge,
+						startCrop: {
+							...cropRef.current,
+						},
 					};
 				},
 
-			onPanResponderMove: (
-				event,
-				gestureState
-			) => {
-				const edge =
-					gestureRef.current
-						?.edge;
+				onPanResponderMove: (
+					event,
+					gestureState
+				) => {
+					const gesture =
+						gestureRef.current;
 
-				if (!edge) {
-					return;
-				}
+					if (!gesture?.startCrop) {
+						return;
+					}
 
-				updateCropEdge(
-					edge,
-					gestureState.dx,
-					gestureState.dy
-				);
+					const start =
+						gesture.startCrop;
 
-				// resets the reference so the next
-				// movement is measured from the
-				// current crop position
-				gestureRef.current = {
-					edge,
-					lastX:
-						gestureState.dx,
-					lastY:
-						gestureState.dy,
-				};
-			},
+					let next = {
+						...start,
+					};
 
-			onPanResponderRelease:
-				() => {
-					gestureRef.current =
-						null;
+					if (edge === "left") {
+						next.left = Math.max(
+							imageOffset.x,
+							Math.min(
+								start.right - 60,
+								start.left +
+									gestureState.dx
+							)
+						);
+					}
+
+					if (edge === "right") {
+						next.right = Math.min(
+							imageOffset.x +
+								(photo.width || 1) *
+									imageScale,
+							Math.max(
+								start.left + 60,
+								start.right +
+									gestureState.dx
+							)
+						);
+					}
+
+					if (edge === "top") {
+						next.top = Math.max(
+							imageOffset.y,
+							Math.min(
+								start.bottom - 60,
+								start.top +
+									gestureState.dy
+							)
+						);
+					}
+
+					if (edge === "bottom") {
+						next.bottom = Math.min(
+							imageOffset.y +
+								(photo.height || 1) *
+									imageScale,
+							Math.max(
+								start.top + 60,
+								start.bottom +
+									gestureState.dy
+							)
+						);
+					}
+
+					cropRef.current = next;
+					setCrop(next);
 				},
 
-			onPanResponderTerminate:
-				() => {
-					gestureRef.current =
-						null;
+				onPanResponderRelease: () => {
+					gestureRef.current = null;
 				},
-		});
+
+				onPanResponderTerminate: () => {
+					gestureRef.current = null;
+				},
+			});
 
 	const leftResponder =
 		React.useMemo(
@@ -1433,7 +1574,7 @@ function PhotoCropModal({
 									{
 										left:
 											crop.left -
-											10,
+											4,
 										top:
 											crop.top,
 										height:
@@ -1451,7 +1592,7 @@ function PhotoCropModal({
 									{
 										left:
 											crop.right -
-											10,
+											4,
 										top:
 											crop.top,
 										height:
@@ -1471,7 +1612,7 @@ function PhotoCropModal({
 											crop.left,
 										top:
 											crop.top -
-											10,
+											4,
 										width:
 											crop.right -
 											crop.left,
@@ -1489,7 +1630,7 @@ function PhotoCropModal({
 											crop.left,
 										top:
 											crop.bottom -
-											10,
+											4,
 										width:
 											crop.right -
 											crop.left,
@@ -1579,6 +1720,41 @@ function ScrapbookTextElement({
 	// save text without pressing chekcmark
 	const editingContentRef = React.useRef(element.content || "");
 
+	// tracks whether this text element was previously being edited
+	const wasEditingRef = React.useRef(false);
+
+	// saves text when editing ends from tapping somewhere else
+	React.useEffect(() => {
+		if (isEditing) {
+			wasEditingRef.current = true;
+			return;
+		}
+
+		// only save when the element actually just left editing mode
+		if (
+			wasEditingRef.current &&
+			!isDeletingRef.current
+		) {
+			const content =
+				editingContentRef.current;
+
+			onChangeText(
+				element.id,
+				content
+			).catch((error) => {
+				console.error(
+					"text blur save error:",
+					error
+				);
+			});
+
+			wasEditingRef.current = false;
+		}
+	}, [
+		isEditing,
+		element.id,
+		onChangeText,
+	]);
 
 	// color states
 	const [textColor, setTextColor] = React.useState(
@@ -1629,12 +1805,23 @@ function ScrapbookTextElement({
 		setFontFamily(nextFontFamily);
 
 		if (!isEditing) {
-			setEditingContent(element.content || "");
+			const savedContent =
+				element.content || "";
+
+			setEditingContent(
+				savedContent
+			);
+
+			editingContentRef.current =
+				savedContent;
 		}
 
 		if (!isEditing) {
-			setDisplayedContent(element.content || "");
+			setDisplayedContent(
+				element.content || ""
+			);
 		}
+		
 	}, [
 		element.x,
 		element.y,
@@ -1690,35 +1877,31 @@ function ScrapbookTextElement({
 		return ((value + 180) % 360) - 180;
 	};
 
-	// saves the current text and immediately exits editing mode
+	// saves the current text and exits editing mode
 	const finishTextEditing = () => {
 		if (isDeletingRef.current) {
-			onFinishEditing()
-			return
+			onFinishEditing();
+			return;
 		}
 
+		// saves the latest text before leaving edit mode
 		const content =
-			editingContent
+			editingContentRef.current;
 
-		textSaveRef.current =
-			content
-
-		// exits editing immediately so the controls and canvas respond normally
-		onFinishEditing()
-
-		// saves the final text without keeping the editor open
 		onChangeText(
 			element.id,
 			content
 		).catch((error) => {
 			console.error(
-				'finish journal text error:',
+				"finish journal text error:",
 				error
-			)
-		})
+			);
+		});
 
-		Keyboard.dismiss()
-	}
+		onFinishEditing();
+
+		Keyboard.dismiss();
+	};
 
 	// handles one finger movement and two finger resize/rotation
 	const panResponder = React.useMemo(
@@ -1957,7 +2140,12 @@ function ScrapbookTextElement({
 
 						setEditingContent(content);
 					}}
-					onBlur={finishTextEditing}
+					onBlur={() => {
+						editingContentRef.current =
+							editingContent;
+
+						finishTextEditing();
+					}}		
 					onEndEditing={(event) => {
 						const finalContent = event.nativeEvent.text;
 
@@ -3572,5 +3760,75 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: theme.colors.ink,
 		marginTop: 4,
+	},
+
+	cropScreen: {
+		backgroundColor: "#111",
+		flex: 1,
+		paddingTop: 50,
+	},
+
+	cropHeader: {
+		alignItems: "center",
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingHorizontal: 20,
+		paddingBottom: 20,
+	},
+
+	cropTitle: {
+		color: "#fff",
+		fontSize: 18,
+		fontWeight: "700",
+	},
+
+	cropCancelText: {
+		color: "#fff",
+		fontSize: 16,
+	},
+
+	cropDoneText: {
+		color: "#fff",
+		fontSize: 16,
+		fontWeight: "700",
+	},
+
+	cropArea: {
+		alignSelf: "center",
+		backgroundColor: "#222",
+		overflow: "hidden",
+		position: "relative",
+	},
+
+	cropOverlay: {
+		backgroundColor: "rgba(0, 0, 0, 0.60)",
+		position: "absolute",
+	},
+
+	cropBorder: {
+		borderColor: "#fff",
+		borderWidth: 1,
+		position: "absolute",
+	},
+
+	cropHandleVertical: {
+		backgroundColor: "#fff",
+		borderRadius: 4,
+		position: "absolute",
+		width: 8,
+	},
+
+	cropHandleHorizontal: {
+		backgroundColor: "#fff",
+		borderRadius: 4,
+		height: 8,
+		position: "absolute",
+	},
+
+	cropInstructions: {
+		alignSelf: "center",
+		color: "#fff",
+		fontSize: 14,
+		marginTop: 20,
 	},
 });

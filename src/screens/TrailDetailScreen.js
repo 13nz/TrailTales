@@ -279,7 +279,7 @@ export default function TrailDetailScreen({
                                     styles.primaryActionText
                                 }
                             >
-                                Save trail
+                                Add to favorites ♡
                             </Text>
                         </Pressable>
 

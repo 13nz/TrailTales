@@ -264,7 +264,7 @@ export default function CampgroundDetailScreen({
                             accessibilityRole="button"
                         >
                             <Text style={styles.primaryActionText}>
-                                Save
+                                Add to favorites ♡
                             </Text>
                         </Pressable>
 

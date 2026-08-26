@@ -193,7 +193,7 @@ export default function ParkDetailScreen({
                             accessibilityLabel={`save ${park.name}`}
                         >
                             <Text style={styles.primaryActionText}>
-                                Save
+                                Add to favorites ♡
                             </Text>
                         </Pressable>
 

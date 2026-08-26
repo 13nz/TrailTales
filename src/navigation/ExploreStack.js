@@ -17,6 +17,9 @@ import ReportWildlifeScreen from '../screens/ReportWildlifeScreen'
 
 import ActivityDetailScreen from '../screens/ActivityDetailScreen'
 
+import VisitorCenterDirectoryScreen from '../screens/VisitorCenterDirectoryScreen'
+import VisitorCenterDetailScreen from '../screens/VisitorCenterDetailScreen'
+
 const Stack =
     createNativeStackNavigator()
 
@@ -114,6 +117,20 @@ export default function ExploreStack() {
                 name="ReportWildlife"
                 component={
                     ReportWildlifeScreen
+                }
+            />
+
+            <Stack.Screen
+                name="VisitorCenterDirectory"
+                component={
+                    VisitorCenterDirectoryScreen
+                }
+            />
+
+            <Stack.Screen
+                name="VisitorCenterDetail"
+                component={
+                    VisitorCenterDetailScreen
                 }
             />
         </Stack.Navigator>

@@ -1,5 +1,12 @@
-const NPS_BASE_URL =
-    'https://developer.nps.gov/api/v1'
+const NPS_BASE_URL = 'https://developer.nps.gov/api/v1'
+
+// keeps the national parks available to every screen
+// without requesting the same data from the nps api repeatedly
+let parksCache = null
+
+// keeps an in-progress request available to other screens
+// so multiple screens cannot start duplicate park requests
+let parksRequest = null
 
 // keeps all nps requests in one place so screens do not need to handle api details
 async function npsRequest(endpoint) {
@@ -220,13 +227,38 @@ export async function getParks(
     }
 }
 
-// gets all official national parks
+// gets all national parks and caches them for the current app session
 export async function getAllParks() {
-    const response = await getParks({
-        limit: 600,
-    })
+    // return the cached parks immediately when they are already loaded
+    if (parksCache) {
+        return parksCache
+    }
 
-    return response.data || []
+    // if another screen is already loading parks, reuse that request
+    if (parksRequest) {
+        return parksRequest
+    }
+
+    // create one shared request for all screens that need the parks
+    parksRequest = (async () => {
+        try {
+            const response = await getParks({
+                limit: 600,
+            })
+
+            const parks = response.data || []
+
+            // save the successful result for the rest of the app session
+            parksCache = parks
+
+            return parks
+        } finally {
+            // allows another request if the original request fails
+            parksRequest = null
+        }
+    })()
+
+    return parksRequest
 }
 
 // retrieves one specific national park using its park code

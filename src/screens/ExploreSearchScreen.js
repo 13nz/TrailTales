@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 
 import {
-    useMemo,
+    useEffect,
     useState,
 } from 'react'
 
@@ -21,8 +21,10 @@ import {
 } from '@expo/vector-icons'
 
 import theme from '../constants/theme'
-import mockParks from '../data/mockParks'
-import mockActivities from '../data/mockActivities'
+
+import {
+    getAllParks,
+} from '../api/npsApi'
 
 // provides one search experience across the main explore content types
 // the result structure keeps navigation separate from the search implementation
@@ -41,185 +43,144 @@ export default function ExploreSearchScreen({
         setSearchQuery,
     ] = useState(initialQuery)
 
-    // creates a single searchable collection from the existing mock data
-    // park-owned trails and campgrounds use their parent park id for existing detail navigation
-    const searchItems =
-        useMemo(() => {
-            const parks =
-                mockParks.map(
-                    (park) => ({
-                        id: park.id,
-                        type: 'park',
-                        title: park.name,
-                        subtitle:
-                            park.location ||
-                            'National Park',
-                        description:
-                            park.description ||
-                            '',
-                        parkId: park.id,
-                    })
+    // stores the official national parks returned by the nps api
+    const [
+        parks,
+        setParks,
+    ] = useState([])
+
+    // controls the initial api loading state
+    const [
+        loadingParks,
+        setLoadingParks,
+    ] = useState(true)
+
+    // stores an api error without crashing the search screen
+    const [
+        parkError,
+        setParkError,
+    ] = useState(null)
+
+    /*
+     * loads the national parks through the shared nps api function.
+     *
+     * getAllParks() now caches the result, so opening this screen
+     * does not create another nps request when the parks are already loaded.
+     */
+    useEffect(() => {
+        let active = true
+
+        async function loadParks() {
+            try {
+                setLoadingParks(true)
+                setParkError(null)
+
+                const apiParks =
+                    await getAllParks()
+
+                if (!active) {
+                    return
+                }
+
+                setParks(
+                    apiParks || []
+                )
+            } catch (error) {
+                console.error(
+                    'nps explore search parks error:',
+                    error
                 )
 
-            const trails =
-                mockParks.flatMap(
-                    (park) =>
-                        (
-                            park.trails ||
-                            []
-                        ).map(
-                            (trail) => ({
-                                id: `${park.id}-${trail.id}`,
-                                type: 'trail',
-                                title: trail.name,
-                                subtitle:
-                                    park.name,
-                                description:
-                                    trail.description ||
-                                    '',
-                                parkId:
-                                    park.id,
-                                trailId:
-                                    trail.id,
-                            })
-                        )
-                )
-
-            const campgrounds =
-                mockParks.flatMap(
-                    (park) =>
-                        (
-                            park.campgrounds ||
-                            []
-                        ).map(
-                            (campground) => ({
-                                id: `${park.id}-${campground.id}`,
-                                type: 'campground',
-                                title:
-                                    campground.name,
-                                subtitle:
-                                    park.name,
-                                description:
-                                    campground.description ||
-                                    '',
-                                parkId:
-                                    park.id,
-                                campgroundId:
-                                    campground.id,
-                            })
-                        )
-                )
-
-            const activities =
-                mockActivities.map(
-                    (activity) => ({
-                        id: activity.id,
-                        type: 'activity',
-                        title:
-                            activity.title,
-                        subtitle:
-                            activity.parkName,
-                        description:
-                            activity.shortDescription ||
-                            '',
-                        activityId:
-                            activity.id,
-                    })
-                )
-
-            return [
-                ...parks,
-                ...trails,
-                ...campgrounds,
-                ...activities,
-            ]
-        }, [])
-
-    // searches titles, parent parks, and descriptions so users can search naturally
-    const filteredResults =
-        useMemo(() => {
-            const query =
-                searchQuery
-                    .trim()
-                    .toLowerCase()
-
-            if (!query) {
-                return []
+                if (active) {
+                    setParks([])
+                    setParkError(
+                        'Unable to load national parks.'
+                    )
+                }
+            } finally {
+                if (active) {
+                    setLoadingParks(false)
+                }
             }
+        }
 
-            return searchItems.filter(
-                (item) =>
+        loadParks()
+
+        return () => {
+            active = false
+        }
+    }, [])
+
+    /*
+     * creates the searchable park collection from the official
+     * nps data instead of the old mock park data.
+     */
+    const searchItems =
+        parks.map(
+            (park) => ({
+                id: park.id,
+                type: 'park',
+                title:
+                    park.name ||
+                    'National Park',
+                subtitle:
+                    park.states?.join(
+                        ' · '
+                    ) ||
+                    'United States',
+                description:
+                    park.description ||
+                    '',
+                parkId: park.id,
+            })
+        )
+
+    // searches park names, states, and descriptions locally
+    const filteredResults =
+        searchItems.filter(
+            (item) => {
+                const query =
+                    searchQuery
+                        .trim()
+                        .toLowerCase()
+
+                if (!query) {
+                    return false
+                }
+
+                return (
                     item.title
                         .toLowerCase()
-                        .includes(query) ||
+                        .includes(
+                            query
+                        ) ||
                     item.subtitle
                         .toLowerCase()
-                        .includes(query) ||
+                        .includes(
+                            query
+                        ) ||
                     item.description
                         .toLowerCase()
-                        .includes(query)
-            )
-        }, [
-            searchItems,
-            searchQuery,
-        ])
+                        .includes(
+                            query
+                        )
+                )
+            }
+        )
 
-    // sends each result to the existing detail screen for its content type
+    // sends each result to the existing nps park detail screen
     const handleResultPress = (
         item
     ) => {
-        if (item.type === 'park') {
+        if (
+            item.type ===
+            'park'
+        ) {
             navigation.navigate(
                 'ParkDetail',
                 {
                     parkId:
                         item.parkId,
-                }
-            )
-
-            return
-        }
-
-        if (item.type === 'trail') {
-            navigation.navigate(
-                'TrailDetail',
-                {
-                    parkId:
-                        item.parkId,
-                    trailId:
-                        item.trailId,
-                }
-            )
-
-            return
-        }
-
-        if (
-            item.type ===
-            'campground'
-        ) {
-            navigation.navigate(
-                'CampgroundDetail',
-                {
-                    parkId:
-                        item.parkId,
-                    campgroundId:
-                        item.campgroundId,
-                }
-            )
-
-            return
-        }
-
-        if (
-            item.type ===
-            'activity'
-        ) {
-            navigation.navigate(
-                'ActivityDetail',
-                {
-                    activityId:
-                        item.activityId,
                 }
             )
         }
@@ -361,7 +322,69 @@ export default function ExploreSearchScreen({
                         }
                     >
                         Search for a park, trail,
-                        campground, or activity.
+                        or campground.
+                    </Text>
+                </View>
+            ) : loadingParks ? (
+                <View
+                    style={
+                        styles.emptyState
+                    }
+                >
+                    <Ionicons
+                        name="leaf-outline"
+                        size={42}
+                        color={
+                            theme.colors.forest
+                        }
+                    />
+
+                    <Text
+                        style={
+                            styles.emptyTitle
+                        }
+                    >
+                        Loading parks...
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.emptyText
+                        }
+                    >
+                        Getting national parks
+                        from the National Park
+                        Service.
+                    </Text>
+                </View>
+            ) : parkError ? (
+                <View
+                    style={
+                        styles.emptyState
+                    }
+                >
+                    <Ionicons
+                        name="alert-circle-outline"
+                        size={42}
+                        color={
+                            theme.colors.forest
+                        }
+                    />
+
+                    <Text
+                        style={
+                            styles.emptyTitle
+                        }
+                    >
+                        Unable to load parks
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.emptyText
+                        }
+                    >
+                        {parkError}
                     </Text>
                 </View>
             ) : (
@@ -435,9 +458,9 @@ export default function ExploreSearchScreen({
                                         styles.emptyText
                                     }
                                 >
-                                    Try searching for a
-                                    different park, trail,
-                                    campground, or activity.
+                                    Try searching for
+                                    a different
+                                    national park.
                                 </Text>
                             </View>
                         }
@@ -546,14 +569,18 @@ function SearchResult({
 function getTypeInfo(
     type
 ) {
-    if (type === 'park') {
+    if (
+        type === 'park'
+    ) {
         return {
             label: 'National Park',
             icon: 'image-outline',
         }
     }
 
-    if (type === 'trail') {
+    if (
+        type === 'trail'
+    ) {
         return {
             label: 'Trail',
             icon: 'walk-outline',
@@ -578,86 +605,120 @@ function getTypeInfo(
 
 const styles = StyleSheet.create({
     screen: {
-        backgroundColor: theme.colors.parchment,
+        backgroundColor:
+            theme.colors.parchment,
         flex: 1,
     },
 
     header: {
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.sm,
+        paddingHorizontal:
+            theme.spacing.lg,
+        paddingTop:
+            theme.spacing.sm,
     },
 
     backButton: {
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        flexDirection: 'row',
-        marginBottom: theme.spacing.lg,
+        alignItems:
+            'center',
+        alignSelf:
+            'flex-start',
+        flexDirection:
+            'row',
+        marginBottom:
+            theme.spacing.lg,
     },
 
     backText: {
-        color: theme.colors.forest,
+        color:
+            theme.colors.forest,
         fontSize: 13,
         fontWeight: '600',
         marginLeft: 2,
     },
 
     title: {
-        color: theme.colors.ink,
+        color:
+            theme.colors.ink,
         fontSize: 32,
         fontWeight: '800',
     },
 
     searchContainer: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
+        alignItems:
+            'center',
+        backgroundColor:
+            theme.colors.canvas,
+        borderColor:
+            theme.colors.sage,
+        borderRadius:
+            theme.radii.md,
         borderWidth: 1,
-        flexDirection: 'row',
-        marginHorizontal: theme.spacing.lg,
-        marginTop: theme.spacing.lg,
+        flexDirection:
+            'row',
+        marginHorizontal:
+            theme.spacing.lg,
+        marginTop:
+            theme.spacing.lg,
         minHeight: 50,
-        paddingHorizontal: theme.spacing.md,
+        paddingHorizontal:
+            theme.spacing.md,
     },
 
     searchInput: {
-        color: theme.colors.ink,
+        color:
+            theme.colors.ink,
         flex: 1,
         fontSize: 14,
-        marginLeft: theme.spacing.sm,
+        marginLeft:
+            theme.spacing.sm,
         minHeight: 48,
     },
 
     clearButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems:
+            'center',
+        justifyContent:
+            'center',
         padding: 5,
     },
 
     resultCount: {
-        color: theme.colors.earth,
+        color:
+            theme.colors.earth,
         fontSize: 11,
         fontWeight: '700',
         letterSpacing: 0.5,
-        marginHorizontal: theme.spacing.lg,
-        marginTop: theme.spacing.lg,
-        textTransform: 'uppercase',
+        marginHorizontal:
+            theme.spacing.lg,
+        marginTop:
+            theme.spacing.lg,
+        textTransform:
+            'uppercase',
     },
 
     list: {
-        padding: theme.spacing.lg,
-        paddingBottom: theme.spacing.xxxl,
+        padding:
+            theme.spacing.lg,
+        paddingBottom:
+            theme.spacing.xxxl,
     },
 
     resultCard: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.md,
+        alignItems:
+            'center',
+        backgroundColor:
+            theme.colors.canvas,
+        borderColor:
+            theme.colors.sage,
+        borderRadius:
+            theme.radii.md,
         borderWidth: 1,
-        flexDirection: 'row',
-        marginBottom: theme.spacing.sm,
-        padding: theme.spacing.md,
+        flexDirection:
+            'row',
+        marginBottom:
+            theme.spacing.sm,
+        padding:
+            theme.spacing.md,
     },
 
     pressed: {
@@ -665,80 +726,103 @@ const styles = StyleSheet.create({
     },
 
     resultIcon: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.sage,
+        alignItems:
+            'center',
+        backgroundColor:
+            theme.colors.sage,
         borderRadius: 24,
         height: 48,
-        justifyContent: 'center',
+        justifyContent:
+            'center',
         width: 48,
     },
 
     resultContent: {
         flex: 1,
-        marginHorizontal: theme.spacing.md,
+        marginHorizontal:
+            theme.spacing.md,
     },
 
     resultType: {
-        color: theme.colors.forest,
+        color:
+            theme.colors.forest,
         fontSize: 9,
         fontWeight: '800',
         letterSpacing: 0.8,
-        textTransform: 'uppercase',
+        textTransform:
+            'uppercase',
     },
 
     resultTitle: {
-        color: theme.colors.ink,
+        color:
+            theme.colors.ink,
         fontSize: 15,
         fontWeight: '700',
         marginTop: 3,
     },
 
     resultSubtitle: {
-        color: theme.colors.earth,
+        color:
+            theme.colors.earth,
         fontSize: 11,
         marginTop: 3,
     },
 
     initialState: {
-        alignItems: 'center',
+        alignItems:
+            'center',
         flex: 1,
-        justifyContent: 'center',
-        paddingHorizontal: theme.spacing.xxl,
+        justifyContent:
+            'center',
+        paddingHorizontal:
+            theme.spacing.xxl,
     },
 
     initialTitle: {
-        color: theme.colors.ink,
+        color:
+            theme.colors.ink,
         fontSize: 20,
         fontWeight: '700',
-        marginTop: theme.spacing.md,
+        marginTop:
+            theme.spacing.md,
     },
 
     initialText: {
-        color: theme.colors.earth,
+        color:
+            theme.colors.earth,
         fontSize: 13,
         lineHeight: 20,
-        marginTop: theme.spacing.xs,
-        textAlign: 'center',
+        marginTop:
+            theme.spacing.xs,
+        textAlign:
+            'center',
     },
 
     emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: theme.spacing.xxl,
+        alignItems:
+            'center',
+        paddingHorizontal:
+            theme.spacing.xxl,
         paddingTop: 80,
     },
 
     emptyTitle: {
-        color: theme.colors.ink,
+        color:
+            theme.colors.ink,
         fontSize: 18,
         fontWeight: '700',
-        marginTop: theme.spacing.md,
+        marginTop:
+            theme.spacing.md,
     },
 
     emptyText: {
-        color: theme.colors.earth,
+        color:
+            theme.colors.earth,
         fontSize: 12,
         lineHeight: 18,
-        marginTop: theme.spacing.xs,
-        textAlign: 'center',
+        marginTop:
+            theme.spacing.xs,
+        textAlign:
+            'center',
     },
 })

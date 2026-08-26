@@ -150,11 +150,11 @@ export default function ExploreScreen() {
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         onSubmitEditing={handleSearchSubmit}
-                        placeholder="Search parks, trails, and places"
+                        placeholder="Search parks"
                         placeholderTextColor={theme.colors.earth}
                         style={styles.searchInput}
                         returnKeyType="search"
-                        accessibilityLabel="search parks trails and places"
+                        accessibilityLabel="search parks"
                     />
 
                     {searchQuery.length > 0 ? (

@@ -60,6 +60,8 @@ function normalizeJournal(pages = [], elements = []) {
 						imageUrl: element.image_url,
 
 						stickerValue: element.sticker_value,
+
+						cropShape: element.crop_shape || "original",
 					})),
 			})),
 	};
@@ -726,6 +728,7 @@ export function TripProvider({ children }) {
                 text_color: element.textColor || "#000000",
                 image_url: element.imageUrl || null,
                 sticker_value: element.stickerValue || null,
+				crop_shape: element.cropShape || "original",
             })
             .select()
             .single();
@@ -750,6 +753,7 @@ export function TripProvider({ children }) {
             textColor: data.text_color || "#000000",
             imageUrl: data.image_url,
             stickerValue: data.sticker_value,
+			cropShape: data.crop_shape || "original",
         };
 
         setTrips((currentTrips) =>
@@ -831,6 +835,10 @@ export function TripProvider({ children }) {
             databaseUpdates.sticker_value = updates.stickerValue;
         }
 
+		if (Object.prototype.hasOwnProperty.call(updates, "cropShape")) {
+			databaseUpdates.crop_shape = updates.cropShape;
+		}
+
         const { data, error } = await supabase
             .from("journal_elements")
             .update({
@@ -869,6 +877,7 @@ export function TripProvider({ children }) {
                                         textColor: data.text_color || "#000000",
                                         imageUrl: data.image_url,
                                         stickerValue: data.sticker_value,
+										cropShape: data.crop_shape || "original",
                                     }
                                 : element,
                         ),

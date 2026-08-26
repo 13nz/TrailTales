@@ -19,9 +19,17 @@ import theme from "../constants/theme";
 
 import { useTrips } from "../context/TripContext";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { supabase } from "../services/supabase";
 
 import { useFonts } from "expo-font";
+
+import Svg, {
+	Defs,
+	ClipPath,
+	Path,
+	Image as SvgImage,
+} from "react-native-svg";
 
 // fonts constant
 const FONT_OPTIONS = [
@@ -42,6 +50,15 @@ const FONT_OPTIONS = [
 	{ label: "Rock Salt", value: "RockSalt" },
 	{ label: "Sacramento", value: "Sacramento" },
 	{ label: "Slimamif", value: "Slimamif" },
+];
+
+const CROP_SHAPES = [
+	{ label: "Original", value: "original" },
+	{ label: "Square", value: "square" },
+	{ label: "Circle", value: "circle" },
+	{ label: "Heart", value: "heart" },
+	{ label: "Rounded", value: "rounded" },
+	{ label: "Diamond", value: "diamond" },
 ];
 
 // displays and edits the freeform scrapbook canvas for one journal page
@@ -103,6 +120,17 @@ export default function JournalPageScreen({ route, navigation }) {
 		Sacramento: require("../fonts/Sacramento-Regular.ttf"),
 		Slimamif: require("../fonts/Slimamif.ttf"),
 	});
+
+	// custom photo crop states
+	const [cropPhoto, setCropPhoto] = React.useState(null);
+	const [cropModalVisible, setCropModalVisible] = React.useState(false);
+
+	// image cropping
+	const [cropShapeElementId, setCropShapeElementId] = React.useState(null);
+
+	const openCropShapePicker = (elementId) => {
+		setCropShapeElementId(elementId);
+	};
 
 	// drawing states
 	const [paintMode, setPaintMode] = React.useState(false);
@@ -281,7 +309,7 @@ export default function JournalPageScreen({ route, navigation }) {
 				x: 40,
 				y: 140,
 				width: 240,
-				height: 180,
+				height: 240,
 				rotation: 0,
 				zIndex: highestZIndex + 1,
 				imageUrl: publicUrlData.publicUrl,
@@ -329,6 +357,15 @@ export default function JournalPageScreen({ route, navigation }) {
 			});
 		} catch (error) {
 			console.error("rotate journal element error:", error);
+		}
+	};
+
+	// handle crop image
+	const handleCropShapeChange = async (elementId, cropShape) => {
+		try {
+			await updateJournalElement(elementId, { cropShape });
+		} catch (error) {
+			console.error("update journal crop shape error:", error);
 		}
 	};
 
@@ -596,6 +633,7 @@ export default function JournalPageScreen({ route, navigation }) {
 										onChange={updateJournalElement}
 										onDelete={deleteJournalElement}
 										onBringToFront={handleBringToFront}
+										onOpenCropShapePicker={openCropShapePicker}
 									/>
 								);
 							}
@@ -791,6 +829,71 @@ export default function JournalPageScreen({ route, navigation }) {
 					</View>
 				</View>
 			</Modal>
+			{/* image crop modal */}
+			<Modal
+				visible={cropShapeElementId !== null}
+				transparent
+				animationType="fade"
+				onRequestClose={() => {
+					setCropShapeElementId(null);
+				}}
+			>
+				<View style={styles.cropModalOverlay}>
+					<View style={styles.cropModal}>
+						<View style={styles.cropModalHeader}>
+							<Text style={styles.cropModalTitle}>
+								Photo Shape
+							</Text>
+
+							<Pressable
+								onPress={() => {
+									setCropShapeElementId(null);
+								}}
+								style={styles.cropModalClose}
+							>
+								<Text style={styles.cropModalCloseText}>
+									×
+								</Text>
+							</Pressable>
+						</View>
+
+						<View style={styles.cropShapeGrid}>
+							{CROP_SHAPES.map((shape) => (
+								<Pressable
+									key={shape.value}
+									onPress={async () => {
+										await handleCropShapeChange(
+											cropShapeElementId,
+											shape.value
+										);
+
+										setCropShapeElementId(null);
+									}}
+									style={styles.cropShapeOption}
+								>
+									<Text style={styles.cropShapePreview}>
+										{shape.value === "circle"
+											? "●"
+											: shape.value === "heart"
+											? "♥"
+											: shape.value === "diamond"
+											? "◆"
+											: shape.value === "square"
+											? "■"
+											: shape.value === "rounded"
+											? "▣"
+											: "▭"}
+									</Text>
+
+									<Text style={styles.cropShapeLabel}>
+										{shape.label}
+									</Text>
+								</Pressable>
+							))}
+						</View>
+					</View>
+				</View>
+			</Modal>
 		</View>
 	);
 }
@@ -812,6 +915,601 @@ function formatJournalDate(date) {
 		day: "numeric",
 		year: "numeric",
 	});
+}
+
+// provides a simple freeform crop interface for a selected photo
+function PhotoCropModal({
+	visible,
+	photo,
+	onCancel,
+	onDone,
+}) {
+	const CROP_WIDTH = 340;
+	const CROP_HEIGHT = 430;
+
+	const [crop, setCrop] = React.useState(null);
+
+	const cropRef = React.useRef(null);
+	const gestureRef = React.useRef(null);
+
+	const [imageScale, setImageScale] =
+		React.useState(1);
+
+	const [imageOffset, setImageOffset] =
+		React.useState({
+			x: 0,
+			y: 0,
+		});
+
+	React.useEffect(() => {
+		if (!visible || !photo) {
+			return;
+		}
+
+		const imageWidth = photo.width || 1;
+		const imageHeight = photo.height || 1;
+
+		// fits the complete photo inside the crop area
+		const scale = Math.min(
+			CROP_WIDTH / imageWidth,
+			CROP_HEIGHT / imageHeight
+		);
+
+		const displayedWidth =
+			imageWidth * scale;
+
+		const displayedHeight =
+			imageHeight * scale;
+
+		const offsetX =
+			(CROP_WIDTH -
+				displayedWidth) /
+			2;
+
+		const offsetY =
+			(CROP_HEIGHT -
+				displayedHeight) /
+			2;
+
+		setImageScale(scale);
+		setImageOffset({
+			x: offsetX,
+			y: offsetY,
+		});
+
+		// starts with a crop that covers most of
+		// the visible image
+		const initialLeft =
+			Math.max(
+				offsetX,
+				CROP_WIDTH * 0.08
+			);
+
+		const initialTop =
+			Math.max(
+				offsetY,
+				CROP_HEIGHT * 0.08
+			);
+
+		const initialRight =
+			Math.min(
+				offsetX + displayedWidth,
+				CROP_WIDTH * 0.92
+			);
+
+		const initialBottom =
+			Math.min(
+				offsetY + displayedHeight,
+				CROP_HEIGHT * 0.92
+			);
+
+		const initialCrop = {
+			left: initialLeft,
+			top: initialTop,
+			right: initialRight,
+			bottom: initialBottom,
+		};
+
+		cropRef.current =
+			initialCrop;
+
+		setCrop(initialCrop);
+	}, [visible, photo]);
+
+	const updateCropEdge = (
+		edge,
+		deltaX,
+		deltaY
+	) => {
+		if (!cropRef.current) {
+			return;
+		}
+
+		const current =
+			cropRef.current;
+
+		const MIN_SIZE = 60;
+
+		let next = {
+			...current,
+		};
+
+		if (edge === "left") {
+			next.left = Math.max(
+				imageOffset.x,
+				Math.min(
+					current.right -
+						MIN_SIZE,
+					current.left +
+						deltaX
+				)
+			);
+		}
+
+		if (edge === "right") {
+			next.right = Math.min(
+				imageOffset.x +
+					(photo.width ||
+						1) *
+						imageScale,
+				Math.max(
+					current.left +
+						MIN_SIZE,
+					current.right +
+						deltaX
+				)
+			);
+		}
+
+		if (edge === "top") {
+			next.top = Math.max(
+				imageOffset.y,
+				Math.min(
+					current.bottom -
+						MIN_SIZE,
+					current.top +
+						deltaY
+				)
+			);
+		}
+
+		if (edge === "bottom") {
+			next.bottom = Math.min(
+				imageOffset.y +
+					(photo.height ||
+						1) *
+						imageScale,
+				Math.max(
+					current.top +
+						MIN_SIZE,
+					current.bottom +
+						deltaY
+				)
+			);
+		}
+
+		cropRef.current =
+			next;
+
+		setCrop(next);
+	};
+
+	const createEdgeResponder = (
+		edge
+	) =>
+		PanResponder.create({
+			onStartShouldSetPanResponder:
+				() => true,
+
+			onMoveShouldSetPanResponder:
+				() => true,
+
+			onPanResponderGrant:
+				() => {
+					gestureRef.current = {
+						edge,
+					};
+				},
+
+			onPanResponderMove: (
+				event,
+				gestureState
+			) => {
+				const edge =
+					gestureRef.current
+						?.edge;
+
+				if (!edge) {
+					return;
+				}
+
+				updateCropEdge(
+					edge,
+					gestureState.dx,
+					gestureState.dy
+				);
+
+				// resets the reference so the next
+				// movement is measured from the
+				// current crop position
+				gestureRef.current = {
+					edge,
+					lastX:
+						gestureState.dx,
+					lastY:
+						gestureState.dy,
+				};
+			},
+
+			onPanResponderRelease:
+				() => {
+					gestureRef.current =
+						null;
+				},
+
+			onPanResponderTerminate:
+				() => {
+					gestureRef.current =
+						null;
+				},
+		});
+
+	const leftResponder =
+		React.useMemo(
+			() =>
+				createEdgeResponder(
+					"left"
+				),
+			[imageOffset, imageScale, photo]
+		);
+
+	const rightResponder =
+		React.useMemo(
+			() =>
+				createEdgeResponder(
+					"right"
+				),
+			[imageOffset, imageScale, photo]
+		);
+
+	const topResponder =
+		React.useMemo(
+			() =>
+				createEdgeResponder(
+					"top"
+				),
+			[imageOffset, imageScale, photo]
+		);
+
+	const bottomResponder =
+		React.useMemo(
+			() =>
+				createEdgeResponder(
+					"bottom"
+				),
+			[imageOffset, imageScale, photo]
+		);
+
+	const handleDone = () => {
+		if (!crop || !photo) {
+			return;
+		}
+
+		const sourceWidth =
+			photo.width || 1;
+
+		const sourceHeight =
+			photo.height || 1;
+
+		// converts screen coordinates back
+		// into the original photo's pixels
+		const originX = Math.max(
+			0,
+			(crop.left -
+				imageOffset.x) /
+				imageScale
+		);
+
+		const originY = Math.max(
+			0,
+			(crop.top -
+				imageOffset.y) /
+				imageScale
+		);
+
+		const cropWidth = Math.min(
+			sourceWidth -
+				originX,
+			(crop.right -
+				crop.left) /
+				imageScale
+		);
+
+		const cropHeight = Math.min(
+			sourceHeight -
+				originY,
+			(crop.bottom -
+				crop.top) /
+				imageScale
+		);
+
+		onDone({
+			originX: Math.round(
+				originX
+			),
+			originY: Math.round(
+				originY
+			),
+			width: Math.round(
+				cropWidth
+			),
+			height: Math.round(
+				cropHeight
+			),
+		});
+	};
+
+	if (!photo) {
+		return null;
+	}
+
+	return (
+		<Modal
+			visible={visible}
+			animationType="slide"
+			presentationStyle="fullScreen"
+			onRequestClose={onCancel}
+		>
+			<View
+				style={
+					styles.cropScreen
+				}
+			>
+				<View
+					style={
+						styles.cropHeader
+					}
+				>
+					<Pressable
+						onPress={
+							onCancel
+						}
+					>
+						<Text
+							style={
+								styles.cropCancelText
+							}
+						>
+							Cancel
+						</Text>
+					</Pressable>
+
+					<Text
+						style={
+							styles.cropTitle
+						}
+					>
+						Crop Photo
+					</Text>
+
+					<Pressable
+						onPress={
+							handleDone
+						}
+					>
+						<Text
+							style={
+								styles.cropDoneText
+							}
+						>
+							Done
+						</Text>
+					</Pressable>
+				</View>
+
+				<View
+					style={[
+						styles.cropArea,
+						{
+							width:
+								CROP_WIDTH,
+							height:
+								CROP_HEIGHT,
+						},
+					]}
+				>
+					<Image
+						source={{
+							uri: photo.uri,
+						}}
+						style={{
+							position:
+								"absolute",
+							width:
+								(photo.width ||
+									1) *
+								imageScale,
+							height:
+								(photo.height ||
+									1) *
+								imageScale,
+							left:
+								imageOffset.x,
+							top:
+								imageOffset.y,
+						}}
+						resizeMode="stretch"
+					/>
+
+					{crop ? (
+						<>
+							{/* darkens everything outside the crop */}
+							<View
+								pointerEvents="none"
+								style={[
+									styles.cropOverlay,
+									{
+										left: 0,
+										top: 0,
+										right: 0,
+										height:
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								pointerEvents="none"
+								style={[
+									styles.cropOverlay,
+									{
+										left: 0,
+										top:
+											crop.bottom,
+										right: 0,
+										bottom: 0,
+									},
+								]}
+							/>
+
+							<View
+								pointerEvents="none"
+								style={[
+									styles.cropOverlay,
+									{
+										left: 0,
+										top:
+											crop.top,
+										width:
+											crop.left,
+										height:
+											crop.bottom -
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								pointerEvents="none"
+								style={[
+									styles.cropOverlay,
+									{
+										left:
+											crop.right,
+										top:
+											crop.top,
+										right: 0,
+										height:
+											crop.bottom -
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								pointerEvents="none"
+								style={[
+									styles.cropBorder,
+									{
+										left:
+											crop.left,
+										top:
+											crop.top,
+										width:
+											crop.right -
+											crop.left,
+										height:
+											crop.bottom -
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								{...leftResponder
+									.panHandlers}
+								style={[
+									styles.cropHandleVertical,
+									{
+										left:
+											crop.left -
+											10,
+										top:
+											crop.top,
+										height:
+											crop.bottom -
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								{...rightResponder
+									.panHandlers}
+								style={[
+									styles.cropHandleVertical,
+									{
+										left:
+											crop.right -
+											10,
+										top:
+											crop.top,
+										height:
+											crop.bottom -
+											crop.top,
+									},
+								]}
+							/>
+
+							<View
+								{...topResponder
+									.panHandlers}
+								style={[
+									styles.cropHandleHorizontal,
+									{
+										left:
+											crop.left,
+										top:
+											crop.top -
+											10,
+										width:
+											crop.right -
+											crop.left,
+									},
+								]}
+							/>
+
+							<View
+								{...bottomResponder
+									.panHandlers}
+								style={[
+									styles.cropHandleHorizontal,
+									{
+										left:
+											crop.left,
+										top:
+											crop.bottom -
+											10,
+										width:
+											crop.right -
+											crop.left,
+									},
+								]}
+							/>
+						</>
+					) : null}
+				</View>
+
+				<Text
+					style={
+						styles.cropInstructions
+					}
+				>
+					Drag any side to adjust the crop
+				</Text>
+			</View>
+		</Modal>
+	);
 }
 
 // renders a text element that can be selected, edited, moved, resized, rotated, and deleted
@@ -1435,6 +2133,7 @@ function ScrapbookImageElement({
 	onBringToFront,
 	onDelete,
 	isSelected,
+	onOpenCropShapePicker,
 }) {
 	const [position, setPosition] = React.useState({
 		x: element.x || 0,
@@ -1446,18 +2145,23 @@ function ScrapbookImageElement({
 		height: element.height || 180,
 	});
 
-	const [rotation, setRotation] = React.useState(element.rotation || 0);
+	const [rotation, setRotation] = React.useState(
+		element.rotation || 0
+	);
 
 	const positionRef = React.useRef(position);
-
 	const sizeRef = React.useRef(size);
-
 	const rotationRef = React.useRef(rotation);
+
+	const cropShape =
+		element.cropShape || "original";
 
 	const gestureRef = React.useRef({
 		mode: null,
 	});
 
+	// keeps the local transform synchronized with
+	// the saved journal element
 	React.useEffect(() => {
 		const nextPosition = {
 			x: element.x || 0,
@@ -1469,55 +2173,73 @@ function ScrapbookImageElement({
 			height: element.height || 180,
 		};
 
-		const nextRotation = element.rotation || 0;
+		const nextRotation =
+			element.rotation || 0;
 
-		positionRef.current = nextPosition;
+		positionRef.current =
+			nextPosition;
 
-		sizeRef.current = nextSize;
+		sizeRef.current =
+			nextSize;
 
-		rotationRef.current = nextRotation;
+		rotationRef.current =
+			nextRotation;
 
 		setPosition(nextPosition);
-
 		setSize(nextSize);
-
 		setRotation(nextRotation);
-	}, [element.x, element.y, element.width, element.height, element.rotation]);
+	}, [
+		element.x,
+		element.y,
+		element.width,
+		element.height,
+		element.rotation,
+	]);
 
+	// calculates the distance between two fingers
 	const getDistance = (touches) => {
 		const first = touches[0];
-
 		const second = touches[1];
 
-		const dx = second.pageX - first.pageX;
+		const dx =
+			second.pageX - first.pageX;
 
-		const dy = second.pageY - first.pageY;
+		const dy =
+			second.pageY - first.pageY;
 
-		return Math.sqrt(dx * dx + dy * dy);
+		return Math.sqrt(
+			dx * dx + dy * dy
+		);
 	};
 
+	// calculates the angle between two fingers
 	const getAngle = (touches) => {
 		const first = touches[0];
-
 		const second = touches[1];
 
 		return Math.atan2(
 			second.pageY - first.pageY,
-			second.pageX - first.pageX,
+			second.pageX - first.pageX
 		);
 	};
 
-	const saveTransform = async (nextPosition, nextSize, nextRotation) => {
-		positionRef.current = nextPosition;
+	// saves the current image position, size, and rotation
+	const saveTransform = async (
+		nextPosition,
+		nextSize,
+		nextRotation
+	) => {
+		positionRef.current =
+			nextPosition;
 
-		sizeRef.current = nextSize;
+		sizeRef.current =
+			nextSize;
 
-		rotationRef.current = nextRotation;
+		rotationRef.current =
+			nextRotation;
 
 		setPosition(nextPosition);
-
 		setSize(nextSize);
-
 		setRotation(nextRotation);
 
 		try {
@@ -1529,146 +2251,302 @@ function ScrapbookImageElement({
 				rotation: nextRotation,
 			});
 		} catch (error) {
-			console.error("update journal image transform error:", error);
+			console.error(
+				"update journal image transform error:",
+				error
+			);
 		}
 	};
 
 	const panResponder = React.useMemo(
 		() =>
 			PanResponder.create({
-				onStartShouldSetPanResponder: () => true,
+				onStartShouldSetPanResponder:
+					() => true,
 
-				onMoveShouldSetPanResponder: () => true,
+				onMoveShouldSetPanResponder:
+					() => true,
 
-				onPanResponderGrant: (event) => {
-					const touches = event.nativeEvent.touches;
+				onPanResponderGrant: (
+					event
+				) => {
+					const touches =
+						event.nativeEvent
+							.touches;
 
+					// selects the image and brings it
+					// above other scrapbook elements
 					onSelect();
 
-					onBringToFront(element.id);
+					onBringToFront(
+						element.id
+					);
 
-					if (touches.length >= 2) {
+					// starts a two-finger transform
+					// immediately when both fingers
+					// are already touching the image
+					if (
+						touches.length >= 2
+					) {
 						gestureRef.current = {
 							mode: "transform",
-							startDistance: getDistance(touches),
-							startAngle: getAngle(touches),
-							startWidth: sizeRef.current.width,
-							startHeight: sizeRef.current.height,
-							startRotation: rotationRef.current,
-							startX: positionRef.current.x,
-							startY: positionRef.current.y,
+							startDistance:
+								getDistance(
+									touches
+								),
+							startAngle:
+								getAngle(
+									touches
+								),
+							startWidth:
+								sizeRef.current
+									.width,
+							startHeight:
+								sizeRef.current
+									.height,
+							startRotation:
+								rotationRef.current,
+							startX:
+								positionRef.current
+									.x,
+							startY:
+								positionRef.current
+									.y,
 						};
 					} else {
+						// starts a normal one-finger move
 						gestureRef.current = {
 							mode: "move",
-							startX: event.nativeEvent.pageX,
-							startY: event.nativeEvent.pageY,
-							startElementX: positionRef.current.x,
-							startElementY: positionRef.current.y,
+							startX:
+								event.nativeEvent
+									.pageX,
+							startY:
+								event.nativeEvent
+									.pageY,
+							startElementX:
+								positionRef.current
+									.x,
+							startElementY:
+								positionRef.current
+									.y,
 						};
 					}
 				},
 
-				onPanResponderMove: (event) => {
-					const touches = event.nativeEvent.touches;
+				onPanResponderMove: (
+					event
+				) => {
+					const touches =
+						event.nativeEvent
+							.touches;
 
-					const gesture = gestureRef.current;
+					let gesture =
+						gestureRef.current;
 
-					if (touches.length >= 2 && gesture.mode === "transform") {
-						const distance = getDistance(touches);
+					// switches from moving to transforming
+					// when a second finger is added
+					if (
+						touches.length >= 2 &&
+						gesture.mode !==
+							"transform"
+					) {
+						gestureRef.current = {
+							mode: "transform",
+							startDistance:
+								getDistance(
+									touches
+								),
+							startAngle:
+								getAngle(
+									touches
+								),
+							startWidth:
+								sizeRef.current
+									.width,
+							startHeight:
+								sizeRef.current
+									.height,
+							startRotation:
+								rotationRef.current,
+							startX:
+								positionRef.current
+									.x,
+							startY:
+								positionRef.current
+									.y,
+						};
 
-						const angle = getAngle(touches);
+						return;
+					}
+
+					gesture =
+						gestureRef.current;
+
+					// handles two-finger resizing
+					// and rotation
+					if (
+						touches.length >= 2 &&
+						gesture.mode ===
+							"transform"
+					) {
+						const distance =
+							getDistance(
+								touches
+							);
+
+						const angle =
+							getAngle(touches);
 
 						const scale =
-							distance / Math.max(gesture.startDistance, 1);
+							distance /
+							Math.max(
+								gesture.startDistance,
+								1
+							);
 
-						const nextWidth = Math.max(
-							80,
-							Math.min(600, gesture.startWidth * scale),
-						);
+						const nextWidth =
+							Math.max(
+								80,
+								Math.min(
+									600,
+									gesture.startWidth *
+										scale
+								)
+							);
 
 						const aspectRatio =
 							gesture.startHeight /
-							Math.max(gesture.startWidth, 1);
+							Math.max(
+								gesture.startWidth,
+								1
+							);
 
-						const nextHeight = Math.max(
-							60,
-							Math.min(600, nextWidth * aspectRatio),
-						);
+						const nextHeight =
+							Math.max(
+								60,
+								Math.min(
+									600,
+									nextWidth *
+										aspectRatio
+								)
+							);
 
-						const angleDelta = angle - gesture.startAngle;
+						const angleDelta =
+							angle -
+							gesture.startAngle;
 
 						const nextRotation =
 							gesture.startRotation +
-							angleDelta * (180 / Math.PI);
+							angleDelta *
+								(180 / Math.PI);
 
 						const nextSize = {
 							width: nextWidth,
 							height: nextHeight,
 						};
 
-						sizeRef.current = nextSize;
+						sizeRef.current =
+							nextSize;
 
-						rotationRef.current = nextRotation;
+						rotationRef.current =
+							nextRotation;
 
 						setSize(nextSize);
-
-						setRotation(nextRotation);
+						setRotation(
+							nextRotation
+						);
 
 						return;
 					}
 
-					if (touches.length === 1 && gesture.mode === "move") {
-						const touch = touches[0];
+					// handles normal one-finger movement
+					if (
+						touches.length === 1 &&
+						gesture.mode ===
+							"move"
+					) {
+						const touch =
+							touches[0];
 
-						const deltaX = touch.pageX - gesture.startX;
+						const deltaX =
+							touch.pageX -
+							gesture.startX;
 
-						const deltaY = touch.pageY - gesture.startY;
+						const deltaY =
+							touch.pageY -
+							gesture.startY;
 
 						const nextPosition = {
-							x: gesture.startElementX + deltaX,
-							y: gesture.startElementY + deltaY,
+							x:
+								gesture.startElementX +
+								deltaX,
+							y:
+								gesture.startElementY +
+								deltaY,
 						};
 
-						positionRef.current = nextPosition;
+						positionRef.current =
+							nextPosition;
 
-						setPosition(nextPosition);
+						setPosition(
+							nextPosition
+						);
 					}
 				},
 
-				onPanResponderRelease: async () => {
-					const gesture = gestureRef.current;
+				onPanResponderRelease:
+					async () => {
+						const gesture =
+							gestureRef.current;
 
-					if (
-						gesture.mode === "move" ||
-						gesture.mode === "transform"
-					) {
+						if (
+							gesture.mode ===
+								"move" ||
+							gesture.mode ===
+								"transform"
+						) {
+							await saveTransform(
+								positionRef.current,
+								sizeRef.current,
+								rotationRef.current
+							);
+						}
+
+						gestureRef.current = {
+							mode: null,
+						};
+					},
+
+				onPanResponderTerminate:
+					async () => {
 						await saveTransform(
 							positionRef.current,
 							sizeRef.current,
-							rotationRef.current,
+							rotationRef.current
 						);
-					}
 
-					gestureRef.current = {
-						mode: null,
-					};
-				},
-
-				onPanResponderTerminate: async () => {
-					await saveTransform(
-						positionRef.current,
-						sizeRef.current,
-						rotationRef.current,
-					);
-
-					gestureRef.current = {
-						mode: null,
-					};
-				},
+						gestureRef.current = {
+							mode: null,
+						};
+					},
 			}),
-		[element.id, onSelect, onChange],
+		[
+			element.id,
+			onSelect,
+			onChange,
+			onBringToFront,
+		]
 	);
+
+	// uses the smaller dimension so geometric
+	// shapes remain properly proportioned
+	const cropSize = Math.min(
+		size.width,
+		size.height
+	);
+
+	const diamondSize =
+		cropSize / Math.sqrt(2);
 
 	return (
 		<View
@@ -1680,6 +2558,9 @@ function ScrapbookImageElement({
 					top: position.y,
 					width: size.width,
 					height: size.height,
+
+					// keeps the user's photo rotation
+					// separate from the crop shape rotation
 					transform: [
 						{
 							rotate: `${rotation}deg`,
@@ -1688,33 +2569,312 @@ function ScrapbookImageElement({
 				},
 			]}
 		>
-			<Image
-				source={{
-					uri: element.imageUrl,
-				}}
-				style={styles.journalImage}
-				resizeMode="cover"
-			/>
+			{/* heart crop */}
+			{cropShape === "heart" ? (
+				<HeartImage
+					imageUrl={
+						element.imageUrl
+					}
+					width={size.width}
+					height={size.height}
+				/>
+			) : null}
 
-			{isSelected ? (
-				<Pressable
-					style={styles.imageDeleteButton}
-					onPress={async () => {
-						try {
-							await onDelete(element.id);
-						} catch (error) {
-							console.error("delete journal image error:", error);
-						}
-					}}
-					accessibilityRole="button"
-					accessibilityLabel="delete photo"
+			{/* diamond crop */}
+			{cropShape === "diamond" ? (
+				<View
+					style={[
+						styles.diamondFrame,
+						{
+							width: diamondSize,
+							height: diamondSize,
+							left:
+								(size.width -
+									diamondSize) /
+								2,
+							top:
+								(size.height -
+									diamondSize) /
+								2,
+						},
+					]}
 				>
-					<Text style={styles.imageDeleteButtonText}>×</Text>
-				</Pressable>
+					<Image
+						source={{
+							uri: element.imageUrl,
+						}}
+						style={[
+							styles.diamondImage,
+							{
+								width:
+									diamondSize *
+									1.42,
+								height:
+									diamondSize *
+									1.42,
+								left:
+									-diamondSize *
+									0.21,
+								top:
+									-diamondSize *
+									0.21,
+							},
+						]}
+						resizeMode="cover"
+					/>
+				</View>
+			) : null}
+
+			{/* circle crop */}
+			{cropShape === "circle" ? (
+				<View
+					style={[
+						styles.circleFrame,
+						{
+							width: cropSize,
+							height: cropSize,
+							left:
+								(size.width -
+									cropSize) /
+								2,
+							top:
+								(size.height -
+									cropSize) /
+								2,
+						},
+					]}
+				>
+					<Image
+						source={{
+							uri: element.imageUrl,
+						}}
+						style={
+							styles.journalImage
+						}
+						resizeMode="cover"
+					/>
+				</View>
+			) : null}
+
+			{/* square crop */}
+			{cropShape === "square" ? (
+				<View
+					style={[
+						styles.squareFrame,
+						{
+							width: cropSize,
+							height: cropSize,
+							left:
+								(size.width -
+									cropSize) /
+								2,
+							top:
+								(size.height -
+									cropSize) /
+								2,
+						},
+					]}
+				>
+					<Image
+						source={{
+							uri: element.imageUrl,
+						}}
+						style={
+							styles.squareImage
+						}
+						resizeMode="cover"
+					/>
+				</View>
+			) : null}
+
+			{/* original and rounded crops */}
+			{cropShape !== "heart" &&
+			cropShape !== "diamond" &&
+			cropShape !== "circle" &&
+			cropShape !== "square" &&
+			cropShape !== "rounded" ? (
+				<View
+					style={
+						styles.imageShapeContainer
+					}
+				>
+					<Image
+						source={{
+							uri: element.imageUrl,
+						}}
+						style={
+							styles.journalImage
+						}
+						resizeMode="cover"
+					/>
+				</View>
+			) : null}
+
+			{/* rounded crop */}
+			{cropShape === "rounded" ? (
+				<View
+					style={
+						styles.roundedCrop
+					}
+				>
+					<Image
+						source={{
+							uri: element.imageUrl,
+						}}
+						style={
+							styles.journalImage
+						}
+						resizeMode="cover"
+					/>
+				</View>
+			) : null}
+
+			{/* only displays image controls while selected */}
+			{isSelected ? (
+				<>
+					<Pressable
+						onPress={() => {
+							onOpenCropShapePicker(
+								element.id
+							);
+						}}
+						style={
+							styles.imageShapeButton
+						}
+						accessibilityRole="button"
+						accessibilityLabel="change photo shape"
+					>
+						<Text
+							style={
+								styles.imageShapeButtonText
+							}
+						>
+							◯
+						</Text>
+					</Pressable>
+
+					<Pressable
+						style={
+							styles.imageDeleteButton
+						}
+						onPress={async () => {
+							try {
+								await onDelete(
+									element.id
+								);
+							} catch (error) {
+								console.error(
+									"delete journal image error:",
+									error
+								);
+							}
+						}}
+						accessibilityRole="button"
+						accessibilityLabel="delete photo"
+					>
+						<Text
+							style={
+								styles.imageDeleteButtonText
+							}
+						>
+							×
+						</Text>
+					</Pressable>
+				</>
 			) : null}
 		</View>
 	);
 }
+
+// clips the photo directly inside an svg heart shape
+function HeartImage({
+	imageUrl,
+	width,
+	height,
+}) {
+	const heartWidth = Math.min(
+		width,
+		height
+	);
+
+	const heartHeight =
+		heartWidth;
+
+	const heartPath = `
+		M ${heartWidth / 2} ${heartHeight * 0.90}
+
+		C ${heartWidth * 0.40} ${heartHeight * 0.78},
+		  ${heartWidth * 0.08} ${heartHeight * 0.58},
+		  ${heartWidth * 0.08} ${heartHeight * 0.30}
+
+		C ${heartWidth * 0.08} ${heartHeight * 0.12},
+		  ${heartWidth * 0.22} ${heartHeight * 0.02},
+		  ${heartWidth * 0.38} ${heartHeight * 0.02}
+
+		C ${heartWidth * 0.45} ${heartHeight * 0.02},
+		  ${heartWidth * 0.49} ${heartHeight * 0.07},
+		  ${heartWidth / 2} ${heartHeight * 0.14}
+
+		C ${heartWidth * 0.51} ${heartHeight * 0.07},
+		  ${heartWidth * 0.55} ${heartHeight * 0.02},
+		  ${heartWidth * 0.62} ${heartHeight * 0.02}
+
+		C ${heartWidth * 0.78} ${heartHeight * 0.02},
+		  ${heartWidth * 0.92} ${heartHeight * 0.12},
+		  ${heartWidth * 0.92} ${heartHeight * 0.30}
+
+		C ${heartWidth * 0.92} ${heartHeight * 0.58},
+		  ${heartWidth * 0.60} ${heartHeight * 0.78},
+		  ${heartWidth / 2} ${heartHeight * 0.90}
+
+		Z
+	`;
+
+	return (
+		<View
+			style={[
+				styles.heartFrame,
+				{
+					width: heartWidth,
+					height: heartHeight,
+					left:
+						(width -
+							heartWidth) /
+						2,
+					top:
+						(height -
+							heartHeight) /
+						2,
+				},
+			]}
+		>
+			<Svg
+				width={heartWidth}
+				height={heartHeight}
+				viewBox={`0 0 ${heartWidth} ${heartHeight}`}
+			>
+				<Defs>
+					<ClipPath id="journalHeartClip">
+						<Path d={heartPath} />
+					</ClipPath>
+				</Defs>
+
+				<SvgImage
+					href={{
+						uri: imageUrl,
+					}}
+					width={heartWidth}
+					height={heartHeight}
+					preserveAspectRatio="xMidYMid slice"
+					clipPath="url(#journalHeartClip)"
+				/>
+			</Svg>
+		</View>
+	);
+}
+
+
+
 
 // renders a consistent toolbar control for the scrapbook editor
 function ToolbarButton({
@@ -2167,6 +3327,25 @@ const styles = StyleSheet.create({
 		lineHeight: 22,
 	},
 
+	imageShapeButton: {
+		alignItems: "center",
+		backgroundColor: "#ffffff",
+		borderRadius: 14,
+		height: 28,
+		justifyContent: "center",
+		position: "absolute",
+		right: 24,
+		top: -10,
+		width: 28,
+	},
+
+	imageShapeButtonText: {
+		color: "#000000",
+		fontSize: 15,
+		fontWeight: "700",
+		lineHeight: 18,
+	},
+
 	imageElement: {
 		position: "absolute",
 	},
@@ -2272,5 +3451,126 @@ const styles = StyleSheet.create({
 	fontOptionText: {
 		color: theme.colors.ink,
 		fontSize: 21,
+	},
+
+	imageShapeContainer: {
+		height: "100%",
+		overflow: "hidden",
+		width: "100%",
+	},
+
+	squareFrame: {
+		overflow: "hidden",
+		position: "absolute",
+	},
+
+	squareImage: {
+		height: "100%",
+		width: "100%",
+	},
+
+	roundedCrop: {
+		borderRadius: 24,
+		overflow: "hidden",
+	},
+
+	circleFrame: {
+		borderRadius: 9999,
+		height: "100%",
+		overflow: "hidden",
+		position: "absolute",
+		width: "100%",
+	},
+
+	diamondFrame: {
+		overflow: "hidden",
+		position: "absolute",
+		transform: [
+			{
+				rotate: "45deg",
+			},
+		],
+	},
+
+	diamondImage: {
+		height: "141.42%",
+		left: "-20.71%",
+		position: "absolute",
+		top: "-20.71%",
+		transform: [
+			{
+				rotate: "-45deg",
+			},
+		],
+		width: "141.42%",
+	},
+
+	heartFrame: {
+		position: "absolute",
+	},
+
+
+	cropModalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.45)",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: 24,
+	},
+
+	cropModal: {
+		width: "90%",
+		backgroundColor: theme.colors.parchment,
+		borderRadius: theme.radii.md,
+		padding: theme.spacing.md,
+	},
+
+	cropModalHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+
+	cropModalTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: theme.colors.ink,
+	},
+
+	cropModalClose: {
+		width: 36,
+		height: 36,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+
+	cropModalCloseText: {
+		fontSize: 28,
+		color: theme.colors.earth,
+	},
+
+	cropShapeGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "center",
+		marginTop: theme.spacing.md,
+	},
+
+	cropShapeOption: {
+		width: "30%",
+		alignItems: "center",
+		padding: theme.spacing.sm,
+		marginBottom: theme.spacing.sm,
+	},
+
+	cropShapePreview: {
+		fontSize: 38,
+		color: theme.colors.earth,
+	},
+
+	cropShapeLabel: {
+		fontSize: 12,
+		color: theme.colors.ink,
+		marginTop: 4,
 	},
 });

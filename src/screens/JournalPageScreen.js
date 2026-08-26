@@ -10,6 +10,7 @@ import {
 	Keyboard,
 	Modal,
 	Image,
+	ScrollView
 } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +20,29 @@ import theme from "../constants/theme";
 import { useTrips } from "../context/TripContext";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
+
+import { useFonts } from "expo-font";
+
+// fonts constant
+const FONT_OPTIONS = [
+	{ label: "Amatic SC", value: "AmaticSC" },
+	{ label: "Bad Script", value: "BadScript" },
+	{ label: "Boo City", value: "BooCity" },
+	{ label: "Caveat", value: "Caveat" },
+	{ label: "Clicker Script", value: "ClickerScript" },
+	{ label: "Dawning of a New Day", value: "DawningofaNewDay" },
+	{ label: "Grand Hotel", value: "GrandHotel" },
+	{ label: "Great Vibes", value: "GreatVibes" },
+	{ label: "Hitch-hike", value: "HitchHike" },
+	{ label: "Homemade Apple", value: "HomemadeApple" },
+	{ label: "Just Another Hand", value: "JustAnotherHand" },
+	{ label: "Kristi", value: "Kristi" },
+	{ label: "Permanent Marker", value: "PermanentMarker" },
+	{ label: "Princess Sofia", value: "PrincessSofia" },
+	{ label: "Rock Salt", value: "RockSalt" },
+	{ label: "Sacramento", value: "Sacramento" },
+	{ label: "Slimamif", value: "Slimamif" },
+];
 
 // displays and edits the freeform scrapbook canvas for one journal page
 export default function JournalPageScreen({ route, navigation }) {
@@ -48,6 +72,37 @@ export default function JournalPageScreen({ route, navigation }) {
 	const trip = trips.find((item) => item.id === tripId);
 
 	const page = trip?.journal?.pages?.find((item) => item.id === pageId);
+
+	const [
+		fontPickerElementId,
+		setFontPickerElementId,
+	] = React.useState(null)
+
+	const [
+		fontPickerValue,
+		setFontPickerValue,
+	] = React.useState(null)
+
+	// font states
+	const [fontsLoaded] = useFonts({
+		AmaticSC: require("../fonts/AmaticSC-Regular.ttf"),
+		BadScript: require("../fonts/BadScript-Regular.ttf"),
+		BooCity: require("../fonts/Boo City.ttf"),
+		Caveat: require("../fonts/Caveat-Regular.ttf"),
+		ClickerScript: require("../fonts/ClickerScript-Regular.ttf"),
+		DawningofaNewDay: require("../fonts/DawningofaNewDay-Regular.ttf"),
+		GrandHotel: require("../fonts/GrandHotel-Regular.ttf"),
+		GreatVibes: require("../fonts/GreatVibes-Regular.ttf"),
+		HitchHike: require("../fonts/Hitch-hike.otf"),
+		HomemadeApple: require("../fonts/HomemadeApple.ttf"),
+		JustAnotherHand: require("../fonts/JustAnotherHand-Regular.ttf"),
+		Kristi: require("../fonts/Kristi.ttf"),
+		PermanentMarker: require("../fonts/PermanentMarker-Regular.ttf"),
+		PrincessSofia: require("../fonts/PrincessSofia-Regular.ttf"),
+		RockSalt: require("../fonts/RockSalt.ttf"),
+		Sacramento: require("../fonts/Sacramento-Regular.ttf"),
+		Slimamif: require("../fonts/Slimamif.ttf"),
+	});
 
 	// drawing states
 	const [paintMode, setPaintMode] = React.useState(false);
@@ -131,6 +186,37 @@ export default function JournalPageScreen({ route, navigation }) {
 			console.error("update journal text color error:", error);
 		}
 	};
+
+	// saves the selected text font to supabase
+	const handleTextFontChange = async (
+		elementId,
+		fontFamily
+	) => {
+		try {
+			await updateJournalElement(
+				elementId,
+				{
+					fontFamily,
+				}
+			)
+		} catch (error) {
+			console.error(
+				"update journal text font error:",
+				error
+			)
+		}
+	}
+
+	// open fint picker
+	const openFontPicker = (
+		elementId,
+		currentFont
+	) => {
+		setFontPickerElementId(elementId)
+		setFontPickerValue(
+			currentFont || null
+		)
+	}
 
 	// selects a photo, uploads it to supabase storage, and creates the journal image element
 	const handleAddPhoto = async () => {
@@ -340,10 +426,11 @@ export default function JournalPageScreen({ route, navigation }) {
 		}
 	};
 
-	// deselects the current element and dismisses the keyboard when the page itself is tapped
+	// deselects the current element immediately when the page itself is tapped
 	const handleCanvasPress = () => {
-		Keyboard.dismiss();
-	};
+		setEditingElementId(null)
+		Keyboard.dismiss()
+	}
 
 	// dismisses the keyboard before leaving the scrapbook page
 	const handleGoBack = () => {
@@ -351,6 +438,12 @@ export default function JournalPageScreen({ route, navigation }) {
 		setEditingElementId(null);
 		navigation.goBack();
 	};
+
+	if (!fontsLoaded) {
+		return null;
+	}
+
+	
 
 	return (
 		<View
@@ -475,6 +568,8 @@ export default function JournalPageScreen({ route, navigation }) {
 										}}
 										onChangeText={handleTextChange}
 										onChangeColor={handleTextColorChange}
+										onChangeFont={handleTextFontChange}
+										onOpenFontPicker={openFontPicker}
 										onDelete={handleDeleteElement}
 										onMove={handleMoveElement}
 										onResize={handleResizeText}
@@ -598,6 +693,104 @@ export default function JournalPageScreen({ route, navigation }) {
 					</Pressable>
 				</Pressable>
 			</Modal>
+
+			{/* show font picekr modal */}
+			<Modal
+				visible={
+					fontPickerElementId !== null
+				}
+				transparent
+				animationType="fade"
+				onRequestClose={() => {
+					setFontPickerElementId(null)
+					setFontPickerValue(null)
+				}}
+			>
+				<View style={styles.fontModalOverlay}>
+					<View style={styles.fontModal}>
+						<View style={styles.fontModalHeader}>
+							<View>
+								<Text style={styles.fontModalEyebrow}>
+									TEXT
+								</Text>
+
+								<Text style={styles.fontModalTitle}>
+									Choose a font
+								</Text>
+							</View>
+
+							<Pressable
+								onPress={() => {
+									setFontPickerElementId(null)
+									setFontPickerValue(null)
+								}}
+								style={styles.fontModalClose}
+								accessibilityRole="button"
+								accessibilityLabel="close font picker"
+							>
+								<Text style={styles.fontModalCloseText}>
+									×
+								</Text>
+							</Pressable>
+						</View>
+
+						<ScrollView
+							style={styles.fontList}
+							contentContainerStyle={
+								styles.fontListContent
+							}
+							showsVerticalScrollIndicator
+							keyboardShouldPersistTaps="handled"
+						>
+							{FONT_OPTIONS.map((font) => (
+								<Pressable
+									key={font.value}
+									onPress={async () => {
+										if (!fontPickerElementId) {
+											return
+										}
+
+										setFontPickerValue(
+											font.value
+										)
+
+										await handleTextFontChange(
+											fontPickerElementId,
+											font.value
+										)
+
+										setFontPickerElementId(
+											null
+										)
+									}}
+									style={[
+										styles.fontOption,
+										fontPickerValue ===
+											font.value &&
+											styles.selectedFontOption,
+									]}
+									accessibilityRole="button"
+									accessibilityLabel={
+										`select ${font.label} font`
+									}
+								>
+									<Text
+										style={[
+											styles.fontOptionText,
+											{
+												fontFamily:
+													font.value,
+											},
+										]}
+									>
+										{font.label}
+									</Text>
+								</Pressable>
+							))}
+						</ScrollView>
+					</View>
+				</View>
+			</Modal>
 		</View>
 	);
 }
@@ -634,6 +827,7 @@ function ScrapbookTextElement({
 	onBringToFront,
 	onFinishEditing,
 	onChangeColor,
+	onOpenFontPicker,
 }) {
 	const [position, setPosition] = React.useState({
 		x: element.x,
@@ -687,12 +881,17 @@ function ScrapbookTextElement({
 	// save text without pressing chekcmark
 	const editingContentRef = React.useRef(element.content || "");
 
+
 	// color states
 	const [textColor, setTextColor] = React.useState(
 		element.textColor || "#000000",
 	);
 
 	const [showColorPicker, setShowColorPicker] = React.useState(false);
+
+	// font states
+	const [fontFamily, setFontFamily] = React.useState(element.fontFamily || null);
+
 
 	React.useEffect(() => {
 		if (isSavingGestureRef.current) {
@@ -713,6 +912,8 @@ function ScrapbookTextElement({
 		const nextRotation = element.rotation || 0;
 		const nextTextColor = element.textColor || "#000000";
 
+		const nextFontFamily = element.fontFamily || null;
+
 		positionRef.current = nextPosition;
 
 		sizeRef.current = nextSize;
@@ -726,6 +927,8 @@ function ScrapbookTextElement({
 		setRotation(nextRotation);
 
 		setTextColor(nextTextColor);
+
+		setFontFamily(nextFontFamily);
 
 		if (!isEditing) {
 			setEditingContent(element.content || "");
@@ -743,6 +946,7 @@ function ScrapbookTextElement({
 		element.rotation,
 		element.content,
 		element.textColor,
+		element.fontFamily,
 		isEditing,
 	]);
 
@@ -788,23 +992,35 @@ function ScrapbookTextElement({
 		return ((value + 180) % 360) - 180;
 	};
 
-	// saves the text after the user finishes editing
-	const finishTextEditing = async () => {
+	// saves the current text and immediately exits editing mode
+	const finishTextEditing = () => {
 		if (isDeletingRef.current) {
-			onFinishEditing();
-			return;
+			onFinishEditing()
+			return
 		}
 
-		const finalContent = editingContentRef.current;
+		const content =
+			editingContent
 
-		try {
-			await onChangeText(element.id, finalContent);
-		} catch (error) {
-			console.error("finish journal text error:", error);
-		}
+		textSaveRef.current =
+			content
 
-		onFinishEditing();
-	};
+		// exits editing immediately so the controls and canvas respond normally
+		onFinishEditing()
+
+		// saves the final text without keeping the editor open
+		onChangeText(
+			element.id,
+			content
+		).catch((error) => {
+			console.error(
+				'finish journal text error:',
+				error
+			)
+		})
+
+		Keyboard.dismiss()
+	}
 
 	// handles one finger movement and two finger resize/rotation
 	const panResponder = React.useMemo(
@@ -1058,6 +1274,7 @@ function ScrapbookTextElement({
 						{
 							color: element.textColor || textColor || "#000000",
 							fontSize: size.fontSize,
+							fontFamily: element.fontFamily || fontFamily || undefined,
 						},
 					]}
 					placeholder="write something..."
@@ -1082,6 +1299,7 @@ function ScrapbookTextElement({
 								color:
 									element.textColor || textColor || "#000000",
 								fontSize: size.fontSize,
+								fontFamily: element.fontFamily || fontFamily || undefined,
 								maxWidth: size.width || 250,
 							},
 						]}
@@ -1090,6 +1308,22 @@ function ScrapbookTextElement({
 					</Text>
 				</Pressable>
 			)}
+
+			{isEditing ? (
+				<Pressable
+					onPressIn={() => {
+						onOpenFontPicker(
+							element.id,
+							fontFamily
+						)
+					}}
+					style={styles.fontButton}
+					accessibilityRole="button"
+					accessibilityLabel="change text font"
+				>
+					<Text style={styles.fontButtonText}>F</Text>
+				</Pressable>
+			) : null}
 
 			{isEditing ? (
 				<Pressable
@@ -1109,12 +1343,22 @@ function ScrapbookTextElement({
 
 			{isEditing ? (
 				<Pressable
-					onPress={finishTextEditing}
-					style={styles.finishButton}
+					onPress={() => {
+						finishTextEditing()
+					}}
+					style={
+						styles.finishButton
+					}
 					accessibilityRole="button"
 					accessibilityLabel="finish editing journal text"
 				>
-					<Text style={styles.finishButtonText}>✓</Text>
+					<Text
+						style={
+							styles.finishButtonText
+						}
+					>
+						✓
+					</Text>
 				</Pressable>
 			) : null}
 
@@ -1135,6 +1379,7 @@ function ScrapbookTextElement({
 				</Pressable>
 			) : null}
 
+			{/* color picker element */}
 			{isEditing && showColorPicker ? (
 				<View style={styles.colorPalette}>
 					{[
@@ -1175,7 +1420,10 @@ function ScrapbookTextElement({
 					))}
 				</View>
 			) : null}
+
 		</View>
+
+		
 	);
 }
 
@@ -1926,5 +2174,103 @@ const styles = StyleSheet.create({
 	journalImage: {
 		height: "100%",
 		width: "100%",
+	},
+
+	fontButton: {
+		alignItems: "center",
+		backgroundColor: theme.colors.parchment,
+		borderColor: theme.colors.forest,
+		borderRadius: 12,
+		borderWidth: 2,
+		height: 24,
+		justifyContent: "center",
+		position: "absolute",
+		right: 74,
+		top: -10,
+		width: 24,
+	},
+
+	fontButtonText: {
+		color: theme.colors.ink,
+		fontSize: 15,
+		fontWeight: "800",
+	},
+
+	fontModalOverlay: {
+		alignItems: 'center',
+		backgroundColor: 'rgba(0, 0, 0, 0.45)',
+		flex: 1,
+		justifyContent: 'center',
+		padding: 24,
+	},
+
+	fontModal: {
+		backgroundColor: theme.colors.parchment,
+		borderColor: theme.colors.sage,
+		borderRadius: theme.radii.md,
+		borderWidth: 1,
+		maxHeight: '75%',
+		width: '90%',
+	},
+
+	fontModalHeader: {
+		alignItems: 'center',
+		borderBottomColor: theme.colors.sage,
+		borderBottomWidth: 1,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		padding: theme.spacing.md,
+	},
+
+	fontModalEyebrow: {
+		color: theme.colors.earth,
+		fontSize: 10,
+		fontWeight: '700',
+		letterSpacing: 1,
+	},
+
+	fontModalTitle: {
+		color: theme.colors.ink,
+		fontSize: 20,
+		fontWeight: '700',
+		marginTop: 2,
+	},
+
+	fontModalClose: {
+		alignItems: 'center',
+		height: 36,
+		justifyContent: 'center',
+		width: 36,
+	},
+
+	fontModalCloseText: {
+		color: theme.colors.earth,
+		fontSize: 28,
+		fontWeight: '400',
+	},
+
+	fontList: {
+		flexGrow: 0,
+	},
+
+	fontListContent: {
+		padding: theme.spacing.sm,
+	},
+
+	fontOption: {
+		borderRadius: theme.radii.sm,
+		minHeight: 52,
+		justifyContent: 'center',
+		paddingHorizontal: theme.spacing.md,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	selectedFontOption: {
+		backgroundColor: theme.colors.sage,
+	},
+
+	fontOptionText: {
+		color: theme.colors.ink,
+		fontSize: 21,
 	},
 });

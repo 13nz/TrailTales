@@ -53,6 +53,8 @@ function normalizeJournal(pages = [], elements = []) {
 
 						fontSize: element.font_size,
 
+						fontFamily: element.font_family || null,
+
                         textColor: element.text_color || "#000000",
 
 						imageUrl: element.image_url,
@@ -720,6 +722,7 @@ export function TripProvider({ children }) {
                 z_index: element.zIndex ?? 0,
                 content: element.content || null,
                 font_size: element.fontSize ?? null,
+				font_family: element.fontFamily || null,
                 text_color: element.textColor || "#000000",
                 image_url: element.imageUrl || null,
                 sticker_value: element.stickerValue || null,
@@ -743,6 +746,7 @@ export function TripProvider({ children }) {
             zIndex: data.z_index ?? 0,
             content: data.content || "",
             fontSize: data.font_size,
+			fontFamily: data.font_family || null,
             textColor: data.text_color || "#000000",
             imageUrl: data.image_url,
             stickerValue: data.sticker_value,
@@ -811,6 +815,10 @@ export function TripProvider({ children }) {
             databaseUpdates.font_size = updates.fontSize;
         }
 
+		if (Object.prototype.hasOwnProperty.call(updates, "fontFamily")) {
+			databaseUpdates.font_family = updates.fontFamily;
+		}
+
         if (Object.prototype.hasOwnProperty.call(updates, "textColor")) {
             databaseUpdates.text_color = updates.textColor;
         }
@@ -857,6 +865,7 @@ export function TripProvider({ children }) {
                                         zIndex: data.z_index ?? 0,
                                         content: data.content || "",
                                         fontSize: data.font_size,
+										fontFamily: data.font_family || null,
                                         textColor: data.text_color || "#000000",
                                         imageUrl: data.image_url,
                                         stickerValue: data.sticker_value,

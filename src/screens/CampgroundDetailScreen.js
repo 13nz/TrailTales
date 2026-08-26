@@ -1,433 +1,456 @@
 import {
-    ScrollView,
-    View,
-    Text,
-    Pressable,
-    StyleSheet,
-    Image,
-} from 'react-native'
+	ScrollView,
+	View,
+	Text,
+	Pressable,
+	StyleSheet,
+	Image,
+} from "react-native";
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import theme from '../constants/theme'
-import mockWildlife from '../data/mockWildlife'
+import theme from "../constants/theme";
+import mockWildlife from "../data/mockWildlife";
 
-import { useWildlifeReports } from '../context/WildlifeReportContext'
+import { useWildlifeReports } from "../context/WildlifeReportContext";
 
-import { useState, useEffect } from 'react'
-import { useTrips } from '../context/TripContext'
-import TripPickerModal from '../components/TripPickerModal'
+import { useState, useEffect } from "react";
+import { useTrips } from "../context/TripContext";
+import TripPickerModal from "../components/TripPickerModal";
 
 import {
-    getParkByCode,
-    getTrailsByPark,
-    getCampgroundsByPark,
-} from '../api/npsApi'
+	getParkByCode,
+	getTrailsByPark,
+	getCampgroundsByPark,
+} from "../api/npsApi";
+
+import { isFavorite, toggleFavorite } from "../services/favorites";
 
 // displays detailed campground information and provides actions for saving and trip planning
-export default function CampgroundDetailScreen({
-    route,
-    navigation,
-}) {
-    const insets = useSafeAreaInsets()
-    const { trips } = useTrips()
-    const [showTripPicker, setShowTripPicker] = useState(false)
-    const { parkId, campgroundId } = route.params
+export default function CampgroundDetailScreen({ route, navigation }) {
+	const insets = useSafeAreaInsets();
+	const { trips } = useTrips();
+	const [showTripPicker, setShowTripPicker] = useState(false);
+	const { parkId, campgroundId } = route.params;
 
-    // provides access to shared user wildlife reports
-    const { getReportsForCampground } = useWildlifeReports()
+	// provides access to shared user wildlife reports
+	const { getReportsForCampground } = useWildlifeReports();
 
-    const [park, setPark] = useState(null)
-    const [campground, setCampground] = useState(null)
-    const [trails, setTrails] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+	const [park, setPark] = useState(null);
+	const [campground, setCampground] = useState(null);
+	const [trails, setTrails] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-    // loads the selected campground and its related park and trail data from the nps api
-    useEffect(() => {
-        let active = true
+	// tracks whether this campground is currently a favorite
+	const [isCampgroundFavorite, setIsCampgroundFavorite] = useState(false);
 
-        async function loadCampground() {
-            try {
-                setLoading(true)
-                setError(null)
+	// prevents multiple favorite requests at the same time
+	const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-                const apiPark = await getParkByCode(parkId)
-                const [apiTrails, apiCampgrounds] = await Promise.all([
-                    getTrailsByPark(parkId),
-                    getCampgroundsByPark(parkId),
-                ])
+	// loads the selected campground and its related park and trail data from the nps api
+	// and restores the campground's favorite state from supabase
+	useEffect(() => {
+		let active = true;
 
-                // keeps the screen compatible with either a flat or nested campground response
-                const campgroundList = Array.isArray(apiCampgrounds?.[0])
-                    ? apiCampgrounds.flat()
-                    : apiCampgrounds || []
+		async function loadCampground() {
+			try {
+				setLoading(true);
+				setError(null);
 
-                const selectedCampground = campgroundList.find(
-                    (item) =>
-                        String(item.id) === String(campgroundId)
-                )
+				const apiPark = await getParkByCode(parkId);
 
-                if (!selectedCampground) {
-                    throw new Error('Campground not found')
-                }
+				const [apiTrails, apiCampgrounds] = await Promise.all([
+					getTrailsByPark(parkId),
+					getCampgroundsByPark(parkId),
+				]);
 
-                if (active) {
-                    setPark({
-                        ...apiPark,
-                        trails: apiTrails || [],
-                        campgrounds: campgroundList,
-                    })
-                    setCampground(selectedCampground)
-                    setTrails(apiTrails || [])
-                }
-            } catch (loadError) {
-                console.error('NPS campground error:', loadError)
+				// keeps the screen compatible with either a flat or nested campground response
+				const campgroundList = Array.isArray(apiCampgrounds?.[0])
+					? apiCampgrounds.flat()
+					: apiCampgrounds || [];
 
-                if (active) {
-                    setError('Unable to load this campground')
-                }
-            } finally {
-                if (active) {
-                    setLoading(false)
-                }
-            }
-        }
+				const selectedCampground = campgroundList.find(
+					(item) => String(item.id) === String(campgroundId),
+				);
 
-        loadCampground()
+				if (!selectedCampground) {
+					throw new Error("Campground not found");
+				}
 
-        return () => {
-            active = false
-        }
-    }, [parkId, campgroundId])
+				// checks whether this campground is already in the user's favorites
+				const favorite = await isFavorite(
+					"campground",
+					selectedCampground.id,
+				);
 
-    // prevents the screen from rendering campground information before the api request finishes
-    if (loading) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorTitle}>Loading campground...</Text>
-            </View>
-        )
-    }
+				if (active) {
+					setPark({
+						...apiPark,
+						trails: apiTrails || [],
+						campgrounds: campgroundList,
+					});
 
-    // prevents the screen from crashing if the api cannot find the campground
-    if (error || !park || !campground) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorTitle}>
-                    {error || 'Campground not found'}
-                </Text>
+					setCampground(selectedCampground);
 
-                <Pressable
-                    onPress={() => navigation.goBack()}
-                    accessibilityRole="button"
-                >
-                    <Text style={styles.backButton}>Go back</Text>
-                </Pressable>
-            </View>
-        )
-    }
+					setTrails(apiTrails || []);
 
-    // gets official wildlife information associated with the park
-    const wildlife = mockWildlife[park.id] || []
+					setIsCampgroundFavorite(favorite);
+				}
+			} catch (loadError) {
+				console.error("NPS campground error:", loadError);
 
+				if (active) {
+					setError("Unable to load this campground");
+				}
+			} finally {
+				if (active) {
+					setLoading(false);
+				}
+			}
+		}
 
-    // gets only user reports associated with this campground
-    const reports = getReportsForCampground(campgroundId)
+		loadCampground();
 
-    const accessibility = campground.accessibility || {}
-    const amenities = campground.amenities || {}
-    const amenityItems = buildAmenityItems(amenities)
+		return () => {
+			active = false;
+		};
+	}, [parkId, campgroundId]);
 
-    const hasReservationInformation = Boolean(
-        campground.reservationDescription ||
-        campground.firstComeFirstServe ||
-        campground.reservableSites ||
-        campground.reservationsUrl
-    )
+	// adds or removes this campground from the current user's favorites
+	const handleToggleFavorite = async () => {
+		if (!campground || favoriteLoading) {
+			return;
+		}
 
-    const hasAccessibilityInformation = Boolean(
-        accessibility.wheelchairaccess ||
-        accessibility.wheelchairAccess ||
-        accessibility.internetinfo ||
-        accessibility.cellphoneinfo ||
-        accessibility.firestovepolicy ||
-        accessibility.additionalinfo ||
-        accessibility.adainfo ||
-        accessibility.rvinfo ||
-        accessibility.accessroads?.length ||
-        accessibility.classifications?.length
-    )
+		try {
+			setFavoriteLoading(true);
 
-    const hasDirections = Boolean(
-        campground.directionsOverview ||
-        campground.directionsUrl
-    )
+			const newFavoriteState = await toggleFavorite(
+				"campground",
+				campground.id,
+			);
 
-    const hasWeather = Boolean(
-        campground.weatherOverview
-    )
+			setIsCampgroundFavorite(newFavoriteState);
+		} catch (error) {
+			console.error("toggle campground favorite error:", error);
+		} finally {
+			setFavoriteLoading(false);
+		}
+	};
 
-    const hasRegulations = Boolean(
-        campground.regulationsOverview ||
-        campground.regulationsUrl
-    )
+	// prevents the screen from rendering campground information before the api request finishes
+	if (loading) {
+		return (
+			<View style={styles.errorContainer}>
+				<Text style={styles.errorTitle}>Loading campground...</Text>
+			</View>
+		);
+	}
 
-    const heroImage =
-        campground.image ||
-        park.images?.find(
-            (image) =>
-                image?.url
-        )?.url ||
-        null
+	// prevents the screen from crashing if the api cannot find the campground
+	if (error || !park || !campground) {
+		return (
+			<View style={styles.errorContainer}>
+				<Text style={styles.errorTitle}>
+					{error || "Campground not found"}
+				</Text>
 
-    return (
-        <View style={styles.screen}>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.content}
-            >
-                {/* provides quick navigation back to the park page */}
-                <View style={styles.hero}>
-                    {heroImage ? (
-                        <Image
-                            source={{
-                                uri: heroImage,
-                            }}
-                            style={styles.heroImage}
-                            resizeMode="cover"
-                            accessibilityLabel={`${campground.name} campground`}
-                        />
-                    ) : (
-                        <View style={styles.heroImage}>
-                            <Text style={styles.heroImageText}>
-                                CAMPGROUND PHOTO
-                            </Text>
-                        </View>
-                    )}
+				<Pressable
+					onPress={() => navigation.goBack()}
+					accessibilityRole="button"
+				>
+					<Text style={styles.backButton}>Go back</Text>
+				</Pressable>
+			</View>
+		);
+	}
 
-                    <Pressable
-                        style={[
-                            styles.backButtonContainer,
-                            {
-                                top:
-                                    insets.top +
-                                    theme.spacing.sm,
-                            },
-                        ]}
-                        onPress={() =>
-                            navigation.goBack()
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel="go back"
-                    >
-                        <Text style={styles.heroButton}>
-                            ‹
-                        </Text>
-                    </Pressable>
+	// gets official wildlife information associated with the park
+	const wildlife = mockWildlife[park.id] || [];
 
-                    {/* this will eventually persist the campground in the user's favorites */}
-                    <Pressable
-                        style={[
-                            styles.favoriteButton,
-                            {
-                                top:
-                                    insets.top +
-                                    theme.spacing.sm,
-                            },
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={`save ${campground.name}`}
-                    >
-                        <Text style={styles.favoriteIcon}>
-                            ♡
-                        </Text>
-                    </Pressable>
-                </View>
+	// gets only user reports associated with this campground
+	const reports = getReportsForCampground(campgroundId);
 
-                <View style={styles.header}>
-                    <Text style={styles.eyebrow}>
-                        {park.name.toUpperCase()}
-                    </Text>
+	const accessibility = campground.accessibility || {};
+	const amenities = campground.amenities || {};
+	const amenityItems = buildAmenityItems(amenities);
 
-                    <Text style={styles.title}>
-                        {campground.name}
-                    </Text>
+	const hasReservationInformation = Boolean(
+		campground.reservationDescription ||
+		campground.firstComeFirstServe ||
+		campground.reservableSites ||
+		campground.reservationsUrl,
+	);
 
-                    <Text style={styles.location}>
-                        {getCampgroundLocation(campground)}
-                    </Text>
+	const hasAccessibilityInformation = Boolean(
+		accessibility.wheelchairaccess ||
+		accessibility.wheelchairAccess ||
+		accessibility.internetinfo ||
+		accessibility.cellphoneinfo ||
+		accessibility.firestovepolicy ||
+		accessibility.additionalinfo ||
+		accessibility.adainfo ||
+		accessibility.rvinfo ||
+		accessibility.accessroads?.length ||
+		accessibility.classifications?.length,
+	);
 
-                    <View style={styles.actions}>
-                        <Pressable
-                            style={styles.primaryAction}
-                            accessibilityRole="button"
-                        >
-                            <Text style={styles.primaryActionText}>
-                                Add to favorites ♡
-                            </Text>
-                        </Pressable>
+	const hasDirections = Boolean(
+		campground.directionsOverview || campground.directionsUrl,
+	);
 
-                        <Pressable
-                            style={styles.secondaryAction}
-                            onPress={() => {
-                                setShowTripPicker(true)
-                            }}
-                            accessibilityRole="button"
-                        >
-                            <Text style={styles.secondaryActionText}>
-                                + Trip
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
+	const hasWeather = Boolean(campground.weatherOverview);
 
-                {/* highlights the campground information needed when planning a stay */}
-                <View style={styles.stats}>
-                    <View style={styles.statsRow}>
-                        <CampgroundStat
-                            value={campground.totalSites}
-                            label="Sites"
-                        />
+	const hasRegulations = Boolean(
+		campground.regulationsOverview || campground.regulationsUrl,
+	);
 
-                        <CampgroundStat
-                            value={campground.tentOnly}
-                            label="Tent sites"
-                        />
+	const heroImage =
+		campground.image ||
+		park.images?.find((image) => image?.url)?.url ||
+		null;
 
-                        <CampgroundStat
-                            value={campground.rvOnly}
-                            label="RV sites"
-                        />
-                    </View>
-                </View>
+	return (
+		<View style={styles.screen}>
+			<ScrollView
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={styles.content}
+			>
+				{/* provides quick navigation back to the park page */}
+				<View style={styles.hero}>
+					{heroImage ? (
+						<Image
+							source={{
+								uri: heroImage,
+							}}
+							style={styles.heroImage}
+							resizeMode="cover"
+							accessibilityLabel={`${campground.name} campground`}
+						/>
+					) : (
+						<View style={styles.heroImage}>
+							<Text style={styles.heroImageText}>
+								CAMPGROUND PHOTO
+							</Text>
+						</View>
+					)}
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        About
-                    </Text>
+					<Pressable
+						style={[
+							styles.backButtonContainer,
+							{
+								top: insets.top + theme.spacing.sm,
+							},
+						]}
+						onPress={() => navigation.goBack()}
+						accessibilityRole="button"
+						accessibilityLabel="go back"
+					>
+						<Text style={styles.heroButton}>‹</Text>
+					</Pressable>
 
-                    {campground.description ? (
-                        <Text style={styles.body}>
-                            {campground.description}
-                        </Text>
-                    ) : (
-                        <EmptyCard
-                            text="No campground description available"
-                        />
-                    )}
-                </View>
+					{/* toggles favortie */}
+					<Pressable
+						style={[
+							styles.favoriteButton,
+							{
+								top: insets.top + theme.spacing.sm,
+							},
+						]}
+						onPress={handleToggleFavorite}
+						disabled={favoriteLoading}
+						accessibilityRole="button"
+						accessibilityLabel={
+							isCampgroundFavorite
+								? `remove ${campground.name} from favorites`
+								: `add ${campground.name} to favorites`
+						}
+					>
+						<Text
+							style={[
+								styles.favoriteIcon,
+								isCampgroundFavorite &&
+									styles.favoriteIconActive,
+							]}
+						>
+							{isCampgroundFavorite ? "♥" : "♡"}
+						</Text>
+					</Pressable>
+				</View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        Campground details
-                    </Text>
+				<View style={styles.header}>
+					<Text style={styles.eyebrow}>
+						{park.name.toUpperCase()}
+					</Text>
 
-                    <View style={styles.detailList}>
-                        <DetailRow
-                            label="Total sites"
-                            value={campground.totalSites}
-                        />
+					<Text style={styles.title}>{campground.name}</Text>
 
-                        <DetailRow
-                            label="Tent-only sites"
-                            value={campground.tentOnly}
-                        />
+					<Text style={styles.location}>
+						{getCampgroundLocation(campground)}
+					</Text>
 
-                        <DetailRow
-                            label="RV-only sites"
-                            value={campground.rvOnly}
-                        />
+					<View style={styles.actions}>
+						<Pressable
+							style={styles.primaryAction}
+							onPress={handleToggleFavorite}
+							disabled={favoriteLoading}
+							accessibilityRole="button"
+							accessibilityLabel={
+								isCampgroundFavorite
+									? `remove ${campground.name} from favorites`
+									: `add ${campground.name} to favorites`
+							}
+						>
+							<Text style={styles.primaryActionText}>
+								{isCampgroundFavorite
+									? "Remove from favorites ♥"
+									: "Add to favorites ♡"}
+							</Text>
+						</Pressable>
 
-                        <DetailRow
-                            label="Group sites"
-                            value={campground.groupSites}
-                        />
+						<Pressable
+							style={styles.secondaryAction}
+							onPress={() => {
+								setShowTripPicker(true);
+							}}
+							accessibilityRole="button"
+						>
+							<Text style={styles.secondaryActionText}>
+								+ Trip
+							</Text>
+						</Pressable>
+					</View>
+				</View>
 
-                        <DetailRow
-                            label="Horse sites"
-                            value={campground.horseSites}
-                        />
+				{/* highlights the campground information needed when planning a stay */}
+				<View style={styles.stats}>
+					<View style={styles.statsRow}>
+						<CampgroundStat
+							value={campground.totalSites}
+							label="Sites"
+						/>
 
-                        <DetailRow
-                            label="Electrical hookups"
-                            value={campground.electricalHookups}
-                        />
+						<CampgroundStat
+							value={campground.tentOnly}
+							label="Tent sites"
+						/>
 
-                        <DetailRow
-                            label="Walk/boat-to sites"
-                            value={campground.walkBoatTo}
-                        />
+						<CampgroundStat
+							value={campground.rvOnly}
+							label="RV sites"
+						/>
+					</View>
+				</View>
 
-                        <DetailRow
-                            label="RV access"
-                            value={
-                                accessibility.rvallowed ===
-                                1
-                                    ? 'Allowed'
-                                    : accessibility.rvallowed ===
-                                      0
-                                    ? 'Not allowed'
-                                    : null
-                            }
-                        />
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>About</Text>
 
-                        <DetailRow
-                            label="Trailer access"
-                            value={
-                                accessibility.trailerallowed ===
-                                1
-                                    ? 'Allowed'
-                                    : accessibility.trailerallowed ===
-                                      0
-                                    ? 'Not allowed'
-                                    : null
-                            }
-                        />
+					{campground.description ? (
+						<Text style={styles.body}>
+							{campground.description}
+						</Text>
+					) : (
+						<EmptyCard text="No campground description available" />
+					)}
+				</View>
 
-                        <DetailRow
-                            label="RV information"
-                            value={
-                                accessibility.rvinfo
-                            }
-                        />
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Campground details</Text>
 
-                        <DetailRow
-                            label="Trailer maximum length"
-                            value={
-                                accessibility.trailermaxlength
-                                    ? `${accessibility.trailermaxlength} ft`
-                                    : null
-                            }
-                        />
+					<View style={styles.detailList}>
+						<DetailRow
+							label="Total sites"
+							value={campground.totalSites}
+						/>
 
-                        <DetailRow
-                            label="RV maximum length"
-                            value={
-                                accessibility.rvmaxlength
-                                    ? `${accessibility.rvmaxlength} ft`
-                                    : null
-                            }
-                        />
+						<DetailRow
+							label="Tent-only sites"
+							value={campground.tentOnly}
+						/>
 
-                        <DetailRow
-                            label="Classification"
-                            value={
-                                Array.isArray(
-                                    accessibility.classifications
-                                )
-                                    ? accessibility.classifications.join(
-                                          ', '
-                                      )
-                                    : null
-                            }
-                        />
-                    </View>
-                </View>
+						<DetailRow
+							label="RV-only sites"
+							value={campground.rvOnly}
+						/>
 
-               
+						<DetailRow
+							label="Group sites"
+							value={campground.groupSites}
+						/>
 
-                {/* {hasReservationInformation && (
+						<DetailRow
+							label="Horse sites"
+							value={campground.horseSites}
+						/>
+
+						<DetailRow
+							label="Electrical hookups"
+							value={campground.electricalHookups}
+						/>
+
+						<DetailRow
+							label="Walk/boat-to sites"
+							value={campground.walkBoatTo}
+						/>
+
+						<DetailRow
+							label="RV access"
+							value={
+								accessibility.rvallowed === 1
+									? "Allowed"
+									: accessibility.rvallowed === 0
+										? "Not allowed"
+										: null
+							}
+						/>
+
+						<DetailRow
+							label="Trailer access"
+							value={
+								accessibility.trailerallowed === 1
+									? "Allowed"
+									: accessibility.trailerallowed === 0
+										? "Not allowed"
+										: null
+							}
+						/>
+
+						<DetailRow
+							label="RV information"
+							value={accessibility.rvinfo}
+						/>
+
+						<DetailRow
+							label="Trailer maximum length"
+							value={
+								accessibility.trailermaxlength
+									? `${accessibility.trailermaxlength} ft`
+									: null
+							}
+						/>
+
+						<DetailRow
+							label="RV maximum length"
+							value={
+								accessibility.rvmaxlength
+									? `${accessibility.rvmaxlength} ft`
+									: null
+							}
+						/>
+
+						<DetailRow
+							label="Classification"
+							value={
+								Array.isArray(accessibility.classifications)
+									? accessibility.classifications.join(", ")
+									: null
+							}
+						/>
+					</View>
+				</View>
+
+				{/* {hasReservationInformation && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
                             Reservations
@@ -465,7 +488,7 @@ export default function CampgroundDetailScreen({
                     </View>
                 )} */}
 
-                {/* {hasDirections && (
+				{/* {hasDirections && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
                             Directions
@@ -489,7 +512,7 @@ export default function CampgroundDetailScreen({
                     </View>
                 )} */}
 
-                {/* {hasWeather && (
+				{/* {hasWeather && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
                             Weather
@@ -501,7 +524,7 @@ export default function CampgroundDetailScreen({
                     </View>
                 )} */}
 
-                {/* {hasRegulations && (
+				{/* {hasRegulations && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
                             Regulations
@@ -525,108 +548,61 @@ export default function CampgroundDetailScreen({
                     </View>
                 )} */}
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        Nearby trails
-                    </Text>
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Nearby trails</Text>
 
-                    <Text style={styles.sectionDescription}>
-                        Explore trails that can be added to your trip
-                        alongside this campground.
-                    </Text>
+					<Text style={styles.sectionDescription}>
+						Explore trails that can be added to your trip alongside
+						this campground.
+					</Text>
 
-                    <View style={styles.nearbyList}>
-                        {trails
-                            .slice(0, 3)
-                            .map(
-                                (trail) => (
-                                    <Pressable
-                                        key={trail.id}
-                                        style={({
-                                            pressed,
-                                        }) => [
-                                            styles.nearbyTrail,
-                                            pressed &&
-                                                styles.pressed,
-                                        ]}
-                                        onPress={() => {
-                                            // allows campers to move directly from a campground to a nearby trail
-                                            navigation.navigate(
-                                                'TrailDetail',
-                                                {
-                                                    parkId:
-                                                        park.id,
-                                                    trailId:
-                                                        trail.id,
-                                                }
-                                            )
-                                        }}
-                                        accessibilityRole="button"
-                                    >
-                                        <View
-                                            style={
-                                                styles.nearbyTrailIcon
-                                            }
-                                        >
-                                            <Text
-                                                style={
-                                                    styles.nearbyTrailIconText
-                                                }
-                                            >
-                                                ↗
-                                            </Text>
-                                        </View>
+					<View style={styles.nearbyList}>
+						{trails.slice(0, 3).map((trail) => (
+							<Pressable
+								key={trail.id}
+								style={({ pressed }) => [
+									styles.nearbyTrail,
+									pressed && styles.pressed,
+								]}
+								onPress={() => {
+									// allows campers to move directly from a campground to a nearby trail
+									navigation.navigate("TrailDetail", {
+										parkId: park.id,
+										trailId: trail.id,
+									});
+								}}
+								accessibilityRole="button"
+							>
+								<View style={styles.nearbyTrailIcon}>
+									<Text style={styles.nearbyTrailIconText}>
+										↗
+									</Text>
+								</View>
 
-                                        <View
-                                            style={
-                                                styles.nearbyTrailContent
-                                            }
-                                        >
-                                            <Text
-                                                style={
-                                                    styles.nearbyTrailName
-                                                }
-                                            >
-                                                {trail.name}
-                                            </Text>
+								<View style={styles.nearbyTrailContent}>
+									<Text style={styles.nearbyTrailName}>
+										{trail.name}
+									</Text>
 
-                                            {(trail.distance ||
-                                                trail.difficulty) && (
-                                                <Text
-                                                    style={
-                                                        styles.nearbyTrailMeta
-                                                    }
-                                                >
-                                                    {
-                                                        trail.distance ||
-                                                        'Distance unavailable'
-                                                    }
-                                                    {trail.distance &&
-                                                    trail.difficulty
-                                                        ? ' · '
-                                                        : ''}
-                                                    {
-                                                        trail.difficulty ||
-                                                        ''
-                                                    }
-                                                </Text>
-                                            )}
-                                        </View>
+									{(trail.distance || trail.difficulty) && (
+										<Text style={styles.nearbyTrailMeta}>
+											{trail.distance ||
+												"Distance unavailable"}
+											{trail.distance && trail.difficulty
+												? " · "
+												: ""}
+											{trail.difficulty || ""}
+										</Text>
+									)}
+								</View>
 
-                                        <Text
-                                            style={
-                                                styles.chevron
-                                            }
-                                        >
-                                            ›
-                                        </Text>
-                                    </Pressable>
-                                )
-                            )}
-                    </View>
-                </View>
+								<Text style={styles.chevron}>›</Text>
+							</Pressable>
+						))}
+					</View>
+				</View>
 
-                {/* <View style={styles.section}>
+				{/* <View style={styles.section}>
                     <Text style={styles.sectionTitle}>
                         Amenities
                     </Text>
@@ -658,1458 +634,1090 @@ export default function CampgroundDetailScreen({
                         />
                     )}
                 </View> */}
-                {Object.entries(campground.amenities || {}).filter(
-                    ([_, value]) =>
-                        value !== null &&
-                        value !== undefined &&
-                        value !== '' &&
-                        !(Array.isArray(value) && value.length === 0)
-                ).length > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Amenities
-                        </Text>
+				{Object.entries(campground.amenities || {}).filter(
+					([_, value]) =>
+						value !== null &&
+						value !== undefined &&
+						value !== "" &&
+						!(Array.isArray(value) && value.length === 0),
+				).length > 0 && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>Amenities</Text>
 
-                        <View style={styles.detailList}>
-                            {Object.entries(campground.amenities || {})
-                                .filter(
-                                    ([_, value]) =>
-                                        value !== null &&
-                                        value !== undefined &&
-                                        value !== '' &&
-                                        !(Array.isArray(value) && value.length === 0)
-                                )
-                                .map(([key, value]) => {
-                                    const label = key
-                                        .replace(/([A-Z])/g, ' $1')
-                                        .replace(/^./, (letter) =>
-                                            letter.toUpperCase()
-                                        )
+						<View style={styles.detailList}>
+							{Object.entries(campground.amenities || {})
+								.filter(
+									([_, value]) =>
+										value !== null &&
+										value !== undefined &&
+										value !== "" &&
+										!(
+											Array.isArray(value) &&
+											value.length === 0
+										),
+								)
+								.map(([key, value]) => {
+									const label = key
+										.replace(/([A-Z])/g, " $1")
+										.replace(/^./, (letter) =>
+											letter.toUpperCase(),
+										);
 
-                                    const displayValue = Array.isArray(value)
-                                        ? value.join(', ')
-                                        : String(value)
+									const displayValue = Array.isArray(value)
+										? value.join(", ")
+										: String(value);
 
-                                    return (
-                                        <DetailRow
-                                            key={key}
-                                            label={label}
-                                            value={displayValue}
-                                        />
-                                    )
-                                })}
-                        </View>
-                    </View>
-                )}
+									return (
+										<DetailRow
+											key={key}
+											label={label}
+											value={displayValue}
+										/>
+									);
+								})}
+						</View>
+					</View>
+				)}
 
-                {/* displays official wildlife information separately from user reports */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <View
-                            style={
-                                styles.sectionHeaderContent
-                            }
-                        >
-                            <Text
-                                style={
-                                    styles.sectionTitle
-                                }
-                            >
-                                Wildlife
-                            </Text>
+				{/* displays official wildlife information separately from user reports */}
+				<View style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<View style={styles.sectionHeaderContent}>
+							<Text style={styles.sectionTitle}>Wildlife</Text>
 
-                            <Text
-                                style={
-                                    styles.sectionDescription
-                                }
-                            >
-                                Wildlife known to live in this area
-                            </Text>
-                        </View>
-                    </View>
+							<Text style={styles.sectionDescription}>
+								Wildlife known to live in this area
+							</Text>
+						</View>
+					</View>
 
-                    {wildlife.length > 0 ? (
-                        <View
-                            style={
-                                styles.wildlifeList
-                            }
-                        >
-                            {wildlife.map(
-                                (animal) => (
-                                    <WildlifeRow
-                                        key={
-                                            animal.id
-                                        }
-                                        animal={
-                                            animal
-                                        }
-                                    />
-                                )
-                            )}
-                        </View>
-                    ) : (
-                        <EmptyCard
-                            text="Wildlife information is not available yet"
-                        />
-                    )}
-                </View>
+					{wildlife.length > 0 ? (
+						<View style={styles.wildlifeList}>
+							{wildlife.map((animal) => (
+								<WildlifeRow key={animal.id} animal={animal} />
+							))}
+						</View>
+					) : (
+						<EmptyCard text="Wildlife information is not available yet" />
+					)}
+				</View>
 
-                {/* displays only community reports associated with this campground */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <View
-                            style={
-                                styles.sectionHeaderContent
-                            }
-                        >
-                            <Text
-                                style={
-                                    styles.sectionTitle
-                                }
-                            >
-                                User Reports
-                            </Text>
+				{/* displays only community reports associated with this campground */}
+				<View style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<View style={styles.sectionHeaderContent}>
+							<Text style={styles.sectionTitle}>
+								User Reports
+							</Text>
 
-                            <Text
-                                style={
-                                    styles.sectionDescription
-                                }
-                            >
-                                Wildlife reports submitted by TrailTales users
-                            </Text>
-                        </View>
+							<Text style={styles.sectionDescription}>
+								Wildlife reports submitted by TrailTales users
+							</Text>
+						</View>
 
-                        <Pressable
-                            onPress={() =>
-                                navigation.navigate(
-                                    'ReportWildlife',
-                                    {
-                                        parkId:
-                                            park.id,
-                                        campgroundId:
-                                            campground.id,
-                                    }
-                                )
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel="report a wildlife sighting"
-                        >
-                            <Text
-                                style={
-                                    styles.sectionAction
-                                }
-                            >
-                                Report sighting
-                            </Text>
-                        </Pressable>
-                    </View>
+						<Pressable
+							onPress={() =>
+								navigation.navigate("ReportWildlife", {
+									parkId: park.id,
+									campgroundId: campground.id,
+								})
+							}
+							accessibilityRole="button"
+							accessibilityLabel="report a wildlife sighting"
+						>
+							<Text style={styles.sectionAction}>
+								Report sighting
+							</Text>
+						</Pressable>
+					</View>
 
-                    {reports.length > 0 ? (
-                        <View
-                            style={
-                                styles.reportList
-                            }
-                        >
-                            {reports.map(
-                                (report) => (
-                                    <WildlifeReportRow
-                                        key={
-                                            report.id
-                                        }
-                                        report={
-                                            report
-                                        }
-                                    />
-                                )
-                            )}
-                        </View>
-                    ) : (
-                        <EmptyCard
-                            text="No wildlife reports have been submitted for this campground yet"
-                        />
-                    )}
+					{reports.length > 0 ? (
+						<View style={styles.reportList}>
+							{reports.map((report) => (
+								<WildlifeReportRow
+									key={report.id}
+									report={report}
+								/>
+							))}
+						</View>
+					) : (
+						<EmptyCard text="No wildlife reports have been submitted for this campground yet" />
+					)}
 
-                    <Pressable
-                        style={
-                            styles.reportButton
-                        }
-                        onPress={() =>
-                            navigation.navigate(
-                                'ReportWildlife',
-                                {
-                                    parkId:
-                                        park.id,
-                                    campgroundId:
-                                        campground.id,
-                                }
-                            )
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel="report a wildlife sighting"
-                    >
-                        <Text
-                            style={
-                                styles.reportButtonText
-                            }
-                        >
-                            + Report a sighting
-                        </Text>
-                    </Pressable>
-                </View>
+					<Pressable
+						style={styles.reportButton}
+						onPress={() =>
+							navigation.navigate("ReportWildlife", {
+								parkId: park.id,
+								campgroundId: campground.id,
+							})
+						}
+						accessibilityRole="button"
+						accessibilityLabel="report a wildlife sighting"
+					>
+						<Text style={styles.reportButtonText}>
+							+ Report a sighting
+						</Text>
+					</Pressable>
+				</View>
 
-                 {hasAccessibilityInformation && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Accessibility
-                        </Text>
+				{hasAccessibilityInformation && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>Accessibility</Text>
 
-                        <View style={styles.detailList}>
-                            <DetailRow
-                                label="Wheelchair access"
-                                value={
-                                    accessibility.wheelchairaccess ||
-                                    accessibility.wheelchairAccess
-                                }
-                            />
+						<View style={styles.detailList}>
+							<DetailRow
+								label="Wheelchair access"
+								value={
+									accessibility.wheelchairaccess ||
+									accessibility.wheelchairAccess
+								}
+							/>
 
-                            <DetailRow
-                                label="ADA information"
-                                value={
-                                    accessibility.adainfo
-                                }
-                            />
+							<DetailRow
+								label="ADA information"
+								value={accessibility.adainfo}
+							/>
 
-                            <DetailRow
-                                label="Access roads"
-                                value={
-                                    Array.isArray(
-                                        accessibility.accessroads
-                                    )
-                                        ? accessibility.accessroads.join(
-                                              ', '
-                                          )
-                                        : null
-                                }
-                            />
+							<DetailRow
+								label="Access roads"
+								value={
+									Array.isArray(accessibility.accessroads)
+										? accessibility.accessroads.join(", ")
+										: null
+								}
+							/>
 
-                            <DetailRow
-                                label="Additional information"
-                                value={
-                                    accessibility.additionalinfo
-                                }
-                            />
+							<DetailRow
+								label="Additional information"
+								value={accessibility.additionalinfo}
+							/>
 
-                            <DetailRow
-                                label="Internet information"
-                                value={
-                                    accessibility.internetinfo
-                                }
-                            />
+							<DetailRow
+								label="Internet information"
+								value={accessibility.internetinfo}
+							/>
 
-                            <DetailRow
-                                label="Cell service information"
-                                value={
-                                    accessibility.cellphoneinfo
-                                }
-                            />
+							<DetailRow
+								label="Cell service information"
+								value={accessibility.cellphoneinfo}
+							/>
 
-                            <DetailRow
-                                label="Fire stove policy"
-                                value={
-                                    accessibility.firestovepolicy
-                                }
-                            />
-                        </View>
-                    </View>
-                )}
+							<DetailRow
+								label="Fire stove policy"
+								value={accessibility.firestovepolicy}
+							/>
+						</View>
+					</View>
+				)}
 
-                <View style={styles.section}>
-                    <View
-                        style={
-                            styles.planCard
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.planEyebrow
-                            }
-                        >
-                            PLAN YOUR STAY
-                        </Text>
+				<View style={styles.section}>
+					<View style={styles.planCard}>
+						<Text style={styles.planEyebrow}>PLAN YOUR STAY</Text>
 
-                        <Text
-                            style={
-                                styles.planTitle
-                            }
-                        >
-                            Add this campground
-                            to a trip
-                        </Text>
+						<Text style={styles.planTitle}>
+							Add this campground to a trip
+						</Text>
 
-                        <Text
-                            style={
-                                styles.planBody
-                            }
-                        >
-                            Keep your campsite,
-                            trails, and activities
-                            together in one
-                            adventure.
-                        </Text>
+						<Text style={styles.planBody}>
+							Keep your campsite, trails, and activities together
+							in one adventure.
+						</Text>
 
-                        <Pressable
-                            style={
-                                styles.planButton
-                            }
-                            onPress={() => {
-                                // opens trips belonging to this park before adding the campground
-                                setShowTripPicker(true)
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel={`add ${campground.name} to a trip`}
-                        >
-                            <Text
-                                style={
-                                    styles.planButtonText
-                                }
-                            >
-                                Add to trip
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </ScrollView>
+						<Pressable
+							style={styles.planButton}
+							onPress={() => {
+								// opens trips belonging to this park before adding the campground
+								setShowTripPicker(true);
+							}}
+							accessibilityRole="button"
+							accessibilityLabel={`add ${campground.name} to a trip`}
+						>
+							<Text style={styles.planButtonText}>
+								Add to trip
+							</Text>
+						</Pressable>
+					</View>
+				</View>
+			</ScrollView>
 
-            <TripPickerModal
-                visible={
-                    showTripPicker
-                }
-                trips={
-                    trips
-                }
-                park={
-                    park
-                }
-                onClose={() =>
-                    setShowTripPicker(false)
-                }
-                onSelectTrip={(trip) => {
-                    setShowTripPicker(false)
+			<TripPickerModal
+				visible={showTripPicker}
+				trips={trips}
+				park={park}
+				onClose={() => setShowTripPicker(false)}
+				onSelectTrip={(trip) => {
+					setShowTripPicker(false);
 
-                    navigation.navigate(
-                        'AddCampsite',
-                        {
-                            tripId:
-                                trip.id,
-                        }
-                    )
-                }}
-                onCreateTrip={() => {
-                    setShowTripPicker(false)
+					navigation.navigate("AddCampsite", {
+						tripId: trip.id,
+					});
+				}}
+				onCreateTrip={() => {
+					setShowTripPicker(false);
 
-                    navigation.navigate(
-                        'Trips',
-                        {
-                            screen:
-                                'CreateTrip',
-                            params: {
-                                parkId:
-                                    park.id,
-                            },
-                        }
-                    )
-                }}
-            />
-        </View>
-    )
+					navigation.navigate("Trips", {
+						screen: "CreateTrip",
+						params: {
+							parkId: park.id,
+						},
+					});
+				}}
+			/>
+		</View>
+	);
 }
 
-function CampgroundStat({
-    value,
-    label,
-}) {
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return null
-    }
+function CampgroundStat({ value, label }) {
+	if (value === null || value === undefined) {
+		return null;
+	}
 
-    return (
-        <View
-            style={
-                styles.stat
-            }
-        >
-            <Text
-                style={
-                    styles.statValue
-                }
-            >
-                {String(value)}
-            </Text>
+	return (
+		<View style={styles.stat}>
+			<Text style={styles.statValue}>{String(value)}</Text>
 
-            <Text
-                style={
-                    styles.statLabel
-                }
-            >
-                {label}
-            </Text>
-        </View>
-    )
+			<Text style={styles.statLabel}>{label}</Text>
+		</View>
+	);
 }
 
-function DetailRow({
-    label,
-    value,
-}) {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ''
-    ) {
-        return null
-    }
+function DetailRow({ label, value }) {
+	if (value === null || value === undefined || value === "") {
+		return null;
+	}
 
-    const displayValue =
-        Array.isArray(value)
-            ? value.join(', ')
-            : String(value)
+	const displayValue = Array.isArray(value)
+		? value.join(", ")
+		: String(value);
 
-    return (
-        <View
-            style={
-                styles.detailRow
-            }
-        >
-            <Text
-                style={
-                    styles.detailLabel
-                }
-            >
-                {label}
-            </Text>
+	return (
+		<View style={styles.detailRow}>
+			<Text style={styles.detailLabel}>{label}</Text>
 
-            <Text
-                style={
-                    styles.detailValue
-                }
-            >
-                {displayValue}
-            </Text>
-        </View>
-    )
+			<Text style={styles.detailValue}>{displayValue}</Text>
+		</View>
+	);
 }
 
-function Amenity({
-    icon,
-    label,
-    value,
-}) {
-    return (
-        <View
-            style={
-                styles.amenity
-            }
-        >
-            <View
-                style={
-                    styles.amenityIcon
-                }
-            >
-                <Text
-                    style={
-                        styles.amenityIconText
-                    }
-                >
-                    {icon}
-                </Text>
-            </View>
+function Amenity({ icon, label, value }) {
+	return (
+		<View style={styles.amenity}>
+			<View style={styles.amenityIcon}>
+				<Text style={styles.amenityIconText}>{icon}</Text>
+			</View>
 
-            <Text
-                style={
-                    styles.amenityLabel
-                }
-            >
-                {label}
-                {value
-                    ? `: ${value}`
-                    : ''}
-            </Text>
-        </View>
-    )
+			<Text style={styles.amenityLabel}>
+				{label}
+				{value ? `: ${value}` : ""}
+			</Text>
+		</View>
+	);
 }
 
 // converts the nps amenity object into displayable campground amenity cards
-function buildAmenityItems(
-    amenities
-) {
-    const items = [
-        {
-            key: 'trash',
-            icon: '♻',
-            label: 'Trash & recycling',
-            value:
-                amenities.trashrecyclingcollection,
-        },
-        {
-            key: 'toilets',
-            icon: '⌁',
-            label: 'Restrooms',
-            value:
-                amenities.toilets,
-        },
-        {
-            key: 'showers',
-            icon: '♨',
-            label: 'Showers',
-            value:
-                amenities.showers,
-        },
-        {
-            key: 'water',
-            icon: '◉',
-            label: 'Potable water',
-            value:
-                amenities.potablewater,
-        },
-        {
-            key: 'internet',
-            icon: '⌁',
-            label: 'Internet',
-            value:
-                typeof amenities.internetconnectivity ===
-                'boolean'
-                    ? amenities.internetconnectivity
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.internetconnectivity,
-        },
-        {
-            key: 'cell',
-            icon: '⌁',
-            label: 'Cell reception',
-            value:
-                typeof amenities.cellphonereception ===
-                'boolean'
-                    ? amenities.cellphonereception
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.cellphonereception,
-        },
-        {
-            key: 'laundry',
-            icon: '◉',
-            label: 'Laundry',
-            value:
-                typeof amenities.laundry ===
-                'boolean'
-                    ? amenities.laundry
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.laundry,
-        },
-        {
-            key: 'dump',
-            icon: '◉',
-            label: 'Dump station',
-            value:
-                typeof amenities.dumpstation ===
-                'boolean'
-                    ? amenities.dumpstation
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.dumpstation,
-        },
-        {
-            key: 'store',
-            icon: '⌂',
-            label: 'Camp store',
-            value:
-                typeof amenities.campstore ===
-                'boolean'
-                    ? amenities.campstore
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.campstore,
-        },
-        {
-            key: 'host',
-            icon: 'W',
-            label: 'Staff / host',
-            value:
-                amenities.stafforvolunteerhostonsite,
-        },
-        {
-            key: 'ice',
-            icon: '◆',
-            label: 'Ice',
-            value:
-                typeof amenities.iceavailableforsale ===
-                'boolean'
-                    ? amenities.iceavailableforsale
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.iceavailableforsale,
-        },
-        {
-            key: 'firewood',
-            icon: '♨',
-            label: 'Firewood',
-            value:
-                typeof amenities.firewoodforsale ===
-                'boolean'
-                    ? amenities.firewoodforsale
-                        ? 'Available'
-                        : 'Not available'
-                    : amenities.firewoodforsale,
-        },
-        {
-            key: 'food-lockers',
-            icon: '▣',
-            label: 'Food storage lockers',
-            value:
-                amenities.foodstoragelockers,
-        },
-        {
-            key: 'amphitheater',
-            icon: '♧',
-            label: 'Amphitheater',
-            value:
-                amenities.amphitheater ||
-                amenities.ampitheater,
-        },
-    ]
+function buildAmenityItems(amenities) {
+	const items = [
+		{
+			key: "trash",
+			icon: "♻",
+			label: "Trash & recycling",
+			value: amenities.trashrecyclingcollection,
+		},
+		{
+			key: "toilets",
+			icon: "⌁",
+			label: "Restrooms",
+			value: amenities.toilets,
+		},
+		{
+			key: "showers",
+			icon: "♨",
+			label: "Showers",
+			value: amenities.showers,
+		},
+		{
+			key: "water",
+			icon: "◉",
+			label: "Potable water",
+			value: amenities.potablewater,
+		},
+		{
+			key: "internet",
+			icon: "⌁",
+			label: "Internet",
+			value:
+				typeof amenities.internetconnectivity === "boolean"
+					? amenities.internetconnectivity
+						? "Available"
+						: "Not available"
+					: amenities.internetconnectivity,
+		},
+		{
+			key: "cell",
+			icon: "⌁",
+			label: "Cell reception",
+			value:
+				typeof amenities.cellphonereception === "boolean"
+					? amenities.cellphonereception
+						? "Available"
+						: "Not available"
+					: amenities.cellphonereception,
+		},
+		{
+			key: "laundry",
+			icon: "◉",
+			label: "Laundry",
+			value:
+				typeof amenities.laundry === "boolean"
+					? amenities.laundry
+						? "Available"
+						: "Not available"
+					: amenities.laundry,
+		},
+		{
+			key: "dump",
+			icon: "◉",
+			label: "Dump station",
+			value:
+				typeof amenities.dumpstation === "boolean"
+					? amenities.dumpstation
+						? "Available"
+						: "Not available"
+					: amenities.dumpstation,
+		},
+		{
+			key: "store",
+			icon: "⌂",
+			label: "Camp store",
+			value:
+				typeof amenities.campstore === "boolean"
+					? amenities.campstore
+						? "Available"
+						: "Not available"
+					: amenities.campstore,
+		},
+		{
+			key: "host",
+			icon: "W",
+			label: "Staff / host",
+			value: amenities.stafforvolunteerhostonsite,
+		},
+		{
+			key: "ice",
+			icon: "◆",
+			label: "Ice",
+			value:
+				typeof amenities.iceavailableforsale === "boolean"
+					? amenities.iceavailableforsale
+						? "Available"
+						: "Not available"
+					: amenities.iceavailableforsale,
+		},
+		{
+			key: "firewood",
+			icon: "♨",
+			label: "Firewood",
+			value:
+				typeof amenities.firewoodforsale === "boolean"
+					? amenities.firewoodforsale
+						? "Available"
+						: "Not available"
+					: amenities.firewoodforsale,
+		},
+		{
+			key: "food-lockers",
+			icon: "▣",
+			label: "Food storage lockers",
+			value: amenities.foodstoragelockers,
+		},
+		{
+			key: "amphitheater",
+			icon: "♧",
+			label: "Amphitheater",
+			value: amenities.amphitheater || amenities.ampitheater,
+		},
+	];
 
-    return items
-        .map(
-            (item) => ({
-                ...item,
-                value:
-                    formatAmenityValue(
-                        item.value
-                    ),
-            })
-        )
-        .filter(
-            (item) =>
-                item.value !==
-                    null &&
-                item.value !==
-                    undefined &&
-                item.value !== ''
-        )
+	return items
+		.map((item) => ({
+			...item,
+			value: formatAmenityValue(item.value),
+		}))
+		.filter(
+			(item) =>
+				item.value !== null &&
+				item.value !== undefined &&
+				item.value !== "",
+		);
 }
 
-function formatAmenityValue(
-    value
-) {
-    if (
-        Array.isArray(value)
-    ) {
-        return value.join(
-            ', '
-        )
-    }
+function formatAmenityValue(value) {
+	if (Array.isArray(value)) {
+		return value.join(", ");
+	}
 
-    if (
-        typeof value ===
-        'boolean'
-    ) {
-        return value
-            ? 'Available'
-            : 'Not available'
-    }
+	if (typeof value === "boolean") {
+		return value ? "Available" : "Not available";
+	}
 
-    return value
+	return value;
 }
 
-function getCampgroundLocation(
-    campground
-) {
-    const physicalAddress =
-        campground.addresses?.find(
-            (address) =>
-                address?.type ===
-                'Physical'
-        )
+function getCampgroundLocation(campground) {
+	const physicalAddress = campground.addresses?.find(
+		(address) => address?.type === "Physical",
+	);
 
-    if (
-        physicalAddress
-    ) {
-        const parts = [
-            physicalAddress.city,
-            physicalAddress.stateCode,
-        ].filter(Boolean)
+	if (physicalAddress) {
+		const parts = [physicalAddress.city, physicalAddress.stateCode].filter(
+			Boolean,
+		);
 
-        if (
-            parts.length >
-            0
-        ) {
-            return parts.join(
-                ', '
-            )
-        }
-    }
+		if (parts.length > 0) {
+			return parts.join(", ");
+		}
+	}
 
-    return campground.parkCode
-        ? campground.parkCode.toUpperCase()
-        : 'National Park'
+	return campground.parkCode
+		? campground.parkCode.toUpperCase()
+		: "National Park";
 }
 
 // displays official wildlife information without species-specific emojis
-function WildlifeRow({
-    animal,
-}) {
-    return (
-        <View
-            style={
-                styles.wildlifeRow
-            }
-        >
-            <View
-                style={
-                    styles.wildlifeIcon
-                }
-            >
-                <Text
-                    style={
-                        styles.wildlifeIconText
-                    }
-                >
-                    W
-                </Text>
-            </View>
+function WildlifeRow({ animal }) {
+	return (
+		<View style={styles.wildlifeRow}>
+			<View style={styles.wildlifeIcon}>
+				<Text style={styles.wildlifeIconText}>W</Text>
+			</View>
 
-            <View
-                style={
-                    styles.wildlifeContent
-                }
-            >
-                <Text
-                    style={
-                        styles.wildlifeTitle
-                    }
-                >
-                    {animal.name}
-                </Text>
+			<View style={styles.wildlifeContent}>
+				<Text style={styles.wildlifeTitle}>{animal.name}</Text>
 
-                <Text
-                    style={
-                        styles.wildlifeBody
-                    }
-                    numberOfLines={
-                        3
-                    }
-                >
-                    {
-                        animal.description
-                    }
-                </Text>
-            </View>
-        </View>
-    )
+				<Text style={styles.wildlifeBody} numberOfLines={3}>
+					{animal.description}
+				</Text>
+			</View>
+		</View>
+	);
 }
 
 // displays community reports separately from official wildlife information
-function WildlifeReportRow({
-    report,
-}) {
-    return (
-        <View
-            style={
-                styles.reportCard
-            }
-        >
-            <View
-                style={
-                    styles.reportIcon
-                }
-            >
-                <Text
-                    style={
-                        styles.reportIconText
-                    }
-                >
-                    R
-                </Text>
-            </View>
+function WildlifeReportRow({ report }) {
+	return (
+		<View style={styles.reportCard}>
+			<View style={styles.reportIcon}>
+				<Text style={styles.reportIconText}>R</Text>
+			</View>
 
-            <View
-                style={
-                    styles.reportContent
-                }
-            >
-                <View
-                    style={
-                        styles.reportTitleRow
-                    }
-                >
-                    <Text
-                        style={
-                            styles.reportSpecies
-                        }
-                    >
-                        {report.species}
-                    </Text>
+			<View style={styles.reportContent}>
+				<View style={styles.reportTitleRow}>
+					<Text style={styles.reportSpecies}>{report.species}</Text>
 
-                    <Text
-                        style={
-                            styles.userLabel
-                        }
-                    >
-                        USER REPORT
-                    </Text>
-                </View>
+					<Text style={styles.userLabel}>USER REPORT</Text>
+				</View>
 
-                <Text
-                    style={
-                        styles.reportLocation
-                    }
-                >
-                    {report.location}
-                </Text>
+				<Text style={styles.reportLocation}>{report.location}</Text>
 
-                <Text
-                    style={
-                        styles.reportDescription
-                    }
-                    numberOfLines={
-                        3
-                    }
-                >
-                    {report.description ||
-                        'No additional details provided'}
-                </Text>
+				<Text style={styles.reportDescription} numberOfLines={3}>
+					{report.description || "No additional details provided"}
+				</Text>
 
-                <Text
-                    style={
-                        styles.reportTime
-                    }
-                >
-                    {report.time ||
-                        formatReportTime(
-                            report.reportedAt
-                        )}
-                </Text>
-            </View>
-        </View>
-    )
+				<Text style={styles.reportTime}>
+					{report.time || formatReportTime(report.reportedAt)}
+				</Text>
+			</View>
+		</View>
+	);
 }
 
-function EmptyCard({
-    text,
-}) {
-    return (
-        <View
-            style={
-                styles.emptyCard
-            }
-        >
-            <Text
-                style={
-                    styles.emptyCardText
-                }
-            >
-                {text}
-            </Text>
-        </View>
-    )
+function EmptyCard({ text }) {
+	return (
+		<View style={styles.emptyCard}>
+			<Text style={styles.emptyCardText}>{text}</Text>
+		</View>
+	);
 }
 
-function formatReportTime(
-    reportedAt
-) {
-    if (
-        !reportedAt
-    ) {
-        return ''
-    }
+function formatReportTime(reportedAt) {
+	if (!reportedAt) {
+		return "";
+	}
 
-    const date =
-        new Date(
-            reportedAt
-        )
+	const date = new Date(reportedAt);
 
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return ''
-    }
+	if (Number.isNaN(date.getTime())) {
+		return "";
+	}
 
-    return date.toLocaleDateString(
-        undefined,
-        {
-            month:
-                'short',
-            day:
-                'numeric',
-        }
-    )
+	return date.toLocaleDateString(undefined, {
+		month: "short",
+		day: "numeric",
+	});
 }
 
-const styles =
-    StyleSheet.create({
-        screen: {
-            flex: 1,
-            backgroundColor: theme.colors.parchment,
-        },
-
-        content: {
-            paddingBottom: 120,
-        },
-
-        hero: {
-            height: 280,
-            position: 'relative',
-        },
-
-        heroImage: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.sage,
-            flex: 1,
-            justifyContent: 'center',
-        },
-
-        heroImageText: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.label.fontSize,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
-
-        backButtonContainer: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.parchment,
-            borderRadius: 22,
-            height: 44,
-            justifyContent: 'center',
-            left: theme.spacing.lg,
-            position: 'absolute',
-            width: 44,
-        },
-
-        heroButton: {
-            color: theme.colors.ink,
-            fontSize: 30,
-            lineHeight: 32,
-        },
-
-        favoriteButton: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.parchment,
-            borderRadius: 22,
-            height: 44,
-            justifyContent: 'center',
-            position: 'absolute',
-            right: theme.spacing.lg,
-            width: 44,
-        },
-
-        favoriteIcon: {
-            color: theme.colors.earth,
-            fontSize: 26,
-        },
-
-        header: {
-            padding: theme.spacing.lg,
-        },
-
-        eyebrow: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.label.fontSize,
-            fontWeight: '700',
-            letterSpacing: 1.5,
-        },
-
-        title: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.display.fontSize,
-            fontWeight: theme.typography.display.fontWeight,
-            lineHeight: theme.typography.display.lineHeight,
-            marginTop: theme.spacing.xs,
-        },
-
-        location: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.body.fontSize,
-            marginTop: theme.spacing.xs,
-        },
-
-        actions: {
-            flexDirection: 'row',
-            gap: theme.spacing.sm,
-            marginTop: theme.spacing.lg,
-        },
-
-        primaryAction: {
-            backgroundColor: theme.colors.forest,
-            borderRadius: theme.radii.sm,
-            paddingHorizontal: theme.spacing.lg,
-            paddingVertical: theme.spacing.sm,
-        },
-
-        primaryActionText: {
-            color: theme.colors.parchment,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        secondaryAction: {
-            borderColor:  theme.colors.earth,
-            borderRadius:  theme.radii.sm,
-            borderWidth: 1,
-            paddingHorizontal: theme.spacing.lg,
-            paddingVertical: theme.spacing.sm,
-        },
-
-        secondaryActionText: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        stats: {
-            backgroundColor: theme.colors.canvas,
-            borderBottomColor: theme.colors.parchment,
-            borderBottomWidth: 1,
-            borderTopColor: theme.colors.parchment,
-            borderTopWidth: 1,
-            paddingVertical: theme.spacing.md,
-        },
-
-        statsRow: {
-            flexDirection: 'row',
-            paddingHorizontal: theme.spacing.md,
-        },
-
-        stat: {
-            flex: 1,
-            paddingHorizontal:  theme.spacing.xs,
-        },
-
-        statValue: {
-            color:
-                theme.colors.forest,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        statLabel: {
-            color: theme.colors.earth,
-            fontSize:  theme.typography.caption.fontSize,
-            marginTop: theme.spacing.xs,
-        },
-
-        petStat: {
-            alignItems: 'center',
-            borderTopColor: theme.colors.parchment,
-            borderTopWidth: 1,
-            flexDirection: 'row',
-            marginTop: theme.spacing.md,
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.md,
-        },
-
-        petIcon: {
-            fontSize: 22,
-            marginRight: theme.spacing.sm,
-        },
-
-        petLabel: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.caption.fontSize,
-        },
-
-        petValue: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-            marginTop: 2,
-        },
-
-        section: {
-            marginTop: theme.spacing.xl,
-            paddingHorizontal: theme.spacing.lg,
-        },
-
-        sectionHeader: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing.md,
-        },
-
-        sectionHeaderContent: {
-            flex: 1,
-        },
-
-        sectionTitle: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.heading.fontSize,
-            fontWeight: theme.typography.heading.fontWeight,
-            lineHeight: theme.typography.heading.lineHeight,
-        },
-
-        sectionDescription: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.bodySmall.fontSize,
-            lineHeight: theme.typography.bodySmall.lineHeight,
-            marginTop: theme.spacing.xs,
-        },
-
-        sectionAction: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-            marginLeft: theme.spacing.sm,
-        },
-
-        body: {
-            color: theme.colors.bark,
-            fontSize: theme.typography.body.fontSize,
-            lineHeight: theme.typography.body.lineHeight,
-            marginTop: theme.spacing.md,
-        },
-
-        detailList: {
-            backgroundColor: theme.colors.canvas,
-            borderRadius: theme.radii.md,
-            marginTop: theme.spacing.md,
-            paddingHorizontal: theme.spacing.md,
-        },
-
-        detailRow: {
-            alignItems: 'center',
-            borderBottomColor: theme.colors.parchment,
-            borderBottomWidth: 1,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            paddingVertical: theme.spacing.md,
-        },
-
-        detailLabel: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.bodySmall.fontSize,
-        },
-
-        detailValue: {
-            color: theme.colors.ink,
-            flexShrink: 1,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '600',
-            marginLeft: theme.spacing.md,
-            textAlign: 'right',
-        },
-
-        nearbyList: {
-            gap: theme.spacing.sm,
-            marginTop:  theme.spacing.md,
-        },
-
-        nearbyTrail: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderRadius: theme.radii.md,
-            flexDirection: 'row',
-            padding: theme.spacing.md,
-        },
-
-        nearbyTrailIcon: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.sage,
-            borderRadius:  theme.radii.sm,
-            height: 46,
-            justifyContent: 'center',
-            width: 46,
-        },
-
-        nearbyTrailIconText: {
-            color: theme.colors.forest,
-            fontSize: 22,
-            fontWeight: '700',
-        },
-
-        nearbyTrailContent: {
-            flex: 1,
-            marginLeft: theme.spacing.md,
-        },
-
-        nearbyTrailName: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        nearbyTrailMeta: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.caption.fontSize,
-            marginTop: theme.spacing.xs,
-        },
-
-        chevron: {
-            color: theme.colors.earth,
-            fontSize: 24,
-            marginLeft: theme.spacing.sm,
-        },
-
-        amenityGrid: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: theme.spacing.sm,
-            marginTop: theme.spacing.md,
-        },
-
-        amenity: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderRadius: theme.radii.md,
-            flex: 1,
-            minWidth: '45%',
-            padding: theme.spacing.md,
-        },
-
-        amenityIcon: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent: 'center',
-            width: 48,
-        },
-
-        amenityIconText: {
-            color: theme.colors.forest,
-            fontSize: 22,
-        },
-
-        amenityLabel: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '600',
-            marginTop: theme.spacing.sm,
-            textAlign: 'center',
-        },
-
-        /* official wildlife information */
-
-        wildlifeList: {
-            gap: theme.spacing.sm,
-        },
-
-        wildlifeRow: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderRadius: theme.radii.md,
-            flexDirection: 'row',
-            padding: theme.spacing.md,
-        },
-
-        wildlifeIcon: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent: 'center',
-            width: 48,
-        },
-
-        wildlifeIconText: {
-            color: theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '800',
-            letterSpacing: 1,
-        },
-
-        wildlifeContent: {
-            flex: 1,
-            marginLeft: theme.spacing.md,
-        },
-
-        wildlifeTitle: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        wildlifeBody: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.caption.fontSize,
-            lineHeight: theme.typography.caption.lineHeight,
-            marginTop: theme.spacing.xs,
-        },
-
-        /* user-submitted wildlife reports */
-
-        reportList: {
-            gap: theme.spacing.sm,
-        },
-
-        reportCard: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.canvas,
-            borderRadius:  theme.radii.md,
-            flexDirection: 'row',
-            padding: theme.spacing.md,
-        },
-
-        reportIcon: {
-            alignItems: 'center',
-            backgroundColor:  theme.colors.sage,
-            borderRadius: 24,
-            height: 48,
-            justifyContent: 'center',
-            width: 48,
-        },
-
-        reportIconText: {
-            color: theme.colors.forest,
-            fontSize: 12,
-            fontWeight: '800',
-            letterSpacing: 1,
-        },
-
-        reportContent: {
-            flex: 1,
-            marginLeft: theme.spacing.md,
-        },
-
-        reportTitleRow: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: theme.spacing.xs,
-        },
-
-        reportSpecies: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        userLabel: {
-            color: theme.colors.forest,
-            fontSize: 8,
-            fontWeight: '800',
-            letterSpacing: 0.7,
-        },
-
-        reportLocation: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.caption.fontSize,
-            fontWeight: '600',
-            marginTop: theme.spacing.xs,
-        },
-
-        reportDescription: {
-            color: theme.colors.earth,
-            fontSize:  theme.typography.caption.fontSize,
-            lineHeight: theme.typography.caption.lineHeight,
-            marginTop: theme.spacing.xs,
-        },
-
-        reportTime: {
-            color: theme.colors.earth,
-            fontSize: 9,
-            marginTop: theme.spacing.xs,
-        },
-
-        reportButton: {
-            alignSelf: 'flex-start',
-            borderColor: theme.colors.forest,
-            borderRadius: theme.radii.sm,
-            borderWidth: 1,
-            marginTop: theme.spacing.md,
-            paddingHorizontal: theme.spacing.md,
-            paddingVertical: theme.spacing.sm,
-        },
-
-        reportButtonText: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        emptyCard: {
-            backgroundColor: theme.colors.canvas,
-            borderRadius: theme.radii.md,
-            padding: theme.spacing.lg,
-        },
-
-        emptyCardText: {
-            color: theme.colors.earth,
-            fontSize: theme.typography.bodySmall.fontSize,
-            textAlign: 'center',
-        },
-
-        planCard: {
-            backgroundColor: theme.colors.forest,
-            borderRadius: theme.radii.lg,
-            padding: theme.spacing.lg,
-        },
-
-        planEyebrow: {
-            color: theme.colors.sage,
-            fontSize: theme.typography.caption.fontSize,
-            fontWeight: '700',
-            letterSpacing: 1.2,
-        },
-
-        planTitle: {
-            color: theme.colors.parchment,
-            fontSize: theme.typography.heading.fontSize,
-            fontWeight: '700',
-            lineHeight: theme.typography.heading.lineHeight,
-            marginTop: theme.spacing.xs,
-        },
-
-        planBody: {
-            color: theme.colors.canvas,
-            fontSize: theme.typography.bodySmall.fontSize,
-            lineHeight: theme.typography.bodySmall.lineHeight,
-            marginTop:  theme.spacing.sm,
-        },
-
-        planButton: {
-            alignSelf: 'flex-start',
-            backgroundColor: theme.colors.parchment,
-            borderRadius: theme.radii.sm,
-            marginTop:  theme.spacing.lg,
-            paddingHorizontal: theme.spacing.md,
-            paddingVertical: theme.spacing.sm,
-        },
-
-        planButtonText: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.bodySmall.fontSize,
-            fontWeight: '700',
-        },
-
-        pressed: {
-            opacity: 0.85,
-        },
-
-        errorContainer: {
-            alignItems: 'center',
-            backgroundColor: theme.colors.parchment,
-            flex: 1,
-            justifyContent: 'center',
-            padding: theme.spacing.lg,
-        },
-
-        errorTitle: {
-            color: theme.colors.ink,
-            fontSize: theme.typography.heading.fontSize,
-            fontWeight: '700',
-        },
-
-        backButton: {
-            color: theme.colors.forest,
-            fontSize: theme.typography.body.fontSize,
-            fontWeight: '600',
-            marginTop: theme.spacing.md,
-        },
-    })
+const styles = StyleSheet.create({
+	screen: {
+		flex: 1,
+		backgroundColor: theme.colors.parchment,
+	},
+
+	content: {
+		paddingBottom: 120,
+	},
+
+	hero: {
+		height: 280,
+		position: "relative",
+	},
+
+	heroImage: {
+		alignItems: "center",
+		backgroundColor: theme.colors.sage,
+		flex: 1,
+		justifyContent: "center",
+	},
+
+	heroImageText: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.label.fontSize,
+		fontWeight: "700",
+		letterSpacing: 1.5,
+	},
+
+	backButtonContainer: {
+		alignItems: "center",
+		backgroundColor: theme.colors.parchment,
+		borderRadius: 22,
+		height: 44,
+		justifyContent: "center",
+		left: theme.spacing.lg,
+		position: "absolute",
+		width: 44,
+	},
+
+	heroButton: {
+		color: theme.colors.ink,
+		fontSize: 30,
+		lineHeight: 32,
+	},
+
+	favoriteButton: {
+		alignItems: "center",
+		backgroundColor: theme.colors.parchment,
+		borderRadius: 22,
+		height: 44,
+		justifyContent: "center",
+		position: "absolute",
+		right: theme.spacing.lg,
+		width: 44,
+	},
+
+	favoriteIconActive: {
+		color: theme.colors.forest,
+	},
+
+	favoriteIcon: {
+		color: theme.colors.earth,
+		fontSize: 26,
+	},
+
+	header: {
+		padding: theme.spacing.lg,
+	},
+
+	eyebrow: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.label.fontSize,
+		fontWeight: "700",
+		letterSpacing: 1.5,
+	},
+
+	title: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.display.fontSize,
+		fontWeight: theme.typography.display.fontWeight,
+		lineHeight: theme.typography.display.lineHeight,
+		marginTop: theme.spacing.xs,
+	},
+
+	location: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.body.fontSize,
+		marginTop: theme.spacing.xs,
+	},
+
+	actions: {
+		flexDirection: "row",
+		gap: theme.spacing.sm,
+		marginTop: theme.spacing.lg,
+	},
+
+	primaryAction: {
+		backgroundColor: theme.colors.forest,
+		borderRadius: theme.radii.sm,
+		paddingHorizontal: theme.spacing.lg,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	primaryActionText: {
+		color: theme.colors.parchment,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	secondaryAction: {
+		borderColor: theme.colors.earth,
+		borderRadius: theme.radii.sm,
+		borderWidth: 1,
+		paddingHorizontal: theme.spacing.lg,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	secondaryActionText: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	stats: {
+		backgroundColor: theme.colors.canvas,
+		borderBottomColor: theme.colors.parchment,
+		borderBottomWidth: 1,
+		borderTopColor: theme.colors.parchment,
+		borderTopWidth: 1,
+		paddingVertical: theme.spacing.md,
+	},
+
+	statsRow: {
+		flexDirection: "row",
+		paddingHorizontal: theme.spacing.md,
+	},
+
+	stat: {
+		flex: 1,
+		paddingHorizontal: theme.spacing.xs,
+	},
+
+	statValue: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	statLabel: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.caption.fontSize,
+		marginTop: theme.spacing.xs,
+	},
+
+	petStat: {
+		alignItems: "center",
+		borderTopColor: theme.colors.parchment,
+		borderTopWidth: 1,
+		flexDirection: "row",
+		marginTop: theme.spacing.md,
+		paddingHorizontal: theme.spacing.lg,
+		paddingTop: theme.spacing.md,
+	},
+
+	petIcon: {
+		fontSize: 22,
+		marginRight: theme.spacing.sm,
+	},
+
+	petLabel: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.caption.fontSize,
+	},
+
+	petValue: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+		marginTop: 2,
+	},
+
+	section: {
+		marginTop: theme.spacing.xl,
+		paddingHorizontal: theme.spacing.lg,
+	},
+
+	sectionHeader: {
+		alignItems: "center",
+		flexDirection: "row",
+		justifyContent: "space-between",
+		marginBottom: theme.spacing.md,
+	},
+
+	sectionHeaderContent: {
+		flex: 1,
+	},
+
+	sectionTitle: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.heading.fontSize,
+		fontWeight: theme.typography.heading.fontWeight,
+		lineHeight: theme.typography.heading.lineHeight,
+	},
+
+	sectionDescription: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.bodySmall.fontSize,
+		lineHeight: theme.typography.bodySmall.lineHeight,
+		marginTop: theme.spacing.xs,
+	},
+
+	sectionAction: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+		marginLeft: theme.spacing.sm,
+	},
+
+	body: {
+		color: theme.colors.bark,
+		fontSize: theme.typography.body.fontSize,
+		lineHeight: theme.typography.body.lineHeight,
+		marginTop: theme.spacing.md,
+	},
+
+	detailList: {
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		marginTop: theme.spacing.md,
+		paddingHorizontal: theme.spacing.md,
+	},
+
+	detailRow: {
+		alignItems: "center",
+		borderBottomColor: theme.colors.parchment,
+		borderBottomWidth: 1,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingVertical: theme.spacing.md,
+	},
+
+	detailLabel: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.bodySmall.fontSize,
+	},
+
+	detailValue: {
+		color: theme.colors.ink,
+		flexShrink: 1,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "600",
+		marginLeft: theme.spacing.md,
+		textAlign: "right",
+	},
+
+	nearbyList: {
+		gap: theme.spacing.sm,
+		marginTop: theme.spacing.md,
+	},
+
+	nearbyTrail: {
+		alignItems: "center",
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		flexDirection: "row",
+		padding: theme.spacing.md,
+	},
+
+	nearbyTrailIcon: {
+		alignItems: "center",
+		backgroundColor: theme.colors.sage,
+		borderRadius: theme.radii.sm,
+		height: 46,
+		justifyContent: "center",
+		width: 46,
+	},
+
+	nearbyTrailIconText: {
+		color: theme.colors.forest,
+		fontSize: 22,
+		fontWeight: "700",
+	},
+
+	nearbyTrailContent: {
+		flex: 1,
+		marginLeft: theme.spacing.md,
+	},
+
+	nearbyTrailName: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	nearbyTrailMeta: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.caption.fontSize,
+		marginTop: theme.spacing.xs,
+	},
+
+	chevron: {
+		color: theme.colors.earth,
+		fontSize: 24,
+		marginLeft: theme.spacing.sm,
+	},
+
+	amenityGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: theme.spacing.sm,
+		marginTop: theme.spacing.md,
+	},
+
+	amenity: {
+		alignItems: "center",
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		flex: 1,
+		minWidth: "45%",
+		padding: theme.spacing.md,
+	},
+
+	amenityIcon: {
+		alignItems: "center",
+		backgroundColor: theme.colors.sage,
+		borderRadius: 24,
+		height: 48,
+		justifyContent: "center",
+		width: 48,
+	},
+
+	amenityIconText: {
+		color: theme.colors.forest,
+		fontSize: 22,
+	},
+
+	amenityLabel: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "600",
+		marginTop: theme.spacing.sm,
+		textAlign: "center",
+	},
+
+	/* official wildlife information */
+
+	wildlifeList: {
+		gap: theme.spacing.sm,
+	},
+
+	wildlifeRow: {
+		alignItems: "center",
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		flexDirection: "row",
+		padding: theme.spacing.md,
+	},
+
+	wildlifeIcon: {
+		alignItems: "center",
+		backgroundColor: theme.colors.sage,
+		borderRadius: 24,
+		height: 48,
+		justifyContent: "center",
+		width: 48,
+	},
+
+	wildlifeIconText: {
+		color: theme.colors.forest,
+		fontSize: 12,
+		fontWeight: "800",
+		letterSpacing: 1,
+	},
+
+	wildlifeContent: {
+		flex: 1,
+		marginLeft: theme.spacing.md,
+	},
+
+	wildlifeTitle: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	wildlifeBody: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.caption.fontSize,
+		lineHeight: theme.typography.caption.lineHeight,
+		marginTop: theme.spacing.xs,
+	},
+
+	/* user-submitted wildlife reports */
+
+	reportList: {
+		gap: theme.spacing.sm,
+	},
+
+	reportCard: {
+		alignItems: "center",
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		flexDirection: "row",
+		padding: theme.spacing.md,
+	},
+
+	reportIcon: {
+		alignItems: "center",
+		backgroundColor: theme.colors.sage,
+		borderRadius: 24,
+		height: 48,
+		justifyContent: "center",
+		width: 48,
+	},
+
+	reportIconText: {
+		color: theme.colors.forest,
+		fontSize: 12,
+		fontWeight: "800",
+		letterSpacing: 1,
+	},
+
+	reportContent: {
+		flex: 1,
+		marginLeft: theme.spacing.md,
+	},
+
+	reportTitleRow: {
+		alignItems: "center",
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: theme.spacing.xs,
+	},
+
+	reportSpecies: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	userLabel: {
+		color: theme.colors.forest,
+		fontSize: 8,
+		fontWeight: "800",
+		letterSpacing: 0.7,
+	},
+
+	reportLocation: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.caption.fontSize,
+		fontWeight: "600",
+		marginTop: theme.spacing.xs,
+	},
+
+	reportDescription: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.caption.fontSize,
+		lineHeight: theme.typography.caption.lineHeight,
+		marginTop: theme.spacing.xs,
+	},
+
+	reportTime: {
+		color: theme.colors.earth,
+		fontSize: 9,
+		marginTop: theme.spacing.xs,
+	},
+
+	reportButton: {
+		alignSelf: "flex-start",
+		borderColor: theme.colors.forest,
+		borderRadius: theme.radii.sm,
+		borderWidth: 1,
+		marginTop: theme.spacing.md,
+		paddingHorizontal: theme.spacing.md,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	reportButtonText: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	emptyCard: {
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		padding: theme.spacing.lg,
+	},
+
+	emptyCardText: {
+		color: theme.colors.earth,
+		fontSize: theme.typography.bodySmall.fontSize,
+		textAlign: "center",
+	},
+
+	planCard: {
+		backgroundColor: theme.colors.forest,
+		borderRadius: theme.radii.lg,
+		padding: theme.spacing.lg,
+	},
+
+	planEyebrow: {
+		color: theme.colors.sage,
+		fontSize: theme.typography.caption.fontSize,
+		fontWeight: "700",
+		letterSpacing: 1.2,
+	},
+
+	planTitle: {
+		color: theme.colors.parchment,
+		fontSize: theme.typography.heading.fontSize,
+		fontWeight: "700",
+		lineHeight: theme.typography.heading.lineHeight,
+		marginTop: theme.spacing.xs,
+	},
+
+	planBody: {
+		color: theme.colors.canvas,
+		fontSize: theme.typography.bodySmall.fontSize,
+		lineHeight: theme.typography.bodySmall.lineHeight,
+		marginTop: theme.spacing.sm,
+	},
+
+	planButton: {
+		alignSelf: "flex-start",
+		backgroundColor: theme.colors.parchment,
+		borderRadius: theme.radii.sm,
+		marginTop: theme.spacing.lg,
+		paddingHorizontal: theme.spacing.md,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	planButtonText: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
+	},
+
+	pressed: {
+		opacity: 0.85,
+	},
+
+	errorContainer: {
+		alignItems: "center",
+		backgroundColor: theme.colors.parchment,
+		flex: 1,
+		justifyContent: "center",
+		padding: theme.spacing.lg,
+	},
+
+	errorTitle: {
+		color: theme.colors.ink,
+		fontSize: theme.typography.heading.fontSize,
+		fontWeight: "700",
+	},
+
+	backButton: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.body.fontSize,
+		fontWeight: "600",
+		marginTop: theme.spacing.md,
+	},
+});

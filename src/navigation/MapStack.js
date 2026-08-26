@@ -31,15 +31,15 @@ export default function MapStack() {
                 component={ParkDetailScreen}
             />
 
-            {/* allows trails to eventually be opened directly from map markers */}
+            {/* allows trails selected from the map to open the normal trail detail screen */}
             <Stack.Screen
-                name="MapTrailDetail"
+                name="TrailDetail"
                 component={TrailDetailScreen}
             />
 
-            {/* allows campgrounds to eventually be opened directly from map markers */}
+            {/* allows campgrounds selected from the map to open the normal campground detail screen */}
             <Stack.Screen
-                name="MapCampgroundDetail"
+                name="CampgroundDetail"
                 component={CampgroundDetailScreen}
             />
         </Stack.Navigator>

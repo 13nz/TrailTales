@@ -157,22 +157,24 @@ export default function TrailDetailScreen({ route, navigation }) {
 			>
 				{/* provides quick navigation back to the park page */}
 				<View style={styles.hero}>
-					{park.images?.[0]?.url ? (
-						<Image
-							source={{
-								uri: park.images[0].url,
-							}}
-							style={styles.heroImage}
-							resizeMode="cover"
-							accessibilityLabel={`${park.name} trail photo`}
-						/>
-					) : (
-						<View style={styles.heroImage}>
-							<Text style={styles.heroImageText}>
-								TRAIL PHOTO
-							</Text>
-						</View>
-					)}
+                    {trail.image ? (
+                        <Image
+                            source={{
+                                uri: trail.image,
+                            }}
+                            style={styles.heroImage}
+                            resizeMode="cover"
+                            accessibilityLabel={`${trail.name} trail photo`}
+                        />
+                    ) : (
+                        <View style={styles.heroImage}>
+                            <Text style={styles.heroImageText}>
+                                TRAIL PHOTO
+                            </Text>
+                        </View>
+                    )}
+
+
 
 					<Pressable
 						style={[
@@ -188,7 +190,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 						<Text style={styles.heroButton}>‹</Text>
 					</Pressable>
 
-					{/* toggles fav */}
+					{/* toggles favs */}
 					<Pressable
 						style={[
 							styles.favoriteButton,

@@ -406,7 +406,7 @@ export default function MapScreen({ navigation }) {
             return
         }
 
-        // routes the selected park to its corresponding park detail screen
+        // opens the park detail screen inside the map stack
         if (
             selectedLocation.type ===
             'park'
@@ -419,42 +419,61 @@ export default function MapScreen({ navigation }) {
                             .park.id,
                 }
             )
+
+            return
         }
 
-        // routes the selected trail to its corresponding trail detail screen
+        // switches to the explore tab and opens the trail detail screen
         if (
             selectedLocation.type ===
             'trail'
         ) {
-            navigation.navigate(
-                'MapTrailDetail',
-                {
-                    parkId:
-                        selectedLocation.parkId,
-                    trailId:
-                        selectedLocation.trailId,
-                }
-            )
+            navigation
+                .getParent()
+                ?.navigate(
+                    'Explore',
+                    {
+                        screen:
+                            'TrailDetail',
+                        params: {
+                            parkId:
+                                selectedLocation
+                                    .parkId,
+                            trailId:
+                                selectedLocation
+                                    .trailId,
+                        },
+                    }
+                )
+
+            return
         }
 
-        // routes the selected campground to its corresponding campground detail screen
+        // switches to the explore tab and opens the campground detail screen
         if (
             selectedLocation.type ===
             'campground'
         ) {
-            navigation.navigate(
-                'MapCampgroundDetail',
-                {
-                    parkId:
-                        selectedLocation.parkId,
-                    campgroundId:
-                        selectedLocation
-                            .campgroundId,
-                }
-            )
-        }
+            navigation
+                .getParent()
+                ?.navigate(
+                    'Explore',
+                    {
+                        screen:
+                            'CampgroundDetail',
+                        params: {
+                            parkId:
+                                selectedLocation
+                                    .parkId,
+                            campgroundId:
+                                selectedLocation
+                                    .campgroundId,
+                        },
+                    }
+                )
 
-        setSelectedLocation(null)
+            return
+        }
     }
 
     const handleShowUserLocation =

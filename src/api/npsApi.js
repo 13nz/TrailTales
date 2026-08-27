@@ -182,37 +182,42 @@ function normalizePark(park) {
 	};
 }
 
-// gets only official national parks from the nps api
+// gets official national parks, national/state parks, and state parks
 export async function getParks(params = {}) {
-	const query = new URLSearchParams();
+    const query = new URLSearchParams();
 
-	// restricts the nps request to national parks before data is downloaded
-	query.append("designation", "National Park");
+    if (params.stateCode) {
+        query.append("stateCode", params.stateCode);
+    }
 
-	if (params.stateCode) {
-		query.append("stateCode", params.stateCode);
-	}
+    if (params.q) {
+        query.append("q", params.q);
+    }
 
-	if (params.q) {
-		query.append("q", params.q);
-	}
+    query.append("limit", String(params.limit || 50));
 
-	query.append("limit", String(params.limit || 50));
+    if (params.start !== undefined) {
+        query.append("start", String(params.start));
+    }
 
-	if (params.start !== undefined) {
-		query.append("start", String(params.start));
-	}
+    const response = await npsRequest(`/parks?${query.toString()}`);
 
-	const response = await npsRequest(`/parks?${query.toString()}`);
+    const result = getNpsResult(response);
 
-	const result = getNpsResult(response);
+    const allowedDesignations = new Set([
+        "National Park",
+        "National and State Parks",
+        "State Park",
+    ]);
 
-	return {
-		...result,
-		data: (result.data || [])
-			.filter((park) => park.designation === "National Park")
-			.map(normalizePark),
-	};
+    return {
+        ...result,
+        data: (result.data || [])
+            .filter((park) =>
+                allowedDesignations.has(park.designation)
+            )
+            .map(normalizePark),
+    };
 }
 
 // gets all national parks and caches them for the current app session

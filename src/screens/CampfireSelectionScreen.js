@@ -1,424 +1,508 @@
-import React, {
-    useMemo,
-} from 'react'
+import React, { useEffect, useState } from "react";
+
+import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { getParkByCode, getAllParks } from "../api/npsApi";
 
 import {
-    View,
-    Text,
-    Pressable,
-    FlatList,
-    StyleSheet,
-} from 'react-native'
+	getCampfireLoreEntries,
+	getAllCampfireLoreEntries,
+} from "../services/lore";
 
-import {
-    Ionicons,
-} from '@expo/vector-icons'
+// displays campfire stories either for one park or for all national parks
+export default function CampfireSelectionScreen({ route, navigation }) {
+	const insets = useSafeAreaInsets();
 
-import {
-    useSafeAreaInsets,
-} from 'react-native-safe-area-context'
+	const { parkId } = route.params || {};
 
-import {
-    loreParks,
-    loreEntries,
-} from '../data/mockLore'
+	const [park, setPark] = useState(null);
 
-// displays all available campfire stories for the selected park
-export default function CampfireSelectionScreen({
-    route,
-    navigation,
-}) {
-    const insets =
-        useSafeAreaInsets()
+	const [campfireStories, setCampfireStories] = useState([]);
 
-    const {
-        parkId,
-    } = route.params
+	const [loading, setLoading] = useState(true);
 
-    const park =
-        loreParks.find(
-            (item) =>
-                item.id === parkId
-        )
+	const [error, setError] = useState(null);
 
-    // only stories that can actually be experienced in campfire mode are shown
-    const campfireStories =
-        useMemo(() => {
-            return loreEntries.filter(
-                (entry) =>
-                    entry.parkId ===
-                        parkId &&
-                    entry.campfireEligible &&
-                    entry.campfireStory
-            )
-        }, [parkId])
+    // stores the cached national parks so global campfire stories can show park names
+    const [parks, setParks] = useState([]);
 
-    // opens the selected story inside the immersive campfire experience
-    const openStory = (
-        storyId
-    ) => {
-        navigation.navigate(
-            'CampfireStory',
-            {
-                parkId,
-                loreId: storyId,
-            }
-        )
-    }
+	/*
+	 * loads campfire stories either for one park or for
+	 * every park when no park id was provided.
+	 *
+	 * when a park id exists, the park itself is also loaded
+	 * so the existing park-specific header can remain unchanged.
+	 */
+	useEffect(() => {
+		let active = true;
 
-    if (!park) {
-        return (
-            <View
-                style={[
-                    styles.container,
-                    {
-                        paddingTop:
-                            insets.top,
-                    },
-                ]}
-            >
-                <Text
-                    style={
-                        styles.errorText
-                    }
-                >
-                    Park could not be found
-                </Text>
-            </View>
-        )
-    }
+		async function loadCampfireSelection() {
+			try {
+				setLoading(true);
+				setError(null);
 
-    return (
-        <View
-            style={[
-                styles.container,
-                {
-                    paddingTop:
-                        insets.top,
-                },
-            ]}
-        >
-            <FlatList
-                data={
-                    campfireStories
+				const storiesPromise = parkId
+                    ? getCampfireLoreEntries(parkId)
+                    : getAllCampfireLoreEntries();
+
+                const parkPromise = parkId
+                    ? getParkByCode(parkId)
+                    : Promise.resolve(null);
+
+                const parksPromise = parkId
+                    ? Promise.resolve([])
+                    : getAllParks();
+
+                const [stories, apiPark, apiParks] = await Promise.all([
+                    storiesPromise,
+                    parkPromise,
+                    parksPromise,
+                ]);
+
+                if (!active) {
+                    return;
                 }
-                keyExtractor={(
-                    item
-                ) => item.id}
-                contentContainerStyle={
-                    styles.content
-                }
-                showsVerticalScrollIndicator={
-                    false
-                }
-                ListHeaderComponent={
-                    <>
-                        <View
-                            style={
-                                styles.header
-                            }
-                        >
-                            <Pressable
-                                onPress={() =>
-                                    navigation.goBack()
-                                }
-                                style={
-                                    styles.backButton
-                                }
-                                accessibilityRole="button"
-                                accessibilityLabel="leave campfire story selection"
-                            >
-                                <Ionicons
-                                    name="chevron-back"
-                                    size={22}
-                                    color="#E7D8C5"
-                                />
 
-                                <Text
-                                    style={
-                                        styles.backText
-                                    }
-                                >
-                                    {park.name}
+                setPark(apiPark);
+                setParks(apiParks || []);
+
+                setCampfireStories(
+                    (stories || []).filter(
+                        (entry) =>
+                            entry.campfire_eligible &&
+                            entry.entry_type === "story" &&
+                            entry.campfire_content,
+                    ),
+                );
+			} catch (loadError) {
+				console.error("campfire selection load error:", loadError);
+
+				if (active) {
+					setPark(null);
+					setCampfireStories([]);
+					setError("Unable to load campfire stories");
+				}
+			} finally {
+				if (active) {
+					setLoading(false);
+				}
+			}
+		}
+
+		loadCampfireSelection();
+
+		return () => {
+			active = false;
+		};
+	}, [parkId]);
+
+	/*
+	 * converts database category ids into the same uppercase
+	 * labels used by the campfire selection ui.
+	 */
+	const getCategoryLabel = (category) => {
+		switch (category) {
+			case "legends":
+				return "LEGEND";
+
+			case "folklore":
+				return "FOLKLORE";
+
+			case "cryptids":
+				return "CRYPTID";
+
+			default:
+				return category ? category.toUpperCase() : "LORE";
+		}
+	};
+
+	/*
+	 * supports lore entries that belong to multiple categories.
+	 */
+	const getCategoriesText = (categories) => {
+		if (!Array.isArray(categories) || categories.length === 0) {
+			return "LORE";
+		}
+
+		return categories
+			.map((category) => getCategoryLabel(category))
+			.join(" · ");
+	};
+
+    // finds the readable national park name for a lore entry's nps park code
+    const getStoryParkName = (story) => {
+        if (park) {
+            return park.name;
+        }
+
+        const matchingPark = parks.find(
+            (item) => item.id === story.park_code,
+        );
+
+        return matchingPark?.name || story.park_code?.toUpperCase();
+    };
+
+	/*
+	 * opens the selected story inside the immersive
+	 * campfire experience.
+	 *
+	 * the story's own park_code is used so global campfire
+	 * mode can correctly identify the park for each story.
+	 */
+	const openStory = (story) => {
+		const storyParkId = story.park_code || parkId;
+
+		navigation.navigate("CampfireStory", {
+			parkId: storyParkId,
+			loreId: story.id,
+		});
+	};
+
+	if (loading) {
+		return (
+			<View
+				style={[
+					styles.container,
+					{
+						paddingTop: insets.top,
+					},
+				]}
+			>
+				<View style={styles.loadingState}>
+					<Text style={styles.loadingFire}>🔥</Text>
+
+					<Text style={styles.loadingTitle}>
+						Gathering stories...
+					</Text>
+				</View>
+			</View>
+		);
+	}
+
+	if (error) {
+		return (
+			<View
+				style={[
+					styles.container,
+					{
+						paddingTop: insets.top,
+					},
+				]}
+			>
+				<Pressable
+					style={styles.errorBackButton}
+					onPress={() => navigation.goBack()}
+					accessibilityRole="button"
+					accessibilityLabel="go back"
+				>
+					<Ionicons name="chevron-back" size={22} color="#E7D8C5" />
+
+					<Text style={styles.backText}>Back</Text>
+				</Pressable>
+
+				<View style={styles.errorState}>
+					<Text style={styles.errorFire}>🔥</Text>
+
+					<Text style={styles.errorTitle}>
+						Unable to load stories
+					</Text>
+
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			</View>
+		);
+	}
+
+	return (
+		<View
+			style={[
+				styles.container,
+				{
+					paddingTop: insets.top,
+				},
+			]}
+		>
+			<FlatList
+				data={campfireStories}
+				keyExtractor={(item) => item.id}
+				contentContainerStyle={styles.content}
+				showsVerticalScrollIndicator={false}
+				ListHeaderComponent={
+					<>
+						<View style={styles.header}>
+							<Pressable
+								onPress={() => navigation.goBack()}
+								style={styles.backButton}
+								accessibilityRole="button"
+								accessibilityLabel="leave campfire story selection"
+							>
+								<Ionicons
+									name="chevron-back"
+									size={22}
+									color="#E7D8C5"
+								/>
+
+								<Text style={styles.backText}>
+									{park ? park.name : "Parks"}
+								</Text>
+							</Pressable>
+
+							<Text style={styles.fire}>🔥</Text>
+
+							<Text style={styles.title}>Campfire</Text>
+
+							<Text style={styles.subtitle}>
+								{park
+									? `Stories from ${park.name}`
+									: "Stories from the national parks"}
+							</Text>
+						</View>
+
+						<View style={styles.divider} />
+
+						<Text style={styles.sectionTitle}>Choose a story</Text>
+					</>
+				}
+				renderItem={({ item }) => (
+					<Pressable
+						style={styles.storyCard}
+						onPress={() => openStory(item)}
+						accessibilityRole="button"
+						accessibilityLabel={`hear ${
+							item.campfire_title || item.title
+						}`}
+					>
+						<View style={styles.cardContent}>
+							<Text style={styles.category}>
+								{getCategoriesText(item.categories)}
+							</Text>
+
+							<Text style={styles.storyTitle}>
+								{item.campfire_title || item.title}
+							</Text>
+
+							<Text style={styles.summary}>{item.summary}</Text>
+
+							{!park ? (
+                                <Text style={styles.parkCode}>
+                                    {getStoryParkName(item)}
                                 </Text>
-                            </Pressable>
+                            ) : null}
+						</View>
 
-                            <Text
-                                style={
-                                    styles.fire
-                                }
-                            >
-                                🔥
-                            </Text>
+						<View style={styles.arrow}>
+							<Ionicons
+								name="chevron-forward"
+								size={20}
+								color="#C09A67"
+							/>
+						</View>
+					</Pressable>
+				)}
+				ListEmptyComponent={
+					<View style={styles.emptyState}>
+						<Text style={styles.emptyFire}>🔥</Text>
 
-                            <Text
-                                style={
-                                    styles.title
-                                }
-                            >
-                                Campfire
-                            </Text>
+						<Text style={styles.emptyTitle}>No stories yet</Text>
 
-                            <Text
-                                style={
-                                    styles.subtitle
-                                }
-                            >
-                                Stories from{' '}
-                                {park.name}
-                            </Text>
-                        </View>
-
-                        <View
-                            style={
-                                styles.divider
-                            }
-                        />
-
-                        <Text
-                            style={
-                                styles.sectionTitle
-                            }
-                        >
-                            Choose a story
-                        </Text>
-                    </>
-                }
-                renderItem={({
-                    item,
-                }) => (
-                    <Pressable
-                        style={
-                            styles.storyCard
-                        }
-                        onPress={() =>
-                            openStory(
-                                item.id
-                            )
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={`hear ${item.campfireStory.title}`}
-                    >
-                        <View
-                            style={
-                                styles.cardContent
-                            }
-                        >
-                            <Text
-                                style={
-                                    styles.category
-                                }
-                            >
-                                {item.category.toUpperCase()}
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.storyTitle
-                                }
-                            >
-                                {
-                                    item
-                                        .campfireStory
-                                        .title
-                                }
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.summary
-                                }
-                            >
-                                {item.summary}
-                            </Text>
-                        </View>
-
-                        <View
-                            style={
-                                styles.arrow
-                            }
-                        >
-                            <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color="#C09A67"
-                            />
-                        </View>
-                    </Pressable>
-                )}
-                ListEmptyComponent={
-                    <View
-                        style={
-                            styles.emptyState
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.emptyFire
-                            }
-                        >
-                            🔥
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.emptyTitle
-                            }
-                        >
-                            No stories yet
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.emptyText
-                            }
-                        >
-                            More campfire stories
-                            will appear here as
-                            they are added.
-                        </Text>
-                    </View>
-                }
-            />
-        </View>
-    )
+						<Text style={styles.emptyText}>
+							More campfire stories will appear here as they are
+							added.
+						</Text>
+					</View>
+				}
+			/>
+		</View>
+	);
 }
 
-const styles =
-    StyleSheet.create({
-        container: {
-            backgroundColor: '#11100E',
-            flex: 1,
-        },
+const styles = StyleSheet.create({
+	container: {
+		backgroundColor: "#11100E",
+		flex: 1,
+	},
 
-        content: {
-            paddingHorizontal: 20,
-            paddingBottom: 50,
-        },
+	content: {
+		paddingHorizontal: 20,
+		paddingBottom: 50,
+	},
 
-        header: {
-            paddingTop: 10,
-        },
+	header: {
+		paddingTop: 10,
+	},
 
-        backButton: {
-            alignItems: 'center',
-            flexDirection: 'row',
-            paddingVertical: 8,
-        },
+	backButton: {
+		alignItems: "center",
+		flexDirection: "row",
+		paddingVertical: 8,
+	},
 
-        backText: {
-            color: '#C8BBAA',
-            fontSize: 13,
-            fontWeight: '600',
-            marginLeft: 2,
-        },
+	errorBackButton: {
+		alignItems: "center",
+		flexDirection: "row",
+		paddingHorizontal: 20,
+		paddingVertical: 8,
+	},
 
-        fire: {
-            fontSize: 42,
-            marginTop: 28,
-        },
+	backText: {
+		color: "#C8BBAA",
+		fontSize: 13,
+		fontWeight: "600",
+		marginLeft: 2,
+	},
 
-        title: {
-            color: '#F1E7D8',
-            fontSize: 34,
-            fontWeight: '800',
-            marginTop: 5,
-        },
+	fire: {
+		fontSize: 42,
+		marginTop: 28,
+	},
 
-        subtitle: {
-            color: '#8F8375',
-            fontSize: 13,
-            marginTop: 4,
-        },
+	title: {
+		color: "#F1E7D8",
+		fontSize: 34,
+		fontWeight: "800",
+		marginTop: 5,
+	},
 
-        divider: {
-            backgroundColor: '#39332D',
-            height: 1,
-            marginVertical: 24,
-        },
+	subtitle: {
+		color: "#8F8375",
+		fontSize: 13,
+		marginTop: 4,
+	},
 
-        sectionTitle: {
-            color: '#C8BBAA',
-            fontSize: 12,
-            fontWeight: '800',
-            letterSpacing: 1,
-            marginBottom: 12,
-            textTransform: 'uppercase',
-        },
+	divider: {
+		backgroundColor: "#39332D",
+		height: 1,
+		marginVertical: 24,
+	},
 
-        storyCard: {
-            alignItems: 'center',
-            backgroundColor: '#1B1916',
-            borderColor: '#38322C',
-            borderRadius: 14,
-            borderWidth: 1,
-            flexDirection: 'row',
-            marginBottom: 10,
-            minHeight: 115,
-            padding: 16,
-        },
+	sectionTitle: {
+		color: "#C8BBAA",
+		fontSize: 12,
+		fontWeight: "800",
+		letterSpacing: 1,
+		marginBottom: 12,
+		textTransform: "uppercase",
+	},
 
-        cardContent: {
-            flex: 1,
-        },
+	storyCard: {
+		alignItems: "center",
+		backgroundColor: "#1B1916",
+		borderColor: "#38322C",
+		borderRadius: 14,
+		borderWidth: 1,
+		flexDirection: "row",
+		marginBottom: 10,
+		minHeight: 115,
+		padding: 16,
+	},
 
-        category: {
-            color: '#B87942',
-            fontSize: 9,
-            fontWeight: '800',
-            letterSpacing: 1.2,
-        },
+	cardContent: {
+		flex: 1,
+	},
 
-        storyTitle: {
-            color: '#E9DED0',
-            fontSize: 17,
-            fontWeight: '750',
-            lineHeight: 22,
-            marginTop: 5,
-        },
+	category: {
+		color: "#B87942",
+		fontSize: 9,
+		fontWeight: "800",
+		letterSpacing: 1.2,
+	},
 
-        summary: {
-            color: '#8F8375',
-            fontSize: 11,
-            lineHeight: 17,
-            marginTop: 5,
-        },
+	storyTitle: {
+		color: "#E9DED0",
+		fontSize: 17,
+		fontWeight: "750",
+		lineHeight: 22,
+		marginTop: 5,
+	},
 
-        arrow: {
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginLeft: 10,
-        },
+	summary: {
+		color: "#8F8375",
+		fontSize: 11,
+		lineHeight: 17,
+		marginTop: 5,
+	},
 
-        emptyState: {
-            alignItems: 'center',
-            paddingVertical: 80,
-        },
+	parkCode: {
+		color: "#B87942",
+		fontSize: 9,
+		fontWeight: "700",
+		letterSpacing: 1,
+		marginTop: 7,
+	},
 
-        emptyFire: {
-            fontSize: 42,
-        },
+	arrow: {
+		alignItems: "center",
+		justifyContent: "center",
+		marginLeft: 10,
+	},
 
-        emptyTitle: {
-            color: '#E9DED0',
-            fontSize: 17,
-            fontWeight: '700',
-            marginTop: 15,
-        },
+	loadingState: {
+		alignItems: "center",
+		flex: 1,
+		justifyContent: "center",
+	},
 
-        emptyText: {
-            color: '#8F8375',
-            fontSize: 12,
-            lineHeight: 18,
-            marginTop: 6,
-            maxWidth: 260,
-            textAlign: 'center',
-        },
+	loadingFire: {
+		fontSize: 52,
+	},
 
-        errorText: {
-            color: '#C8BBAA',
-            fontSize: 15,
-            margin: 30,
-            textAlign: 'center',
-        },
-    })
+	loadingTitle: {
+		color: "#E9DED0",
+		fontSize: 17,
+		fontWeight: "700",
+		marginTop: 16,
+	},
+
+	errorState: {
+		alignItems: "center",
+		flex: 1,
+		justifyContent: "center",
+		paddingHorizontal: 30,
+	},
+
+	errorFire: {
+		fontSize: 48,
+	},
+
+	errorTitle: {
+		color: "#E9DED0",
+		fontSize: 18,
+		fontWeight: "700",
+		marginTop: 16,
+	},
+
+	errorText: {
+		color: "#8F8375",
+		fontSize: 13,
+		marginTop: 8,
+		textAlign: "center",
+	},
+
+	emptyState: {
+		alignItems: "center",
+		paddingVertical: 70,
+	},
+
+	emptyFire: {
+		fontSize: 48,
+	},
+
+	emptyTitle: {
+		color: "#E9DED0",
+		fontSize: 18,
+		fontWeight: "700",
+		marginTop: 15,
+	},
+
+	emptyText: {
+		color: "#8F8375",
+		fontSize: 12,
+		lineHeight: 18,
+		marginTop: 7,
+		textAlign: "center",
+	},
+});

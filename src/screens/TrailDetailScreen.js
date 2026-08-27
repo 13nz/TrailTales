@@ -21,14 +21,9 @@ import { getParkByCode, getTrailsByPark } from "../api/npsApi";
 
 import { isFavorite, toggleFavorite } from "../services/favorites";
 
-import mockWildlife from "../data/mockWildlife";
-
 import { useFocusEffect } from "@react-navigation/native";
 
-import {
-	getWildlifeReportsForTrail,
-} from "../services/wildlifeReports";
-
+import { getWildlifeReportsForTrail } from "../services/wildlifeReports";
 
 // displays the complete information page for a single trail
 export default function TrailDetailScreen({ route, navigation }) {
@@ -43,7 +38,6 @@ export default function TrailDetailScreen({ route, navigation }) {
 	const [loadingTrail, setLoadingTrail] = useState(true);
 	const [trailError, setTrailError] = useState(null);
 
-	
 	const { parkId, trailId } = route.params;
 
 	// tracks whether this trail is currently a favorite
@@ -107,7 +101,6 @@ export default function TrailDetailScreen({ route, navigation }) {
 		};
 	}, [parkId, trailId]);
 
-
 	useFocusEffect(
 		useCallback(() => {
 			let active = true;
@@ -115,20 +108,13 @@ export default function TrailDetailScreen({ route, navigation }) {
 			async function loadWildlifeReports() {
 				try {
 					const recentReports =
-						await getWildlifeReportsForTrail(
-							trailId
-						);
+						await getWildlifeReportsForTrail(trailId);
 
 					if (active) {
-						setReports(
-							recentReports || []
-						);
+						setReports(recentReports || []);
 					}
 				} catch (error) {
-					console.error(
-						"load trail wildlife reports error:",
-						error
-					);
+					console.error("load trail wildlife reports error:", error);
 
 					if (active) {
 						setReports([]);
@@ -141,7 +127,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 			return () => {
 				active = false;
 			};
-		}, [trailId])
+		}, [trailId]),
 	);
 
 	// adds or removes this trail from the current user's favorites
@@ -162,10 +148,6 @@ export default function TrailDetailScreen({ route, navigation }) {
 			setFavoriteLoading(false);
 		}
 	};
-
-	// gets the official wildlife associated with the park
-	const wildlife = mockWildlife[parkId] || [];
-
 
 	if (loadingTrail) {
 		return (
@@ -200,24 +182,22 @@ export default function TrailDetailScreen({ route, navigation }) {
 			>
 				{/* provides quick navigation back to the park page */}
 				<View style={styles.hero}>
-                    {trail.image ? (
-                        <Image
-                            source={{
-                                uri: trail.image,
-                            }}
-                            style={styles.heroImage}
-                            resizeMode="cover"
-                            accessibilityLabel={`${trail.name} trail photo`}
-                        />
-                    ) : (
-                        <View style={styles.heroImage}>
-                            <Text style={styles.heroImageText}>
-                                TRAIL PHOTO
-                            </Text>
-                        </View>
-                    )}
-
-
+					{trail.image ? (
+						<Image
+							source={{
+								uri: trail.image,
+							}}
+							style={styles.heroImage}
+							resizeMode="cover"
+							accessibilityLabel={`${trail.name} trail photo`}
+						/>
+					) : (
+						<View style={styles.heroImage}>
+							<Text style={styles.heroImageText}>
+								TRAIL PHOTO
+							</Text>
+						</View>
+					)}
 
 					<Pressable
 						style={[
@@ -371,7 +351,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 				</View>
 
 				{/* shows official wildlife associated with the park */}
-				<View style={styles.section}>
+				{/* <View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<View>
 							<Text style={styles.sectionTitle}>Wildlife</Text>
@@ -395,7 +375,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 							</Text>
 						</View>
 					)}
-				</View>
+				</View> */}
 
 				{/* separates community sightings from official wildlife information */}
 				<View style={styles.section}>
@@ -413,7 +393,6 @@ export default function TrailDetailScreen({ route, navigation }) {
 
 						<Pressable
 							onPress={() =>
-								
 								navigation.navigate("ReportWildlife", {
 									parkId: park.id,
 									trailId: trail.id,

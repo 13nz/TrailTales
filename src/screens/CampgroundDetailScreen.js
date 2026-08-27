@@ -17,8 +17,6 @@ import { useTrips } from "../context/TripContext";
 
 import TripPickerModal from "../components/TripPickerModal";
 
-import mockWildlife from "../data/mockWildlife";
-
 import { getWildlifeReportsForCampground } from "../services/wildlifeReports";
 
 import {
@@ -29,9 +27,7 @@ import {
 
 import { isFavorite, toggleFavorite } from "../services/favorites";
 
-import {
-    useFocusEffect,
-} from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 
 // displays detailed campground information and provides actions for saving and trip planning
 export default function CampgroundDetailScreen({ route, navigation }) {
@@ -138,9 +134,9 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 	}, [parkId, campgroundId]);
 
 	/*
-	* reloads recent reports whenever this campground
-	* becomes active so newly submitted reports appear
-	*/
+	 * reloads recent reports whenever this campground
+	 * becomes active so newly submitted reports appear
+	 */
 	useFocusEffect(
 		useCallback(() => {
 			let active = true;
@@ -148,19 +144,15 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 			async function loadWildlifeReports() {
 				try {
 					const recentReports =
-						await getWildlifeReportsForCampground(
-							campgroundId
-						);
+						await getWildlifeReportsForCampground(campgroundId);
 
 					if (active) {
-						setReports(
-							recentReports || []
-						);
+						setReports(recentReports || []);
 					}
 				} catch (error) {
 					console.error(
 						"load campground wildlife reports error:",
-						error
+						error,
 					);
 
 					if (active) {
@@ -174,7 +166,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 			return () => {
 				active = false;
 			};
-		}, [campgroundId])
+		}, [campgroundId]),
 	);
 
 	// adds or removes this campground from the current user's favorites
@@ -225,9 +217,6 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 			</View>
 		);
 	}
-
-	// gets official wildlife information associated with the park
-	const wildlife = mockWildlife[park.id] || [];
 
 	const accessibility = campground.accessibility || {};
 
@@ -500,7 +489,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 				)}
 
 				{/* displays official wildlife information separately from user reports */}
-				<View style={styles.section}>
+				{/* <View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<View style={styles.sectionHeaderContent}>
 							<Text style={styles.sectionTitle}>Wildlife</Text>
@@ -520,7 +509,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 					) : (
 						<EmptyCard text="Wildlife information is not available yet" />
 					)}
-				</View>
+				</View> */}
 
 				{/* displays only recent community reports associated with this campground */}
 				<View style={styles.section}>

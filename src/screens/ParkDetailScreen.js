@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import theme from "../constants/theme";
-import mockWildlife from "../data/mockWildlife";
+import { getAnimalSpecies } from "../api/npsSpeciesApi";
 import mockAlerts from "../data/mockAlerts";
 
 import { useWildlifeReports } from "../context/WildlifeReportContext";
@@ -41,6 +41,10 @@ export default function ParkDetailScreen({ route, navigation }) {
 	const [loadingPark, setLoadingPark] = useState(true);
 	const [parkError, setParkError] = useState(null);
 	const [showTripPicker, setShowTripPicker] = useState(false);
+	const [wildlife, setWildlife] = useState([]);
+	const [loadingWildlife, setLoadingWildlife] = useState(true);
+
+	const [wildlifeVisibleCount, setWildlifeVisibleCount] = useState(5);
 
 	// tracks whether this park belongs to the current user's favorites
 	const [isParkFavorite, setIsParkFavorite] = useState(false);
@@ -65,6 +69,14 @@ export default function ParkDetailScreen({ route, navigation }) {
 					getCampgroundsByPark(parkId),
 				]);
 
+				let species = [];
+
+				try {
+					species = await getAnimalSpecies(parkId);
+				} catch (error) {
+					console.error("NPSpecies wildlife error:", error);
+				}
+
 				// checks supabase for the user's existing favorite
 				const favorite = await isFavorite("park", parkId);
 
@@ -80,6 +92,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 					campgroundCount: (campgrounds || []).length,
 				});
 
+				setWildlife(species || []);
 				setIsParkFavorite(favorite);
 			} catch (error) {
 				console.error("NPS park error:", error);
@@ -127,8 +140,6 @@ export default function ParkDetailScreen({ route, navigation }) {
 			</View>
 		);
 	}
-
-	const wildlife = mockWildlife[park.id] || [];
 
 	// gets user-submitted wildlife reports associated with this park
 	const reports = getReportsForPark(park.id);
@@ -415,18 +426,42 @@ export default function ParkDetailScreen({ route, navigation }) {
 					</Text>
 
 					{wildlife.length > 0 ? (
-						<View style={styles.wildlifeList}>
-							{wildlife.map((animal) => (
-								<WildlifeRow key={animal.id} animal={animal} />
-							))}
-						</View>
+						<>
+							<View style={styles.wildlifeList}>
+								{wildlife
+									.slice(0, wildlifeVisibleCount)
+									.map((animal) => (
+										<WildlifeRow
+											key={animal.id}
+											animal={animal}
+										/>
+									))}
+							</View>
+
+							{wildlifeVisibleCount < wildlife.length && (
+								<Pressable
+									style={styles.wildlifeSeeMore}
+									onPress={() => {
+										setWildlifeVisibleCount(
+											(currentCount) => currentCount + 5,
+										);
+									}}
+									accessibilityRole="button"
+									accessibilityLabel="show five more wildlife species"
+								>
+									<Text style={styles.wildlifeSeeMoreText}>
+										See more
+									</Text>
+								</Pressable>
+							)}
+						</>
 					) : (
 						<EmptyCard text="Wildlife information is not available yet" />
 					)}
 				</View>
 
 				{/* user submitted wildlife reports */}
-				{/* <View style={styles.section}>
+				<View style={styles.section}>
 					<SectionHeader
 						title="User Reports"
 						actionLabel={
@@ -468,7 +503,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 							+ Report a sighting
 						</Text>
 					</Pressable>
-				</View> */}
+				</View>
 
 				{/* official park alerts */}
 
@@ -636,20 +671,25 @@ function AlertRow({ alert }) {
 	);
 }
 
-// displays official wildlife information without assigning individual emojis to species
+/*
+ * displays official wildlife information without assigning
+ * individual emojis to species.
+ */
 function WildlifeRow({ animal }) {
 	return (
 		<View style={styles.wildlifeRow}>
 			<View style={styles.wildlifeIcon}>
-				<Text style={styles.wildlifeIconText}>W</Text>
+				<Text style={styles.wildlifeIconText}>🐾</Text>
 			</View>
 
 			<View style={styles.wildlifeContent}>
 				<Text style={styles.wildlifeSpecies}>{animal.name}</Text>
 
-				<Text style={styles.wildlifeDescription} numberOfLines={2}>
-					{animal.description}
-				</Text>
+				{animal.scientificName ? (
+					<Text style={styles.wildlifeDescription}>
+						{animal.scientificName}
+					</Text>
+				) : null}
 			</View>
 		</View>
 	);
@@ -1210,7 +1250,7 @@ const styles = StyleSheet.create({
 
 	wildlifeIconText: {
 		color: theme.colors.forest,
-		fontSize: 12,
+		fontSize: 22,
 		fontWeight: "800",
 		letterSpacing: 1,
 	},
@@ -1409,5 +1449,37 @@ const styles = StyleSheet.create({
 		fontSize: theme.typography.bodySmall.fontSize,
 		lineHeight: theme.typography.bodySmall.lineHeight,
 		marginTop: theme.spacing.sm,
+	},
+
+	wildlifeIcon: {
+		width: 48,
+		height: 48,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: theme.colors.sage,
+		borderRadius: 24,
+	},
+
+	wildlifeIconText: {
+		color: theme.colors.forest,
+		fontSize: 12,
+		fontWeight: "800",
+		letterSpacing: 1,
+	},
+
+	wildlifeSeeMore: {
+		alignSelf: "flex-start",
+		borderColor: theme.colors.forest,
+		borderWidth: 1,
+		borderRadius: theme.radii.sm,
+		marginTop: theme.spacing.md,
+		paddingHorizontal: theme.spacing.md,
+		paddingVertical: theme.spacing.sm,
+	},
+
+	wildlifeSeeMoreText: {
+		color: theme.colors.forest,
+		fontSize: theme.typography.bodySmall.fontSize,
+		fontWeight: "700",
 	},
 });

@@ -10,13 +10,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import theme from "../constants/theme";
+
+import { useState, useEffect, useCallback } from "react";
+
+import { useTrips } from "../context/TripContext";
+
+import TripPickerModal from "../components/TripPickerModal";
+
 import mockWildlife from "../data/mockWildlife";
 
-import { useWildlifeReports } from "../context/WildlifeReportContext";
-
-import { useState, useEffect } from "react";
-import { useTrips } from "../context/TripContext";
-import TripPickerModal from "../components/TripPickerModal";
+import { getWildlifeReportsForCampground } from "../services/wildlifeReports";
 
 import {
 	getParkByCode,
@@ -26,20 +29,30 @@ import {
 
 import { isFavorite, toggleFavorite } from "../services/favorites";
 
+import {
+    useFocusEffect,
+} from "@react-navigation/native";
+
 // displays detailed campground information and provides actions for saving and trip planning
 export default function CampgroundDetailScreen({ route, navigation }) {
 	const insets = useSafeAreaInsets();
+
 	const { trips } = useTrips();
+
 	const [showTripPicker, setShowTripPicker] = useState(false);
+
 	const { parkId, campgroundId } = route.params;
 
-	// provides access to shared user wildlife reports
-	const { getReportsForCampground } = useWildlifeReports();
+	const [reports, setReports] = useState([]);
 
 	const [park, setPark] = useState(null);
+
 	const [campground, setCampground] = useState(null);
+
 	const [trails, setTrails] = useState([]);
+
 	const [loading, setLoading] = useState(true);
+
 	const [error, setError] = useState(null);
 
 	// tracks whether this campground is currently a favorite
@@ -49,7 +62,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 	const [favoriteLoading, setFavoriteLoading] = useState(false);
 
 	// loads the selected campground and its related park and trail data from the nps api
-	// and restores the campground's favorite state from supabase
+	// and loads recent campground wildlife reports from supabase
 	useEffect(() => {
 		let active = true;
 
@@ -60,10 +73,14 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 
 				const apiPark = await getParkByCode(parkId);
 
-				const [apiTrails, apiCampgrounds] = await Promise.all([
-					getTrailsByPark(parkId),
-					getCampgroundsByPark(parkId),
-				]);
+				const [apiTrails, apiCampgrounds, campgroundReports] =
+					await Promise.all([
+						getTrailsByPark(parkId),
+
+						getCampgroundsByPark(parkId),
+
+						getWildlifeReportsForCampground(campgroundId),
+					]);
 
 				// keeps the screen compatible with either a flat or nested campground response
 				const campgroundList = Array.isArray(apiCampgrounds?.[0])
@@ -95,6 +112,9 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 
 					setTrails(apiTrails || []);
 
+					// only reports associated with this campground are displayed
+					setReports(campgroundReports || []);
+
 					setIsCampgroundFavorite(favorite);
 				}
 			} catch (loadError) {
@@ -116,6 +136,46 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 			active = false;
 		};
 	}, [parkId, campgroundId]);
+
+	/*
+	* reloads recent reports whenever this campground
+	* becomes active so newly submitted reports appear
+	*/
+	useFocusEffect(
+		useCallback(() => {
+			let active = true;
+
+			async function loadWildlifeReports() {
+				try {
+					const recentReports =
+						await getWildlifeReportsForCampground(
+							campgroundId
+						);
+
+					if (active) {
+						setReports(
+							recentReports || []
+						);
+					}
+				} catch (error) {
+					console.error(
+						"load campground wildlife reports error:",
+						error
+					);
+
+					if (active) {
+						setReports([]);
+					}
+				}
+			}
+
+			loadWildlifeReports();
+
+			return () => {
+				active = false;
+			};
+		}, [campgroundId])
+	);
 
 	// adds or removes this campground from the current user's favorites
 	const handleToggleFavorite = async () => {
@@ -169,11 +229,10 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 	// gets official wildlife information associated with the park
 	const wildlife = mockWildlife[park.id] || [];
 
-	// gets only user reports associated with this campground
-	const reports = getReportsForCampground(campgroundId);
-
 	const accessibility = campground.accessibility || {};
+
 	const amenities = campground.amenities || {};
+
 	const amenityItems = buildAmenityItems(amenities);
 
 	const hasReservationInformation = Boolean(
@@ -250,7 +309,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 						<Text style={styles.heroButton}>‹</Text>
 					</Pressable>
 
-					{/* toggles favortie */}
+					{/* toggles campground favorite state */}
 					<Pressable
 						style={[
 							styles.favoriteButton,
@@ -289,264 +348,54 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 					<Text style={styles.location}>
 						{getCampgroundLocation(campground)}
 					</Text>
-
-					<View style={styles.actions}>
-						<Pressable
-							style={styles.primaryAction}
-							onPress={handleToggleFavorite}
-							disabled={favoriteLoading}
-							accessibilityRole="button"
-							accessibilityLabel={
-								isCampgroundFavorite
-									? `remove ${campground.name} from favorites`
-									: `add ${campground.name} to favorites`
-							}
-						>
-							<Text style={styles.primaryActionText}>
-								{isCampgroundFavorite
-									? "Remove from favorites ♥"
-									: "Add to favorites ♡"}
-							</Text>
-						</Pressable>
-
-						<Pressable
-							style={styles.secondaryAction}
-							onPress={() => {
-								setShowTripPicker(true);
-							}}
-							accessibilityRole="button"
-						>
-							<Text style={styles.secondaryActionText}>
-								+ Trip
-							</Text>
-						</Pressable>
-					</View>
 				</View>
 
-				{/* highlights the campground information needed when planning a stay */}
 				<View style={styles.stats}>
-					<View style={styles.statsRow}>
-						<CampgroundStat
-							value={campground.totalSites}
-							label="Sites"
-						/>
+					<CampgroundStat value={campground.sites} label="Sites" />
 
-						<CampgroundStat
-							value={campground.tentOnly}
-							label="Tent sites"
-						/>
+					<CampgroundStat value={campground.season} label="Season" />
 
-						<CampgroundStat
-							value={campground.rvOnly}
-							label="RV sites"
-						/>
-					</View>
+					<CampgroundStat
+						value={campground.dogsAllowed ? "Yes" : "No"}
+						label="Dogs"
+					/>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>About</Text>
 
-					{campground.description ? (
-						<Text style={styles.body}>
-							{campground.description}
-						</Text>
-					) : (
-						<EmptyCard text="No campground description available" />
-					)}
+					<Text style={styles.body}>
+						{campground.description ||
+							"Campground information is not available yet."}
+					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Campground details</Text>
 
 					<View style={styles.detailList}>
-						<DetailRow
-							label="Total sites"
-							value={campground.totalSites}
-						/>
+						<DetailRow label="Sites" value={campground.sites} />
+
+						<DetailRow label="Season" value={campground.season} />
 
 						<DetailRow
-							label="Tent-only sites"
-							value={campground.tentOnly}
-						/>
-
-						<DetailRow
-							label="RV-only sites"
-							value={campground.rvOnly}
-						/>
-
-						<DetailRow
-							label="Group sites"
-							value={campground.groupSites}
-						/>
-
-						<DetailRow
-							label="Horse sites"
-							value={campground.horseSites}
-						/>
-
-						<DetailRow
-							label="Electrical hookups"
-							value={campground.electricalHookups}
-						/>
-
-						<DetailRow
-							label="Walk/boat-to sites"
-							value={campground.walkBoatTo}
-						/>
-
-						<DetailRow
-							label="RV access"
+							label="Dogs"
 							value={
-								accessibility.rvallowed === 1
+								campground.dogsAllowed
 									? "Allowed"
-									: accessibility.rvallowed === 0
-										? "Not allowed"
-										: null
+									: "Not allowed"
 							}
 						/>
 
 						<DetailRow
-							label="Trailer access"
+							label="Reservation"
 							value={
-								accessibility.trailerallowed === 1
-									? "Allowed"
-									: accessibility.trailerallowed === 0
-										? "Not allowed"
-										: null
-							}
-						/>
-
-						<DetailRow
-							label="RV information"
-							value={accessibility.rvinfo}
-						/>
-
-						<DetailRow
-							label="Trailer maximum length"
-							value={
-								accessibility.trailermaxlength
-									? `${accessibility.trailermaxlength} ft`
-									: null
-							}
-						/>
-
-						<DetailRow
-							label="RV maximum length"
-							value={
-								accessibility.rvmaxlength
-									? `${accessibility.rvmaxlength} ft`
-									: null
-							}
-						/>
-
-						<DetailRow
-							label="Classification"
-							value={
-								Array.isArray(accessibility.classifications)
-									? accessibility.classifications.join(", ")
-									: null
+								campground.reservationDescription ||
+								"Information coming soon"
 							}
 						/>
 					</View>
 				</View>
-
-				{/* {hasReservationInformation && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Reservations
-                        </Text>
-
-                        <View style={styles.detailList}>
-                            <DetailRow
-                                label="Reservation information"
-                                value={
-                                    campground.reservationDescription
-                                }
-                            />
-
-                            <DetailRow
-                                label="First come, first served"
-                                value={
-                                    campground.firstComeFirstServe
-                                }
-                            />
-
-                            <DetailRow
-                                label="Reservable sites"
-                                value={
-                                    campground.reservableSites
-                                }
-                            />
-
-                            <DetailRow
-                                label="Reservations"
-                                value={
-                                    campground.reservationsUrl
-                                }
-                            />
-                        </View>
-                    </View>
-                )} */}
-
-				{/* {hasDirections && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Directions
-                        </Text>
-
-                        <View style={styles.detailList}>
-                            <DetailRow
-                                label="Directions"
-                                value={
-                                    campground.directionsOverview
-                                }
-                            />
-
-                            <DetailRow
-                                label="Directions link"
-                                value={
-                                    campground.directionsUrl
-                                }
-                            />
-                        </View>
-                    </View>
-                )} */}
-
-				{/* {hasWeather && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Weather
-                        </Text>
-
-                        <Text style={styles.body}>
-                            {campground.weatherOverview}
-                        </Text>
-                    </View>
-                )} */}
-
-				{/* {hasRegulations && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Regulations
-                        </Text>
-
-                        <View style={styles.detailList}>
-                            <DetailRow
-                                label="Regulations"
-                                value={
-                                    campground.regulationsOverview
-                                }
-                            />
-
-                            <DetailRow
-                                label="Regulations link"
-                                value={
-                                    campground.regulationsUrl
-                                }
-                            />
-                        </View>
-                    </View>
-                )} */}
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Nearby trails</Text>
@@ -572,6 +421,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 									});
 								}}
 								accessibilityRole="button"
+								accessibilityLabel={`open ${trail.name}`}
 							>
 								<View style={styles.nearbyTrailIcon}>
 									<Text style={styles.nearbyTrailIconText}>
@@ -588,9 +438,11 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 										<Text style={styles.nearbyTrailMeta}>
 											{trail.distance ||
 												"Distance unavailable"}
+
 											{trail.distance && trail.difficulty
 												? " · "
 												: ""}
+
 											{trail.difficulty || ""}
 										</Text>
 									)}
@@ -602,38 +454,6 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 					</View>
 				</View>
 
-				{/* <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        Amenities
-                    </Text>
-
-                    {amenityItems.length > 0 ? (
-                        <View style={styles.amenityGrid}>
-                            {amenityItems.map(
-                                (amenity) => (
-                                    <Amenity
-                                        key={
-                                            amenity.key
-                                        }
-                                        icon={
-                                            amenity.icon
-                                        }
-                                        label={
-                                            amenity.label
-                                        }
-                                        value={
-                                            amenity.value
-                                        }
-                                    />
-                                )
-                            )}
-                        </View>
-                    ) : (
-                        <EmptyCard
-                            text="No campground amenities available"
-                        />
-                    )}
-                </View> */}
 				{Object.entries(campground.amenities || {}).filter(
 					([_, value]) =>
 						value !== null &&
@@ -702,7 +522,7 @@ export default function CampgroundDetailScreen({ route, navigation }) {
 					)}
 				</View>
 
-				{/* displays only community reports associated with this campground */}
+				{/* displays only recent community reports associated with this campground */}
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<View style={styles.sectionHeaderContent}>
@@ -997,71 +817,14 @@ function buildAmenityItems(amenities) {
 						: "Not available"
 					: amenities.campstore,
 		},
-		{
-			key: "host",
-			icon: "W",
-			label: "Staff / host",
-			value: amenities.stafforvolunteerhostonsite,
-		},
-		{
-			key: "ice",
-			icon: "◆",
-			label: "Ice",
-			value:
-				typeof amenities.iceavailableforsale === "boolean"
-					? amenities.iceavailableforsale
-						? "Available"
-						: "Not available"
-					: amenities.iceavailableforsale,
-		},
-		{
-			key: "firewood",
-			icon: "♨",
-			label: "Firewood",
-			value:
-				typeof amenities.firewoodforsale === "boolean"
-					? amenities.firewoodforsale
-						? "Available"
-						: "Not available"
-					: amenities.firewoodforsale,
-		},
-		{
-			key: "food-lockers",
-			icon: "▣",
-			label: "Food storage lockers",
-			value: amenities.foodstoragelockers,
-		},
-		{
-			key: "amphitheater",
-			icon: "♧",
-			label: "Amphitheater",
-			value: amenities.amphitheater || amenities.ampitheater,
-		},
 	];
 
-	return items
-		.map((item) => ({
-			...item,
-			value: formatAmenityValue(item.value),
-		}))
-		.filter(
-			(item) =>
-				item.value !== null &&
-				item.value !== undefined &&
-				item.value !== "",
-		);
-}
-
-function formatAmenityValue(value) {
-	if (Array.isArray(value)) {
-		return value.join(", ");
-	}
-
-	if (typeof value === "boolean") {
-		return value ? "Available" : "Not available";
-	}
-
-	return value;
+	return items.filter(
+		(item) =>
+			item.value !== null &&
+			item.value !== undefined &&
+			item.value !== "",
+	);
 }
 
 function getCampgroundLocation(campground) {
@@ -1248,95 +1011,32 @@ const styles = StyleSheet.create({
 		marginTop: theme.spacing.xs,
 	},
 
-	actions: {
-		flexDirection: "row",
-		gap: theme.spacing.sm,
-		marginTop: theme.spacing.lg,
-	},
-
-	primaryAction: {
-		backgroundColor: theme.colors.forest,
-		borderRadius: theme.radii.sm,
-		paddingHorizontal: theme.spacing.lg,
-		paddingVertical: theme.spacing.sm,
-	},
-
-	primaryActionText: {
-		color: theme.colors.parchment,
-		fontSize: theme.typography.bodySmall.fontSize,
-		fontWeight: "700",
-	},
-
-	secondaryAction: {
-		borderColor: theme.colors.earth,
-		borderRadius: theme.radii.sm,
-		borderWidth: 1,
-		paddingHorizontal: theme.spacing.lg,
-		paddingVertical: theme.spacing.sm,
-	},
-
-	secondaryActionText: {
-		color: theme.colors.earth,
-		fontSize: theme.typography.bodySmall.fontSize,
-		fontWeight: "700",
-	},
-
 	stats: {
-		backgroundColor: theme.colors.canvas,
-		borderBottomColor: theme.colors.parchment,
-		borderBottomWidth: 1,
-		borderTopColor: theme.colors.parchment,
-		borderTopWidth: 1,
-		paddingVertical: theme.spacing.md,
-	},
-
-	statsRow: {
 		flexDirection: "row",
-		paddingHorizontal: theme.spacing.md,
+		marginHorizontal: theme.spacing.lg,
+		gap: theme.spacing.sm,
 	},
 
 	stat: {
+		alignItems: "center",
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
 		flex: 1,
-		paddingHorizontal: theme.spacing.xs,
+		padding: theme.spacing.md,
 	},
 
 	statValue: {
-		color: theme.colors.forest,
-		fontSize: theme.typography.bodySmall.fontSize,
+		color: theme.colors.ink,
+		fontSize: theme.typography.body.fontSize,
 		fontWeight: "700",
+		textAlign: "center",
 	},
 
 	statLabel: {
 		color: theme.colors.earth,
 		fontSize: theme.typography.caption.fontSize,
 		marginTop: theme.spacing.xs,
-	},
-
-	petStat: {
-		alignItems: "center",
-		borderTopColor: theme.colors.parchment,
-		borderTopWidth: 1,
-		flexDirection: "row",
-		marginTop: theme.spacing.md,
-		paddingHorizontal: theme.spacing.lg,
-		paddingTop: theme.spacing.md,
-	},
-
-	petIcon: {
-		fontSize: 22,
-		marginRight: theme.spacing.sm,
-	},
-
-	petLabel: {
-		color: theme.colors.earth,
-		fontSize: theme.typography.caption.fontSize,
-	},
-
-	petValue: {
-		color: theme.colors.ink,
-		fontSize: theme.typography.bodySmall.fontSize,
-		fontWeight: "700",
-		marginTop: 2,
+		textAlign: "center",
 	},
 
 	section: {
@@ -1345,10 +1045,9 @@ const styles = StyleSheet.create({
 	},
 
 	sectionHeader: {
-		alignItems: "center",
+		alignItems: "flex-start",
 		flexDirection: "row",
 		justifyContent: "space-between",
-		marginBottom: theme.spacing.md,
 	},
 
 	sectionHeaderContent: {
@@ -1359,7 +1058,6 @@ const styles = StyleSheet.create({
 		color: theme.colors.ink,
 		fontSize: theme.typography.heading.fontSize,
 		fontWeight: theme.typography.heading.fontWeight,
-		lineHeight: theme.typography.heading.lineHeight,
 	},
 
 	sectionDescription: {
@@ -1373,11 +1071,11 @@ const styles = StyleSheet.create({
 		color: theme.colors.forest,
 		fontSize: theme.typography.bodySmall.fontSize,
 		fontWeight: "700",
-		marginLeft: theme.spacing.sm,
+		marginLeft: theme.spacing.md,
 	},
 
 	body: {
-		color: theme.colors.bark,
+		color: theme.colors.earth,
 		fontSize: theme.typography.body.fontSize,
 		lineHeight: theme.typography.body.lineHeight,
 		marginTop: theme.spacing.md,
@@ -1502,10 +1200,9 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 
-	/* official wildlife information */
-
 	wildlifeList: {
 		gap: theme.spacing.sm,
+		marginTop: theme.spacing.md,
 	},
 
 	wildlifeRow: {
@@ -1550,10 +1247,9 @@ const styles = StyleSheet.create({
 		marginTop: theme.spacing.xs,
 	},
 
-	/* user-submitted wildlife reports */
-
 	reportList: {
 		gap: theme.spacing.sm,
+		marginTop: theme.spacing.md,
 	},
 
 	reportCard: {
@@ -1644,13 +1340,14 @@ const styles = StyleSheet.create({
 	emptyCard: {
 		backgroundColor: theme.colors.canvas,
 		borderRadius: theme.radii.md,
+		marginTop: theme.spacing.md,
 		padding: theme.spacing.lg,
 	},
 
 	emptyCardText: {
 		color: theme.colors.earth,
 		fontSize: theme.typography.bodySmall.fontSize,
-		textAlign: "center",
+		lineHeight: theme.typography.bodySmall.lineHeight,
 	},
 
 	planCard: {
@@ -1661,43 +1358,38 @@ const styles = StyleSheet.create({
 
 	planEyebrow: {
 		color: theme.colors.sage,
-		fontSize: theme.typography.caption.fontSize,
-		fontWeight: "700",
-		letterSpacing: 1.2,
+		fontSize: 9,
+		fontWeight: "800",
+		letterSpacing: 1.5,
 	},
 
 	planTitle: {
 		color: theme.colors.parchment,
 		fontSize: theme.typography.heading.fontSize,
-		fontWeight: "700",
+		fontWeight: theme.typography.heading.fontWeight,
 		lineHeight: theme.typography.heading.lineHeight,
 		marginTop: theme.spacing.xs,
 	},
 
 	planBody: {
 		color: theme.colors.canvas,
-		fontSize: theme.typography.bodySmall.fontSize,
-		lineHeight: theme.typography.bodySmall.lineHeight,
+		fontSize: theme.typography.body.fontSize,
+		lineHeight: theme.typography.body.lineHeight,
 		marginTop: theme.spacing.sm,
 	},
 
 	planButton: {
-		alignSelf: "flex-start",
+		alignItems: "center",
 		backgroundColor: theme.colors.parchment,
 		borderRadius: theme.radii.sm,
 		marginTop: theme.spacing.lg,
-		paddingHorizontal: theme.spacing.md,
-		paddingVertical: theme.spacing.sm,
+		paddingVertical: theme.spacing.md,
 	},
 
 	planButtonText: {
 		color: theme.colors.forest,
 		fontSize: theme.typography.bodySmall.fontSize,
 		fontWeight: "700",
-	},
-
-	pressed: {
-		opacity: 0.85,
 	},
 
 	errorContainer: {
@@ -1712,12 +1404,17 @@ const styles = StyleSheet.create({
 		color: theme.colors.ink,
 		fontSize: theme.typography.heading.fontSize,
 		fontWeight: "700",
+		textAlign: "center",
 	},
 
 	backButton: {
 		color: theme.colors.forest,
 		fontSize: theme.typography.body.fontSize,
-		fontWeight: "600",
+		fontWeight: "700",
 		marginTop: theme.spacing.md,
+	},
+
+	pressed: {
+		opacity: 0.75,
 	},
 });

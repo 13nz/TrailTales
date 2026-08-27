@@ -426,7 +426,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 				</View>
 
 				{/* user submitted wildlife reports */}
-				<View style={styles.section}>
+				{/* <View style={styles.section}>
 					<SectionHeader
 						title="User Reports"
 						actionLabel={
@@ -468,7 +468,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 							+ Report a sighting
 						</Text>
 					</Pressable>
-				</View>
+				</View> */}
 
 				{/* official park alerts */}
 

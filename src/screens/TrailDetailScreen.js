@@ -9,10 +9,9 @@ import {
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import theme from "../constants/theme";
-import mockWildlife from "../data/mockWildlife";
 
 import { useWildlifeReports } from "../context/WildlifeReportContext";
 
@@ -21,6 +20,15 @@ import TripPickerModal from "../components/TripPickerModal";
 import { getParkByCode, getTrailsByPark } from "../api/npsApi";
 
 import { isFavorite, toggleFavorite } from "../services/favorites";
+
+import mockWildlife from "../data/mockWildlife";
+
+import { useFocusEffect } from "@react-navigation/native";
+
+import {
+	getWildlifeReportsForTrail,
+} from "../services/wildlifeReports";
+
 
 // displays the complete information page for a single trail
 export default function TrailDetailScreen({ route, navigation }) {
@@ -35,6 +43,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 	const [loadingTrail, setLoadingTrail] = useState(true);
 	const [trailError, setTrailError] = useState(null);
 
+	
 	const { parkId, trailId } = route.params;
 
 	// tracks whether this trail is currently a favorite
@@ -43,8 +52,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 	// prevents multiple favorite requests at the same time
 	const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-	// gets shared user wildlife reports so new reports appear without restarting the app
-	const { getReportsForTrail } = useWildlifeReports();
+	const [reports, setReports] = useState([]);
 
 	// loads the selected national park and trail from the nps api
 	// and restores the user's favorite state from supabase
@@ -99,6 +107,43 @@ export default function TrailDetailScreen({ route, navigation }) {
 		};
 	}, [parkId, trailId]);
 
+
+	useFocusEffect(
+		useCallback(() => {
+			let active = true;
+
+			async function loadWildlifeReports() {
+				try {
+					const recentReports =
+						await getWildlifeReportsForTrail(
+							trailId
+						);
+
+					if (active) {
+						setReports(
+							recentReports || []
+						);
+					}
+				} catch (error) {
+					console.error(
+						"load trail wildlife reports error:",
+						error
+					);
+
+					if (active) {
+						setReports([]);
+					}
+				}
+			}
+
+			loadWildlifeReports();
+
+			return () => {
+				active = false;
+			};
+		}, [trailId])
+	);
+
 	// adds or removes this trail from the current user's favorites
 	const handleToggleFavorite = async () => {
 		if (!trail || favoriteLoading) {
@@ -121,8 +166,6 @@ export default function TrailDetailScreen({ route, navigation }) {
 	// gets the official wildlife associated with the park
 	const wildlife = mockWildlife[parkId] || [];
 
-	// gets only user reports associated with this trail
-	const reports = getReportsForTrail(trailId);
 
 	if (loadingTrail) {
 		return (
@@ -370,6 +413,7 @@ export default function TrailDetailScreen({ route, navigation }) {
 
 						<Pressable
 							onPress={() =>
+								
 								navigation.navigate("ReportWildlife", {
 									parkId: park.id,
 									trailId: trail.id,

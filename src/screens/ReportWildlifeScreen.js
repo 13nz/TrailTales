@@ -1,477 +1,327 @@
 import {
-    View,
-    Text,
-    Pressable,
-    TextInput,
-    ScrollView,
-    StyleSheet,
-    Keyboard,
-} from 'react-native'
+	View,
+	Text,
+	Pressable,
+	TextInput,
+	ScrollView,
+	StyleSheet,
+	Keyboard,
+} from "react-native";
 
-import { useState } from 'react'
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useWildlifeReports } from '../context/WildlifeReportContext'
-
-import theme from '../constants/theme'
+import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import theme from "../constants/theme";
+import { useWildlifeReports } from "../context/WildlifeReportContext";
 
 // provides a form for creating a user-submitted wildlife report
-// the report structure is designed to map cleanly to a future supabase table
-export default function ReportWildlifeScreen({
-    route,
-    navigation,
-}) {
-    const insets = useSafeAreaInsets()
+// reports are saved to supabase through the wildlife report context
 
-    // provides access to the shared wildlife report state
-    const { addReport, } = useWildlifeReports()
+export default function ReportWildlifeScreen({ route, navigation }) {
+	const insets = useSafeAreaInsets();
 
-    const {
-        parkId,
-        trailId = null,
-        campgroundId = null,
-    } = route.params || {}
+	// provides access to the shared wildlife report state
+	const { addReport } = useWildlifeReports();
 
-    const [
-        species,
-        setSpecies,
-    ] = useState('')
+	const { parkId, trailId = null, campgroundId = null } = route.params || {};
 
-    const [
-        location,
-        setLocation,
-    ] = useState('')
+	const [species, setSpecies] = useState("");
+	const [location, setLocation] = useState("");
+	const [description, setDescription] = useState("");
+	const [error, setError] = useState("");
+	const [submitting, setSubmitting] = useState(false);
 
-    const [
-        description,
-        setDescription,
-    ] = useState('')
+	const handleSubmit = async () => {
+		// requires the main information needed to create a useful report
+		if (!species.trim() || !location.trim()) {
+			setError("Please enter the wildlife species and where you saw it.");
 
-    const [
-        error,
-        setError,
-    ] = useState('')
+			return;
+		}
 
-    const handleSubmit =
-        () => {
-            // requires the main information needed to create a useful report
-            if (!species.trim() || !location.trim()) {
-                setError(
-                    'Please enter the wildlife species and where you saw it.'
-                )
+		try {
+			setError("");
+			setSubmitting(true);
 
-                return
-            }
+			// saves the report to supabase through the shared report service
+			await addReport({
+				parkId,
+				trailId,
+				campgroundId,
+				species: species.trim(),
+				location: location.trim(),
+				description: description.trim(),
+			});
 
-            // creates a database-friendly report object for the future supabase implementation
-            const report = {
-                id: `report-${Date.now()}`,
-                parkId,
-                trailId,
-                campgroundId,
-                species:
-                    species.trim(),
-                location:
-                    location.trim(),
-                description:
-                    description.trim(),
-                reportedAt:
-                    new Date().toISOString(),
-                source: 'user',
-            }
+			Keyboard.dismiss();
 
-            // saves the report to shared app state so it is immediately available to other screens
-            addReport(report)
+			// returns to the previous screen after the report has been successfully saved
+			navigation.goBack();
+		} catch (submitError) {
+			console.error("create wildlife report error:", submitError);
 
-            Keyboard.dismiss()
+			setError("Unable to submit your report. Please try again.");
+		} finally {
+			setSubmitting(false);
+		}
+	};
 
-            // returns to the park after the report has been added
-            navigation.goBack()
-        }
+	return (
+		<View style={styles.screen}>
+			<ScrollView
+				contentContainerStyle={[
+					styles.content,
+					{
+						paddingTop: insets.top + theme.spacing.sm,
+					},
+				]}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+			>
+				<View style={styles.header}>
+					<Pressable
+						style={styles.backButton}
+						onPress={() => {
+							// dismisses the keyboard before returning to the previous screen
+							Keyboard.dismiss();
+							navigation.goBack();
+						}}
+						accessibilityRole="button"
+						accessibilityLabel="go back"
+					>
+						<Text style={styles.backButtonText}>‹</Text>
+					</Pressable>
 
-    return (
-        <View
-            style={
-                styles.screen
-            }
-        >
-            <ScrollView
-                contentContainerStyle={[
-                    styles.content,
-                    {
-                        paddingTop:
-                            insets.top +
-                            theme.spacing.sm,
-                    },
-                ]}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={
-                    false
-                }
-            >
-                <View
-                    style={
-                        styles.header
-                    }
-                >
-                    <Pressable
-                        style={
-                            styles.backButton
-                        }
-                        onPress={() => {
-                            // dismisses the keyboard before returning to the park
-                            Keyboard.dismiss()
-                            navigation.goBack()
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="go back"
-                    >
-                        <Text
-                            style={
-                                styles.backButtonText
-                            }
-                        >
-                            ‹
-                        </Text>
-                    </Pressable>
+					<Text style={styles.headerTitle}>Report Wildlife</Text>
 
-                    <Text
-                        style={
-                            styles.headerTitle
-                        }
-                    >
-                        Report Wildlife
-                    </Text>
+					<View style={styles.headerSpacer} />
+				</View>
 
-                    <View
-                        style={
-                            styles.headerSpacer
-                        }
-                    />
-                </View>
+				<View style={styles.intro}>
+					<Text style={styles.eyebrow}>USER REPORT</Text>
 
-                <View
-                    style={
-                        styles.intro
-                    }
-                >
-                    <Text
-                        style={
-                            styles.eyebrow
-                        }
-                    >
-                        USER REPORT
-                    </Text>
+					<Text style={styles.title}>Report a sighting</Text>
 
-                    <Text
-                        style={
-                            styles.title
-                        }
-                    >
-                        Report a sighting
-                    </Text>
+					<Text style={styles.description}>
+						Share a wildlife sighting you observed on your visit.
+					</Text>
 
-                    <Text
-                        style={
-                            styles.description
-                        }
-                    >
-                        Share a wildlife sighting
-                        you observed on your
-                        visit.
-                    </Text>
+					<View style={styles.notice}>
+						<Text style={styles.noticeTitle}>
+							TrailTales community report
+						</Text>
 
-                    <View
-                        style={
-                            styles.notice
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.noticeTitle
-                            }
-                        >
-                            TrailTales community
-                            report
-                        </Text>
+						<Text style={styles.noticeText}>
+							This report is submitted by a TrailTales user and is
+							not official National Park Service information.
+						</Text>
+					</View>
+				</View>
 
-                        <Text
-                            style={
-                                styles.noticeText
-                            }
-                        >
-                            This report is submitted
-                            by a TrailTales user and
-                            is not official National
-                            Park Service information.
-                        </Text>
-                    </View>
-                </View>
+				<View style={styles.form}>
+					<Text style={styles.label}>What did you see?</Text>
 
-                <View
-                    style={
-                        styles.form
-                    }
-                >
-                    <Text
-                        style={
-                            styles.label
-                        }
-                    >
-                        What did you see?
-                    </Text>
+					<TextInput
+						value={species}
+						onChangeText={setSpecies}
+						placeholder="e.g. Black Bear"
+						placeholderTextColor={theme.colors.earth}
+						style={styles.input}
+						accessibilityLabel="wildlife species"
+						autoCapitalize="words"
+					/>
 
-                    <TextInput
-                        value={
-                            species
-                        }
-                        onChangeText={
-                            setSpecies
-                        }
-                        placeholder="e.g. Black Bear"
-                        placeholderTextColor={
-                            theme.colors.earth
-                        }
-                        style={
-                            styles.input
-                        }
-                        accessibilityLabel="wildlife species"
-                        autoCapitalize="words"
-                    />
+					<Text style={[styles.label, styles.spacedLabel]}>
+						Where did you see it?
+					</Text>
 
-                    <Text
-                        style={[
-                            styles.label,
-                            styles.spacedLabel,
-                        ]}
-                    >
-                        Where did you see it?
-                    </Text>
+					<TextInput
+						value={location}
+						onChangeText={setLocation}
+						placeholder="e.g. Near the campground entrance"
+						placeholderTextColor={theme.colors.earth}
+						style={styles.input}
+						accessibilityLabel="wildlife location"
+					/>
 
-                    <TextInput
-                        value={
-                            location
-                        }
-                        onChangeText={
-                            setLocation
-                        }
-                        placeholder="e.g. Near the campground entrance"
-                        placeholderTextColor={
-                            theme.colors.earth
-                        }
-                        style={
-                            styles.input
-                        }
-                        accessibilityLabel="wildlife location"
-                    />
+					<Text style={[styles.label, styles.spacedLabel]}>
+						Tell us more
+					</Text>
 
-                    <Text
-                        style={[
-                            styles.label,
-                            styles.spacedLabel,
-                        ]}
-                    >
-                        Tell us more
-                    </Text>
+					<TextInput
+						value={description}
+						onChangeText={setDescription}
+						placeholder="Describe what you saw..."
+						placeholderTextColor={theme.colors.earth}
+						style={[styles.input, styles.descriptionInput]}
+						multiline
+						textAlignVertical="top"
+						accessibilityLabel="wildlife description"
+					/>
 
-                    <TextInput
-                        value={
-                            description
-                        }
-                        onChangeText={
-                            setDescription
-                        }
-                        placeholder="Describe what you saw..."
-                        placeholderTextColor={
-                            theme.colors.earth
-                        }
-                        style={[
-                            styles.input,
-                            styles.descriptionInput,
-                        ]}
-                        multiline
-                        textAlignVertical="top"
-                        accessibilityLabel="wildlife description"
-                    />
+					{error ? (
+						<Text style={styles.errorText}>{error}</Text>
+					) : null}
 
-                    {error ? (
-                        <Text
-                            style={
-                                styles.errorText
-                            }
-                        >
-                            {
-                                error
-                            }
-                        </Text>
-                    ) : null}
-
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.submitButton,
-                            pressed &&
-                                styles.pressed,
-                        ]}
-                        onPress={
-                            handleSubmit
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel="submit wildlife report"
-                    >
-                        <Text
-                            style={
-                                styles.submitButtonText
-                            }
-                        >
-                            Submit report
-                        </Text>
-                    </Pressable>
-                </View>
-            </ScrollView>
-        </View>
-    )
+					<Pressable
+						style={({ pressed }) => [
+							styles.submitButton,
+							pressed && styles.pressed,
+						]}
+						onPress={handleSubmit}
+						disabled={submitting}
+						accessibilityRole="button"
+						accessibilityLabel="submit wildlife report"
+					>
+						<Text style={styles.submitButtonText}>
+							{submitting ? "Submitting..." : "Submit report"}
+						</Text>
+					</Pressable>
+				</View>
+			</ScrollView>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: theme.colors.parchment,
-    },
+	screen: {
+		flex: 1,
+		backgroundColor: theme.colors.parchment,
+	},
 
-    content: {
-        paddingBottom: theme.spacing.xxxl,
-    },
+	content: {
+		paddingBottom: theme.spacing.xxxl,
+	},
 
-    header: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: theme.spacing.lg,
-    },
+	header: {
+		alignItems: "center",
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingHorizontal: theme.spacing.lg,
+	},
 
-    backButton: {
-        alignItems: 'center',
-        height: 44,
-        justifyContent: 'center',
-        width: 44,
-    },
+	backButton: {
+		alignItems: "center",
+		height: 44,
+		justifyContent: "center",
+		width: 44,
+	},
 
-    backButtonText: {
-        color: theme.colors.ink,
-        fontSize: 30,
-        lineHeight: 32,
-    },
+	backButtonText: {
+		color: theme.colors.ink,
+		fontSize: 30,
+		lineHeight: 32,
+	},
 
-    headerTitle: {
-        color: theme.colors.ink,
-        fontSize: 17,
-        fontWeight: '700',
-    },
+	headerTitle: {
+		color: theme.colors.ink,
+		fontSize: 17,
+		fontWeight: "700",
+	},
 
-    headerSpacer: {
-        height: 44,
-        width: 44,
-    },
+	headerSpacer: {
+		height: 44,
+		width: 44,
+	},
 
-    intro: {
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.xl,
-    },
+	intro: {
+		paddingHorizontal: theme.spacing.lg,
+		paddingTop: theme.spacing.xl,
+	},
 
-    eyebrow: {
-        color: theme.colors.forest,
-        fontSize: 10,
-        fontWeight: '800',
-        letterSpacing: 1.2,
-    },
+	eyebrow: {
+		color: theme.colors.forest,
+		fontSize: 10,
+		fontWeight: "800",
+		letterSpacing: 1.2,
+	},
 
-    title: {
-        color: theme.colors.ink,
-        fontSize: 30,
-        fontWeight: '800',
-        marginTop: theme.spacing.xs,
-    },
+	title: {
+		color: theme.colors.ink,
+		fontSize: 30,
+		fontWeight: "800",
+		marginTop: theme.spacing.xs,
+	},
 
-    description: {
-        color: theme.colors.earth,
-        fontSize: 13,
-        lineHeight: 20,
-        marginTop: theme.spacing.sm,
-    },
+	description: {
+		color: theme.colors.earth,
+		fontSize: 13,
+		lineHeight: 20,
+		marginTop: theme.spacing.sm,
+	},
 
-    notice: {
-        backgroundColor: theme.colors.canvas,
-        borderRadius: theme.radii.md,
-        marginTop: theme.spacing.lg,
-        padding: theme.spacing.md,
-    },
+	notice: {
+		backgroundColor: theme.colors.canvas,
+		borderRadius: theme.radii.md,
+		marginTop: theme.spacing.lg,
+		padding: theme.spacing.md,
+	},
 
-    noticeTitle: {
-        color: theme.colors.forest,
-        fontSize: 12,
-        fontWeight: '700',
-    },
+	noticeTitle: {
+		color: theme.colors.forest,
+		fontSize: 12,
+		fontWeight: "700",
+	},
 
-    noticeText: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        lineHeight: 17,
-        marginTop: theme.spacing.xs,
-    },
+	noticeText: {
+		color: theme.colors.earth,
+		fontSize: 11,
+		lineHeight: 17,
+		marginTop: theme.spacing.xs,
+	},
 
-    form: {
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: theme.spacing.xl,
-    },
+	form: {
+		paddingHorizontal: theme.spacing.lg,
+		paddingTop: theme.spacing.xl,
+	},
 
-    label: {
-        color: theme.colors.ink,
-        fontSize: 12,
-        fontWeight: '700',
-        marginBottom: theme.spacing.xs,
-    },
+	label: {
+		color: theme.colors.ink,
+		fontSize: 12,
+		fontWeight: "700",
+		marginBottom: theme.spacing.xs,
+	},
 
-    spacedLabel: {
-        marginTop: theme.spacing.lg,
-    },
+	spacedLabel: {
+		marginTop: theme.spacing.lg,
+	},
 
-    input: {
-        backgroundColor: theme.colors.canvas,
-        borderColor: theme.colors.sage,
-        borderRadius: theme.radii.sm,
-        borderWidth: 1,
-        color: theme.colors.ink,
-        fontSize: 14,
-        minHeight: 48,
-        paddingHorizontal: theme.spacing.md,
-    },
+	input: {
+		backgroundColor: theme.colors.canvas,
+		borderColor: theme.colors.sage,
+		borderRadius: theme.radii.sm,
+		borderWidth: 1,
+		color: theme.colors.ink,
+		fontSize: 14,
+		minHeight: 48,
+		paddingHorizontal: theme.spacing.md,
+	},
 
-    descriptionInput: {
-        minHeight: 120,
-        paddingTop: theme.spacing.md,
-    },
+	descriptionInput: {
+		minHeight: 120,
+		paddingTop: theme.spacing.md,
+	},
 
-    errorText: {
-        color: theme.colors.earth,
-        fontSize: 11,
-        marginTop: theme.spacing.sm,
-    },
+	errorText: {
+		color: theme.colors.earth,
+		fontSize: 11,
+		marginTop: theme.spacing.sm,
+	},
 
-    submitButton: {
-        alignItems: 'center',
-        backgroundColor: theme.colors.forest,
-        borderRadius: theme.radii.sm,
-        marginTop: theme.spacing.xl,
-        paddingVertical: theme.spacing.md,
-    },
+	submitButton: {
+		alignItems: "center",
+		backgroundColor: theme.colors.forest,
+		borderRadius: theme.radii.sm,
+		marginTop: theme.spacing.xl,
+		paddingVertical: theme.spacing.md,
+	},
 
-    pressed: {
-        opacity: 0.8,
-    },
+	pressed: {
+		opacity: 0.8,
+	},
 
-    submitButtonText: {
-        color: theme.colors.parchment,
-        fontSize: 13,
-        fontWeight: '700',
-    },
-})
+	submitButtonText: {
+		color: theme.colors.parchment,
+		fontSize: 13,
+		fontWeight: "700",
+	},
+});

@@ -81,7 +81,6 @@ export async function getCampfireLoreEntries(parkCode) {
 		)
 		.eq("park_code", parkCode)
 		.eq("campfire_eligible", true)
-		.eq("entry_type", "story")
 		.order("title", {
 			ascending: true,
 		});
@@ -175,7 +174,6 @@ export async function getAllCampfireLoreEntries() {
             `,
 		)
 		.eq("campfire_eligible", true)
-		.eq("entry_type", "story")
 		.order("title", {
 			ascending: true,
 		});

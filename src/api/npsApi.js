@@ -204,10 +204,14 @@ export async function getParks(params = {}) {
 
     const result = getNpsResult(response);
 
+
     const allowedDesignations = new Set([
         "National Park",
+		"National Parks",
         "National and State Parks",
         "State Park",
+		"National Preserve",
+		"National Park & Preserve"
     ]);
 
     return {

@@ -74,7 +74,6 @@ export default function CampfireSelectionScreen({ route, navigation }) {
                     (stories || []).filter(
                         (entry) =>
                             entry.campfire_eligible &&
-                            entry.entry_type === "story" &&
                             entry.campfire_content,
                     ),
                 );
@@ -134,17 +133,31 @@ export default function CampfireSelectionScreen({ route, navigation }) {
 	};
 
     // finds the readable national park name for a lore entry's nps park code
-    const getStoryParkName = (story) => {
-        if (park) {
-            return park.name;
-        }
+	const getStoryParkName = (story) => {
+		// use the selected park name when viewing a single park
+		if (park) {
+			return park.name;
+		}
 
-        const matchingPark = parks.find(
-            (item) => item.id === story.park_code,
-        );
+		// normalize the lore park code before comparing it to the nps park list
+		const storyParkCode = story.park_code
+			?.trim()
+			.toLowerCase();
 
-        return matchingPark?.name || story.park_code?.toUpperCase();
-    };
+		const matchingPark = parks.find(
+			(item) =>
+				item.id
+					?.trim()
+					.toLowerCase() === storyParkCode,
+		);
+
+		// use the official nps park name when a match is found
+		return (
+			matchingPark?.name ||
+			story.park_code?.toUpperCase() ||
+			"Unknown Park"
+		);
+	};
 
 	/*
 	 * opens the selected story inside the immersive

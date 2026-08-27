@@ -56,7 +56,7 @@ export default function CampfireScreen({ route, navigation }) {
 
 				const entries = (apiEntries || []).filter(
 					(entry) =>
-						entry.campfire_eligible && entry.entry_type === "story" && entry.campfire_content,
+						entry.campfire_eligible  && entry.campfire_content,
 				);
 
 				setCampfireEntries(entries);

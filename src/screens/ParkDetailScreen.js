@@ -456,7 +456,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 							)}
 						</>
 					) : (
-						<EmptyCard text="Wildlife information is not available yet" />
+						<EmptyCard text="No wildlife information." />
 					)}
 				</View>
 

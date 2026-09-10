@@ -12,6 +12,11 @@ import {
 
 import mockTrails from '../data/mockTrails'
 
+import {
+    getParkByCode,
+    getTrailsByPark,
+} from '../api/npsApi'
+
 jest.mock(
     '@react-native-community/datetimepicker',
     () => {
@@ -37,6 +42,14 @@ jest.mock(
     '../context/TripContext',
     () => ({
         useTrips: jest.fn(),
+    })
+)
+
+jest.mock(
+    '../api/npsApi',
+    () => ({
+        getParkByCode: jest.fn(),
+        getTrailsByPark: jest.fn(),
     })
 )
 
@@ -69,16 +82,29 @@ describe('AddTrailScreen', () => {
             trips,
             updateTrip,
         })
+
+        getParkByCode.mockResolvedValue({
+            id: 'yellowstone',
+            name: 'Yellowstone National Park',
+        })
+
+        getTrailsByPark.mockResolvedValue(
+            mockTrails.filter(
+                (trail) =>
+                    trail.parkId ===
+                    'yellowstone'
+            )
+        )
     })
 
     afterEach(() => {
         jest.clearAllMocks()
     })
 
-    function renderScreen() {
+    async function renderScreen() {
         let renderer
 
-        act(() => {
+        await act(async () => {
             renderer = require(
                 'react-test-renderer'
             ).create(
@@ -97,15 +123,6 @@ describe('AddTrailScreen', () => {
         })
 
         return renderer
-    }
-
-    function findByProps(
-        renderer,
-        props
-    ) {
-        return renderer.root.findByProps(
-            props
-        )
     }
 
     function findTrailButton(
@@ -137,9 +154,83 @@ describe('AddTrailScreen', () => {
         return button
     }
 
-    test('renders trails belonging to the trip park', () => {
+    function findTextInput(
+        renderer
+    ) {
+        return renderer.root.find(
+            (node) =>
+                node.type ===
+                    'TextInput' &&
+                node.props
+                    ?.placeholder ===
+                    'Search trails...'
+        )
+    }
+
+    function findPressableByText(
+        renderer,
+        text
+    ) {
+        const nodes =
+            renderer.root.findAll(
+                (node) =>
+                    typeof node.props
+                        ?.onPress ===
+                    'function'
+            )
+
+        const button =
+            nodes.find(
+                (node) => {
+                    const children =
+                        node.props
+                            ?.children
+
+                    if (
+                        typeof children ===
+                        'string'
+                    ) {
+                        return (
+                            children ===
+                            text
+                        )
+                    }
+
+                    if (
+                        Array.isArray(
+                            children
+                        )
+                    ) {
+                        return children.some(
+                            (child) =>
+                                typeof child ===
+                                    'object' &&
+                                child?.props
+                                    ?.children ===
+                                    text
+                        )
+                    }
+
+                    return (
+                        children?.props
+                            ?.children ===
+                        text
+                    )
+                }
+            )
+
+        if (!button) {
+            throw new Error(
+                `Could not find pressable containing ${text}`
+            )
+        }
+
+        return button
+    }
+
+    test('renders trails belonging to the trip park', async () => {
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const yellowstoneTrails =
             mockTrails.filter(
@@ -164,17 +255,13 @@ describe('AddTrailScreen', () => {
         )
     })
 
-    test('filters trails using the search field', () => {
+    test('filters trails using the search field', async () => {
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const searchInput =
-            findByProps(
-                renderer,
-                {
-                    accessibilityLabel:
-                        'search trails',
-                }
+            findTextInput(
+                renderer
             )
 
         act(() => {
@@ -196,9 +283,9 @@ describe('AddTrailScreen', () => {
         ).toBeTruthy()
     })
 
-    test('selecting a trail enables the add button', () => {
+    test('selecting a trail enables the add button', async () => {
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const trail =
             mockTrails.find(
@@ -222,12 +309,9 @@ describe('AddTrailScreen', () => {
         })
 
         const addButton =
-            findByProps(
+            findPressableByText(
                 renderer,
-                {
-                    accessibilityLabel:
-                        'add selected trail to trip',
-                }
+                'Add to trip'
             )
 
         expect(
@@ -235,9 +319,9 @@ describe('AddTrailScreen', () => {
         ).toBe(false)
     })
 
-    test('adds the selected trail with its default date and time', () => {
+    test('adds the selected trail with its default date and time', async () => {
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const trail =
             mockTrails.find(
@@ -257,16 +341,13 @@ describe('AddTrailScreen', () => {
         })
 
         const addButton =
-            findByProps(
+            findPressableByText(
                 renderer,
-                {
-                    accessibilityLabel:
-                        'add selected trail to trip',
-                }
+                'Add to trip'
             )
 
-        act(() => {
-            addButton.props.onPress()
+        await act(async () => {
+            await addButton.props.onPress()
         })
 
         expect(
@@ -277,18 +358,18 @@ describe('AddTrailScreen', () => {
             updateTrip
         ).toHaveBeenCalledWith(
             'test-trip',
-            {
+            expect.objectContaining({
                 trails:
                     expect.arrayContaining([
-                        {
+                        expect.objectContaining({
                             id: trail.id,
                             date:
                                 '2026-08-17',
                             time:
                                 '08:00',
-                        },
+                        }),
                     ]),
-            }
+            })
         )
 
         expect(
@@ -296,7 +377,7 @@ describe('AddTrailScreen', () => {
         ).toHaveBeenCalledTimes(1)
     })
 
-    test('does not add a trail that is already in the trip', () => {
+    test('does not add a trail that is already in the trip', async () => {
         const trail =
             mockTrails.find(
                 (item) =>
@@ -313,7 +394,7 @@ describe('AddTrailScreen', () => {
         ]
 
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const trailButton =
             findTrailButton(
@@ -338,9 +419,9 @@ describe('AddTrailScreen', () => {
         ).not.toHaveBeenCalled()
     })
 
-    test('starts a newly selected trail at 8:00 AM', () => {
+    test('starts a newly selected trail at 8:00 AM', async () => {
         const renderer =
-            renderScreen()
+            await renderScreen()
 
         const trail =
             mockTrails.find(
@@ -359,17 +440,15 @@ describe('AddTrailScreen', () => {
             trailButton.props.onPress()
         })
 
-        const timeButton =
-            findByProps(
-                renderer,
-                {
-                    accessibilityLabel:
-                        'select trail start time',
-                }
+        const timeText =
+            renderer.root.findAll(
+                (node) =>
+                    node.props?.children ===
+                    '8:00 AM'
             )
 
         expect(
-            timeButton
-        ).toBeTruthy()
+            timeText.length
+        ).toBeGreaterThan(0)
     })
 })

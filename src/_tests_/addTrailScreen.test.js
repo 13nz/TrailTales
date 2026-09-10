@@ -10,12 +10,46 @@ import {
     useTrips,
 } from '../context/TripContext'
 
-import mockTrails from '../data/mockTrails'
-
 import {
     getParkByCode,
     getTrailsByPark,
 } from '../api/npsApi'
+
+const apiTrails = [
+    {
+        id: 'yellowstone-trail-1',
+        parkId: 'yellowstone',
+        name: 'Mystery Trail',
+        description:
+            'A scenic trail through Yellowstone National Park.',
+        distance: '3.2 mi',
+        difficulty: 'Moderate',
+        duration: '2 hr',
+        dogsAllowed: false,
+    },
+    {
+        id: 'yellowstone-trail-2',
+        parkId: 'yellowstone',
+        name: 'Canyon Trail',
+        description:
+            'A trail with views of the Yellowstone canyon.',
+        distance: '4.5 mi',
+        difficulty: 'Moderate',
+        duration: '3 hr',
+        dogsAllowed: false,
+    },
+    {
+        id: 'other-park-trail',
+        parkId: 'other-park',
+        name: 'Other Park Trail',
+        description:
+            'A trail from another national park.',
+        distance: '2.0 mi',
+        difficulty: 'Easy',
+        duration: '1 hr',
+        dogsAllowed: true,
+    },
+]
 
 jest.mock(
     '@react-native-community/datetimepicker',
@@ -89,7 +123,7 @@ describe('AddTrailScreen', () => {
         })
 
         getTrailsByPark.mockResolvedValue(
-            mockTrails.filter(
+            apiTrails.filter(
                 (trail) =>
                     trail.parkId ===
                     'yellowstone'
@@ -233,7 +267,7 @@ describe('AddTrailScreen', () => {
             await renderScreen()
 
         const yellowstoneTrails =
-            mockTrails.filter(
+            apiTrails.filter(
                 (trail) =>
                     trail.parkId ===
                     'yellowstone'
@@ -288,7 +322,7 @@ describe('AddTrailScreen', () => {
             await renderScreen()
 
         const trail =
-            mockTrails.find(
+            apiTrails.find(
                 (item) =>
                     item.parkId ===
                     'yellowstone'
@@ -324,7 +358,7 @@ describe('AddTrailScreen', () => {
             await renderScreen()
 
         const trail =
-            mockTrails.find(
+            apiTrails.find(
                 (item) =>
                     item.parkId ===
                     'yellowstone'
@@ -379,7 +413,7 @@ describe('AddTrailScreen', () => {
 
     test('does not add a trail that is already in the trip', async () => {
         const trail =
-            mockTrails.find(
+            apiTrails.find(
                 (item) =>
                     item.parkId ===
                     'yellowstone'
@@ -424,7 +458,7 @@ describe('AddTrailScreen', () => {
             await renderScreen()
 
         const trail =
-            mockTrails.find(
+            apiTrails.find(
                 (item) =>
                     item.parkId ===
                     'yellowstone'

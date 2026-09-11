@@ -13,8 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 import theme from '../constants/theme'
-import mockTrails from '../data/mockTrails'
 import { useTrips } from '../context/TripContext'
+import { getTrailsByPark } from '../api/npsApi'
 
 // edits the scheduled date and time of an itinerary trail or activity
 export default function EditItineraryItemScreen({
@@ -23,6 +23,7 @@ export default function EditItineraryItemScreen({
 }) {
     const insets = useSafeAreaInsets()
     const { trips, updateTrip } = useTrips()
+    const [trail, setTrail] = useState(null)
 
     const {
         tripId,
@@ -41,6 +42,35 @@ export default function EditItineraryItemScreen({
               itemId
           )
         : null
+
+    // get trails
+    useEffect(() => {
+        async function loadTrail() {
+            if (
+                itemType !== 'trail' ||
+                !trip?.parkId ||
+                !itemId
+            ) {
+                setTrail(null)
+                return
+            }
+
+            try {
+                const trails = await getTrailsByPark(trip.parkId)
+
+                const selectedTrail = trails.find(
+                    (item) => item.id === itemId
+                )
+
+                setTrail(selectedTrail || null)
+            } catch (error) {
+                console.error('edit itinerary trail loading error:', error)
+                setTrail(null)
+            }
+        }
+
+        loadTrail()
+    }, [itemType, itemId, trip?.parkId])
 
     const [selectedDate, setSelectedDate] =
         useState(() =>
@@ -112,13 +142,7 @@ export default function EditItineraryItemScreen({
         )
     }
 
-    const trail =
-        itemType === 'trail'
-            ? mockTrails.find(
-                  (item) =>
-                      item.id === itemId
-              )
-            : null
+    
 
     const title =
         itemType === 'trail'
@@ -129,10 +153,15 @@ export default function EditItineraryItemScreen({
     const subtitle =
         itemType === 'trail'
             ? trail
-                ? `${trail.distance} · ${trail.difficulty}`
+                ? [
+                    trail.distance,
+                    trail.difficulty,
+                ]
+                    .filter(Boolean)
+                    .join(' · ') || 'Trail'
                 : 'Trail'
             : itineraryItem.location ||
-              'Activity'
+            'Activity'
 
     const tripStartDate =
         createTripDate(

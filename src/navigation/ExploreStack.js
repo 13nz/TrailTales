@@ -11,11 +11,8 @@ import CampgroundDetailScreen from '../screens/CampgroundDetailScreen'
 import ExploreSearchScreen from '../screens/ExploreSearchScreen'
 import TrailDirectoryScreen from '../screens/TrailDirectoryScreen'
 import CampgroundDirectoryScreen from '../screens/CampgroundDirectoryScreen'
-import ActivityDirectoryScreen from '../screens/ActivityDirectoryScreen'
-// import PassportScreen from '../screens/PassportScreen'
 import ReportWildlifeScreen from '../screens/ReportWildlifeScreen'
 
-import ActivityDetailScreen from '../screens/ActivityDetailScreen'
 
 import VisitorCenterDirectoryScreen from '../screens/VisitorCenterDirectoryScreen'
 import VisitorCenterDetailScreen from '../screens/VisitorCenterDetailScreen'
@@ -89,27 +86,6 @@ export default function ExploreStack() {
                 name="ExploreSearch"
                 component={
                     ExploreSearchScreen
-                }
-            />
-
-            {/* <Stack.Screen
-                name="Passport"
-                component={
-                    PassportScreen
-                }
-            /> */}
-
-            <Stack.Screen
-                name="ActivityDirectory"
-                component={
-                    ActivityDirectoryScreen
-                }
-            />
-
-            <Stack.Screen
-                name="ActivityDetail"
-                component={
-                    ActivityDetailScreen
                 }
             />
 

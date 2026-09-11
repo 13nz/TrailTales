@@ -5,16 +5,19 @@ import {
     ScrollView,
     StyleSheet,
 } from 'react-native'
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useEffect, useState } from 'react'
 
 import theme from '../constants/theme'
 import { useTrips } from '../context/TripContext'
-import mockParks from '../data/mockParks'
+import { getAllParks } from '../api/npsApi'
 
 // provides the user's central hub for planning and revisiting outdoor adventures
 export default function TripsScreen({ navigation }) {
     const insets = useSafeAreaInsets()
     const { trips } = useTrips()
+    const [parks, setParks] = useState([])
 
     // separates upcoming and completed adventures using the shared trip store
     const upcomingTrips = trips.filter(
@@ -24,6 +27,19 @@ export default function TripsScreen({ navigation }) {
     const pastTrips = trips.filter(
         (trip) => trip.status === 'past'
     )
+
+    useEffect(() => {
+        async function loadParks() {
+            try {
+                const parkData = await getAllParks()
+                setParks(parkData || [])
+            } catch (error) {
+                console.error('trips park loading error:', error)
+            }
+        }
+
+        loadParks()
+    }, [])
 
     return (
         <View style={styles.screen}>
@@ -74,6 +90,7 @@ export default function TripsScreen({ navigation }) {
                                 key={trip.id}
                                 trip={trip}
                                 navigation={navigation}
+                                parks={parks}
                             />
                         ))}
                     </View>
@@ -131,8 +148,8 @@ export default function TripsScreen({ navigation }) {
     )
 }
 
-function TripCard({ trip, navigation }) {
-    const park = mockParks.find(
+function TripCard({ trip, navigation, parks = [] }) {
+    const park = parks.find(
         (item) => item.id === trip.parkId
     )
 

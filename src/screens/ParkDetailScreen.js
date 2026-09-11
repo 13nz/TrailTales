@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import theme from "../constants/theme";
 import { getAnimalSpecies } from "../api/npsSpeciesApi";
-import mockAlerts from "../data/mockAlerts";
 
 import { useWildlifeReports } from "../context/WildlifeReportContext";
 import { useTrips } from "../context/TripContext";
@@ -22,6 +21,7 @@ import {
 	getParkByCode,
 	getTrailsByPark,
 	getCampgroundsByPark,
+	getAlertsByPark
 } from "../api/npsApi";
 
 import { isFavorite, toggleFavorite } from "../services/favorites";
@@ -46,6 +46,9 @@ export default function ParkDetailScreen({ route, navigation }) {
 
 	const [wildlifeVisibleCount, setWildlifeVisibleCount] = useState(5);
 
+	// alerts
+	const [alerts, setAlerts] = useState([]);
+
 	// tracks whether this park belongs to the current user's favorites
 	const [isParkFavorite, setIsParkFavorite] = useState(false);
 
@@ -64,11 +67,11 @@ export default function ParkDetailScreen({ route, navigation }) {
 
 				const apiPark = await getParkByCode(parkId);
 
-				const [trails, campgrounds] = await Promise.all([
+				const [trails, campgrounds, parkAlerts] = await Promise.all([
 					getTrailsByPark(parkId),
 					getCampgroundsByPark(parkId),
+					getAlertsByPark(parkId),
 				]);
-
 				let species = [];
 
 				try {
@@ -94,6 +97,7 @@ export default function ParkDetailScreen({ route, navigation }) {
 
 				setWildlife(species || []);
 				setIsParkFavorite(favorite);
+				setAlerts(parkAlerts || []);
 			} catch (error) {
 				console.error("NPS park error:", error);
 
@@ -144,7 +148,6 @@ export default function ParkDetailScreen({ route, navigation }) {
 	// gets user-submitted wildlife reports associated with this park
 	const reports = getReportsForPark(park.id);
 
-	const alerts = mockAlerts[park.id] || [];
 
 	const wildlifeCount = wildlife.length;
 	const photoCount = park.images?.length || 0;

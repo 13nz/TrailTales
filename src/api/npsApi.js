@@ -664,6 +664,29 @@ export async function getVisitorCenters() {
 	return visitorCentersRequest;
 }
 
+// retrieves official nps alerts for a national park
+export async function getAlertsByPark(parkCode) {
+    const response = await npsRequest(
+        `/alerts?parkCode=${encodeURIComponent(parkCode)}&limit=50`,
+    );
+
+    const result = getNpsResult(response);
+
+    if (!result.data) {
+        return [];
+    }
+
+    return result.data.map((alert) => ({
+        id: alert.id,
+        parkCode: alert.parkCode || parkCode,
+        title: alert.title || "Park alert",
+        description: alert.description || "",
+        category: alert.category || "Information",
+        url: alert.url || "",
+        lastIndexedDate: alert.lastIndexedDate || "",
+    }));
+}
+
 // retrieves visitor centers for a national park and caches the result
 export async function getVisitorCentersByPark(parkCode) {
 	if (visitorCentersByParkCache.has(parkCode)) {

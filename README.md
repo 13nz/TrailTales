@@ -268,7 +268,6 @@ Create a `.env` file in the project root containing:
     EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
     EXPO_PUBLIC_NPS_API_KEY=your_nps_api_key
 
-The `.env` file should not be committed to source control.
 
 The Supabase key used by the application must be the client-side publishable/anon key and not the Supabase service-role or secret key.
 

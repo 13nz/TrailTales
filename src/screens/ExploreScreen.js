@@ -38,6 +38,7 @@ export default function ExploreScreen() {
 
 					const response = await getParks({
 						limit: 50,
+						start: Math.floor(Math.random() * 10) * 50,
 					});
 
 					const parks = response.data || [];
